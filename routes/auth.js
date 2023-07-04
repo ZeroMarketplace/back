@@ -1,0 +1,279 @@
+let express                                    = require('express');
+let router                                     = express.Router();
+const {body, validationResult}                 = require('express-validator');
+const db                                       = require('../modules/db');
+const {generateRandomColor, sendSMS}           = require("../modules/helper");
+const {generateAccessToken, authenticateToken} = require("../modules/auth");
+const md5                                      = require('md5');
+const {ObjectId}                               = require("mongodb");
+const usersCollection                          = db.getDB().collection('users');
+const validationsCollection                    = db.getDB().collection('validations');
+
+// LOGIN POST
+router.post(
+    '/login',
+    body('phone').notEmpty().isNumeric().isLength({max: 11}),
+    body('password').isLength({min: 8}),
+    body('validation').isMongoId(),
+    function (req, res) {
+
+        // check validation
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({errors: errors.array()});
+        }
+
+        // check validation is not expired
+        validationsCollection.findOne(
+            {_id: new ObjectId(req.body.validation)}
+        ).then((validation) => {
+            if (validation && validation.expDate.getTime() > (new Date().getTime())) {
+
+                // create encrypted password
+                let password = md5(req.body.password + process.env.PasswordSalt);
+
+                // search in db for user
+                usersCollection.findOne({
+                    phone: req.body.phone
+                }).then(async (user) => {
+
+                    // not found
+                    if (!user) {
+                        // create user
+                        let resultInsert = await usersCollection.insertOne({
+                            phone    : req.body.phone,
+                            password : password,
+                            role     : 0,
+                            validated: 'phone'
+                        });
+
+                        // create token
+                        let token = generateAccessToken({
+                            id  : resultInsert.insertedId,
+                            role: 0
+                        });
+
+                        // send token
+                        res.json({
+                            token: token
+                        });
+
+                    } else {
+
+                        if (user.password === password) {
+                            // create token
+                            let token = generateAccessToken({
+                                id  : user._id,
+                                role: user.role
+                            });
+
+                            // send token
+                            res.json({
+                                token: token
+                            });
+                        } else {
+                            return res.sendStatus(401);
+                        }
+                    }
+                });
+            } else {
+                return res.status(400).json({
+                    message: "validationExpired"
+                });
+            }
+        });
+
+    }
+);
+
+// LOGOUT POST
+router.post(
+    '/logout',
+    authenticateToken,
+    function (req, res) {
+        res.sendStatus(200);
+    }
+);
+
+// GET ME INFO
+router.get(
+    '/me',
+    authenticateToken,
+    function (req, res) {
+        // search in db for user
+        db.getDB().collection('users').findOne({
+            _id: ObjectID(req.user.data.id)
+        }).then((user) => {
+
+            // not found
+            if (!user) {
+                return res.sendStatus(401);
+            } else {
+                res.json({
+                    user: {
+                        id       : user._id,
+                        firstName: user.firstName,
+                        lastName : user.lastName,
+                        email    : user.email,
+                        color    : user.color,
+                        avatar   : user.avatar,
+                        phone    : user.phone ?? '',
+                        validate : user.validate ?? false,
+                    }
+                });
+            }
+        });
+
+    }
+);
+
+// GET ME INFO
+router.get(
+    '/refreshToken',
+    function (req, res) {
+        res.sendStatus(200);
+    }
+);
+
+// REGISTER POST
+router.post(
+    '/register',
+    body('email').isEmail(), // check E-mail
+    body('firstName').isString().isLength({max: 20}), // check first name
+    body('lastName').isString().isLength({max: 20}), // check last name
+    body('password').isLength({min: 8}), // check password is 8 character
+    body('phone').isNumeric().isLength({max: 11}), // check phone is 11 character
+    function (req, res) {
+        // check validation
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({errors: errors.array()});
+        }
+
+        // search in db for user
+        db.getDB().collection('users').findOne({
+            email: req.body.email
+        }).then(async (user) => {
+
+            // not found
+            if (!user) {
+                // generate color for user
+                let color = generateRandomColor();
+
+                // add user to db
+                let resultInsert = await db.getDB().collection('users').insertOne({
+                    firstName: req.body.firstName,
+                    lastName : req.body.lastName,
+                    email    : req.body.email,
+                    password : md5(req.body.password),
+                    phone    : req.body.phone,
+                    validate : false,
+                    color    : color,
+                    role     : 0
+                });
+
+                // create token
+                let token = generateAccessToken({
+                    id   : resultInsert.insertedId,
+                    email: req.body.email,
+                    role : 0
+                });
+
+                // send token and user info
+                res.json({
+                    token       : token,
+                    refreshToken: token,
+                });
+            } else {
+                return res.status(406).json({
+                    message: 'There is a user with this email. Please enter another email.',
+                });
+            }
+        });
+
+    }
+);
+
+
+// Send OTP Code
+router.post(
+    '/sendOTP',
+    body('phone').notEmpty().isNumeric().isLength({max: 11}),
+    function (req, res) {
+
+        // check validation
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({errors: errors.array()});
+        }
+
+        validationsCollection.findOne({phone: req.body.phone}).then((validation) => {
+            if ((validation && validation.expDate.getTime() < (new Date().getTime())) || !validation) {
+                // generate opt code
+                let code = '';
+                for (let i = 0; i < 5; i++) {
+                    code += '' + Math.floor(Math.random() * 10);
+                }
+
+                // add otp code to validations
+                validationsCollection.insertOne({
+                    phone  : req.body.phone,
+                    code   : code,
+                    expDate: new Date(new Date().getTime() + 2 * 60000)
+                });
+
+                // delete the expired code
+                if (validation) {
+                    validationsCollection.deleteOne({_id: validation._id});
+                }
+
+                // create text and send to user
+                let text = 'code:' + code + '\n' + 'به فروشگاه زیرو خوش آمدید!';
+                return res.sendStatus(200);
+                // sendSMS(req.body.phone, text, () => {
+                //     return res.sendStatus(200);
+                // });
+
+            } else {
+                return res.sendStatus(403);
+            }
+        });
+    }
+);
+
+// verify OTP code
+router.post(
+    '/verifyOTP',
+    body('phone').notEmpty().isNumeric().isLength({max: 11}),
+    body('code').notEmpty().isNumeric().isLength({max: 5}),
+    function (req, res) {
+        // check validation
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({errors: errors.array()});
+        }
+        validationsCollection.findOne({phone: req.body.phone, code: req.body.code}).then((validation) => {
+            if (validation) {
+                if (validation.expDate.getTime() > (new Date().getTime())) {
+                    validationsCollection.updateOne(
+                        {_id: validation._id},
+                        {$set: {expDate: new Date(validation.expDate.getTime() + 3 * 60000)}}
+                    );
+                    return res.json({
+                        validation: validation._id
+                    });
+                } else {
+                    return res.status(400).json({
+                        message: 'otpIsExpired'
+                    });
+                }
+            } else {
+                return res.status(400).json({
+                    message: 'otpIsWrong'
+                });
+            }
+        });
+    }
+);
+
+module.exports = router;
