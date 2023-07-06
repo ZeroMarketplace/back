@@ -127,73 +127,6 @@ router.get(
     }
 );
 
-// GET ME INFO
-router.get(
-    '/refreshToken',
-    function (req, res) {
-        res.sendStatus(200);
-    }
-);
-
-// REGISTER POST
-router.post(
-    '/register',
-    body('email').isEmail(), // check E-mail
-    body('firstName').isString().isLength({max: 20}), // check first name
-    body('lastName').isString().isLength({max: 20}), // check last name
-    body('password').isLength({min: 8}), // check password is 8 character
-    body('phone').isNumeric().isLength({max: 11}), // check phone is 11 character
-    function (req, res) {
-        // check validation
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({errors: errors.array()});
-        }
-
-        // search in db for user
-        db.getDB().collection('users').findOne({
-            email: req.body.email
-        }).then(async (user) => {
-
-            // not found
-            if (!user) {
-                // generate color for user
-                let color = generateRandomColor();
-
-                // add user to db
-                let resultInsert = await db.getDB().collection('users').insertOne({
-                    firstName: req.body.firstName,
-                    lastName : req.body.lastName,
-                    email    : req.body.email,
-                    password : md5(req.body.password),
-                    phone    : req.body.phone,
-                    validate : false,
-                    color    : color,
-                    role     : 0
-                });
-
-                // create token
-                let token = generateAccessToken({
-                    id   : resultInsert.insertedId,
-                    email: req.body.email,
-                    role : 0
-                });
-
-                // send token and user info
-                res.json({
-                    token       : token,
-                    refreshToken: token,
-                });
-            } else {
-                return res.status(406).json({
-                    message: 'There is a user with this email. Please enter another email.',
-                });
-            }
-        });
-
-    }
-);
-
 
 // Send OTP Code
 router.post(
@@ -247,21 +180,30 @@ router.post(
     body('phone').notEmpty().isNumeric().isLength({max: 11}),
     body('code').notEmpty().isNumeric().isLength({max: 5}),
     function (req, res) {
+
         // check validation
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({errors: errors.array()});
         }
+
         validationsCollection.findOne({phone: req.body.phone, code: req.body.code}).then((validation) => {
             if (validation) {
                 if (validation.expDate.getTime() > (new Date().getTime())) {
+                    // get validation time to enter password
                     validationsCollection.updateOne(
                         {_id: validation._id},
                         {$set: {expDate: new Date(validation.expDate.getTime() + 3 * 60000)}}
                     );
-                    return res.json({
-                        validation: validation._id
+
+                    // check user is exists for get action to log in dialog
+                    usersCollection.findOne({phone: req.body.phone}).then((user) => {
+                        return res.json({
+                            validation  : validation._id,
+                            userIsExists: !!user
+                        });
                     });
+
                 } else {
                     return res.status(400).json({
                         message: 'otpIsExpired'
