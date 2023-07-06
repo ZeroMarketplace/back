@@ -69,7 +69,8 @@ router.post(
 
                             // send token
                             res.json({
-                                token: token
+                                token: token,
+                                role: user.role
                             });
                         } else {
                             return res.sendStatus(401);
