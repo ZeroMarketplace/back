@@ -1,9 +1,6 @@
-
 module.exports = {
-    checkAccess(req, res, next) {
-       // switch (req.user.data.role) {
-       //
-       // }
-        next()
+    checkAdminAccess(req, res, next) {
+        if (!req.user.data.role) return res.sendStatus(403);
+        next();
     }
 }

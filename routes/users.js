@@ -5,8 +5,6 @@ const db                       = require('../modules/db');
 const {authenticateToken}      = require("../modules/auth");
 const {ObjectID}               = require("mongodb");
 const md5                      = require('md5');
-let mime                       = require('mime');
-const fs                       = require("fs");
 let {sendSMS}                  = require("../modules/helper");
 
 // AVATAR PUT

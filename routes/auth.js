@@ -6,6 +6,7 @@ const {generateRandomColor, sendSMS}           = require("../modules/helper");
 const {generateAccessToken, authenticateToken} = require("../modules/auth");
 const md5                                      = require('md5');
 const {ObjectId}                               = require("mongodb");
+const {validateInputs}                         = require("../modules/validation");
 const usersCollection                          = db.getDB().collection('users');
 const validationsCollection                    = db.getDB().collection('validations');
 
@@ -15,13 +16,8 @@ router.post(
     body('phone').notEmpty().isNumeric().isLength({max: 11}),
     body('password').isLength({min: 8}),
     body('validation').isMongoId(),
+    validateInputs,
     function (req, res) {
-
-        // check validation
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({errors: errors.array()});
-        }
 
         // check validation is not expired
         validationsCollection.findOne(
@@ -69,8 +65,10 @@ router.post(
 
                             // send token
                             res.json({
-                                token: token,
-                                role: user.role
+                                token    : token,
+                                role     : user.role,
+                                firstName: user.firstName ?? '',
+                                lastName : user.lastName ?? ''
                             });
                         } else {
                             return res.sendStatus(401);
@@ -133,13 +131,8 @@ router.get(
 router.post(
     '/sendOTP',
     body('phone').notEmpty().isNumeric().isLength({max: 11}),
+    validateInputs,
     function (req, res) {
-
-        // check validation
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({errors: errors.array()});
-        }
 
         validationsCollection.findOne({phone: req.body.phone}).then((validation) => {
             if ((validation && validation.expDate.getTime() < (new Date().getTime())) || !validation) {
@@ -180,13 +173,8 @@ router.post(
     '/verifyOTP',
     body('phone').notEmpty().isNumeric().isLength({max: 11}),
     body('code').notEmpty().isNumeric().isLength({max: 5}),
+    validateInputs,
     function (req, res) {
-
-        // check validation
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) {
-            return res.status(400).json({errors: errors.array()});
-        }
 
         validationsCollection.findOne({phone: req.body.phone, code: req.body.code}).then((validation) => {
             if (validation) {

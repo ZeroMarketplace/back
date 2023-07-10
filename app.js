@@ -7,8 +7,9 @@ const helmet     = require("helmet");
 const cors       = require('cors');
 
 // load routes
-let usersRouter    = require('./routes/users');
-let authRouter     = require('./routes/auth');
+let usersRouter      = require('./routes/users');
+let authRouter       = require('./routes/auth');
+let categoriesRouter = require('./routes/categories');
 
 let app = express();
 
@@ -26,5 +27,6 @@ process.env.TZ = "Asia/Tehran";
 // add routes
 app.use('/api/users', usersRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/categories', categoriesRouter);
 
 module.exports = app;
