@@ -1,7 +1,7 @@
 const db                   = require('../modules/db');
 const categoriesCollection = db.getDB().collection('categories');
 
-let findChildren = (list, children) => {
+function findChildren(list, children) {
     let result = [];
     children.forEach(item => {
         item = list.find(i => i._id.toString() === item.toString());
@@ -13,22 +13,42 @@ let findChildren = (list, children) => {
         result.push(item);
     })
     return result;
-};
-
-module.exports = {
-    reformatCategories(list) {
-        let result = {};
-
-        // find children
-        list.forEach((item) => {
-            if (!item._parent) {
-                if (item.children) {
-                   item.children = findChildren(list, item.children);
-                }
-                result[item._id.toString()] = item;
-            }
-        });
-
-        return result;
-    },
 }
+
+function findChildrenIds(list, _id) {
+    let result = [];
+
+    let item = list.find(i => i._id.toString() === _id.toString());
+
+    if (item.children) {
+        item.children.forEach((childItem) => {
+            result.push(childItem);
+            let childrenIds = findChildrenIds(list, childItem);
+            childrenIds.forEach((jChildItem) => {
+                result.push(jChildItem);
+            })
+        });
+    }
+
+    return result;
+}
+
+function reformatCategories(list) {
+    let result = {};
+
+    // find children
+    list.forEach((item) => {
+        if (!item._parent) {
+            if (item.children) {
+                item.children = findChildren(list, item.children);
+            }
+            result[item._id.toString()] = item;
+        }
+    });
+
+    return result;
+}
+
+exports.reformatCategories = reformatCategories;
+exports.findChildren       = findChildren;
+exports.findChildrenIds    = findChildrenIds;
