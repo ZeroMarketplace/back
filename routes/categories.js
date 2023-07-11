@@ -7,6 +7,7 @@ const {ObjectId}                       = require("mongodb");
 const {checkAdminAccess}               = require("../modules/permission");
 const {validateInputs}                 = require("../modules/validation");
 const {getNextSequence, startCounters} = require("../modules/counters");
+const {reformatCategories}             = require("../modules/categories");
 const categoriesCollection             = db.getDB().collection('categories');
 
 router.post(
@@ -24,9 +25,15 @@ router.post(
         };
 
         if (req.body.icon) insertArr['icon'] = req.body.icon;
-        if (req.body._parent) insertArr['_parent'] = req.body._parent;
+        if (req.body._parent) insertArr['_parent'] = new ObjectId(req.body._parent);
 
-        categoriesCollection.insertOne(insertArr).then(() => {
+        categoriesCollection.insertOne(insertArr).then((result) => {
+
+            categoriesCollection.updateOne(
+                {_id: insertArr['_parent']},
+                {$push: {children: new ObjectId(result.insertedId)}}
+            );
+
             res.sendStatus(200);
         });
     }
@@ -34,11 +41,9 @@ router.post(
 
 router.get(
     '/',
-    authenticateToken,
-    checkAdminAccess,
-    function (req,res) {
+    function (req, res) {
         categoriesCollection.find().toArray().then((result) => {
-            res.sendStatus(200);
+            res.json(reformatCategories(result));
         });
     }
 );
