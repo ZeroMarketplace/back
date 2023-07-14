@@ -10,7 +10,8 @@ const cors       = require('cors');
 let usersRouter      = require('./routes/users');
 let authRouter       = require('./routes/auth');
 let categoriesRouter = require('./routes/categories');
-let brandsRouter = require('./routes/brands');
+let brandsRouter     = require('./routes/brands');
+let unitsRouter      = require('./routes/units');
 
 let app = express();
 
@@ -30,5 +31,6 @@ app.use('/api/users', usersRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/brands', brandsRouter);
+app.use('/api/units', unitsRouter);
 
 module.exports = app;
