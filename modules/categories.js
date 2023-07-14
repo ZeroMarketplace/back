@@ -34,7 +34,7 @@ function findChildrenIds(list, _id) {
 }
 
 function reformatCategories(list) {
-    let result = {};
+    let result = [];
 
     // find children
     list.forEach((item) => {
@@ -42,7 +42,8 @@ function reformatCategories(list) {
             if (item.children) {
                 item.children = findChildren(list, item.children);
             }
-            result[item._id.toString()] = item;
+
+            result.push(item);
         }
     });
 

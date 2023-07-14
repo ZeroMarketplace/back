@@ -35,7 +35,7 @@ router.post(
                 {$push: {children: new ObjectId(result.insertedId)}}
             );
 
-            res.sendStatus(200);
+            res.sendStatus(result.acknowledged ? 200 : 400);
         });
     }
 );
@@ -71,7 +71,7 @@ router.put(
             {_id: new ObjectId(req.body._id)},
             {$set: updateArr}
         ).then((result) => {
-            res.sendStatus(200);
+            res.sendStatus(result.acknowledged ? 200 : 400);
         });
     }
 );
