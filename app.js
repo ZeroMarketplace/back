@@ -12,6 +12,8 @@ let authRouter       = require('./routes/auth');
 let categoriesRouter = require('./routes/categories');
 let brandsRouter     = require('./routes/brands');
 let unitsRouter      = require('./routes/units');
+let colorsRouter     = require('./routes/colors');
+let sizesRouter      = require('./routes/sizes');
 
 let app = express();
 
@@ -32,5 +34,7 @@ app.use('/api/auth', authRouter);
 app.use('/api/categories', categoriesRouter);
 app.use('/api/brands', brandsRouter);
 app.use('/api/units', unitsRouter);
+app.use('/api/colors', colorsRouter);
+app.use('/api/sizes', sizesRouter);
 
 module.exports = app;

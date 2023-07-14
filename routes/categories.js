@@ -87,7 +87,7 @@ router.delete(
         let childrenIds;
 
         // get all children
-        categoriesCollection.find().project({_id:1}).toArray().then((result) => {
+        categoriesCollection.find().project({_id: 1, children: 1}).toArray().then((result) => {
             childrenIds = findChildrenIds(result, _id);
         }).then(() => {
             // delete category
