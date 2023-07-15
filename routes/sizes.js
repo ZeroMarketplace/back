@@ -1,10 +1,10 @@
-let express               = require('express');
-let router                = express.Router();
-const {body}              = require('express-validator');
-const db                  = require('../modules/db');
-const {authenticateToken} = require("../modules/auth");
-const {ObjectId}          = require("mongodb");
-const {checkAdminAccess}  = require("../modules/permission");
+let express                            = require('express');
+let router                             = express.Router();
+const {body, param}                    = require('express-validator');
+const db                               = require('../modules/db');
+const {authenticateToken}              = require("../modules/auth");
+const {ObjectId}                       = require("mongodb");
+const {checkAdminAccess}               = require("../modules/permission");
 const {validateInputs}                 = require("../modules/validation");
 const {getNextSequence, startCounters} = require("../modules/counters");
 const sizesCollection                  = db.getDB().collection('sizes');
@@ -40,34 +40,50 @@ router.get(
 
 
 router.put(
-    '/',
+    '/:_id',
     authenticateToken,
     checkAdminAccess,
     body('title').notEmpty(),
     body('titleEn').notEmpty(),
-    body('_id').notEmpty(),
+    param('_id').notEmpty(),
     validateInputs,
     async function (req, res, next) {
-
-        sizesCollection.updateOne(
-            {_id: new ObjectId(req.body._id)},
-            {$set: {title: req.body.title, titleEn: req.body.titleEn}}
-        ).then((result) => {
-            res.sendStatus(result.acknowledged ? 200 : 400);
+        let _id = new ObjectId(req.params._id);
+        // check exists
+        sizesCollection.findOne({_id: _id}).then(findResult => {
+            if (findResult) {
+                // update
+                sizesCollection.updateOne(
+                    {_id: _id},
+                    {$set: {title: req.body.title, titleEn: req.body.titleEn}}
+                ).then((result) => {
+                    res.sendStatus(result.acknowledged ? 200 : 400);
+                });
+            } else {
+                return res.sendStatus(404);
+            }
         });
     }
 );
 
 router.delete(
-    '/',
+    '/:_id',
     authenticateToken,
     checkAdminAccess,
-    body('_id').notEmpty(),
+    param('_id').notEmpty(),
     validateInputs,
     async function (req, res, next) {
-        let _id = new ObjectId(req.body._id);
-        sizesCollection.deleteOne({_id: _id}).then((result) => {
-            res.sendStatus(result.acknowledged ? 200 : 400);
+        let _id = new ObjectId(req.params._id);
+        // check exists
+        sizesCollection.findOne({_id: _id}).then(findResult => {
+            if (findResult) {
+                // delete
+                sizesCollection.deleteOne({_id: _id}).then((result) => {
+                    res.sendStatus(result.acknowledged ? 200 : 400);
+                });
+            } else {
+                return res.sendStatus(404);
+            }
         });
     }
 );

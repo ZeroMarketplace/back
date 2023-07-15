@@ -1,6 +1,6 @@
 let express                                 = require('express');
 let router                                  = express.Router();
-const {body, validationResult}              = require('express-validator');
+const {body, validationResult, param}       = require('express-validator');
 const db                                    = require('../modules/db');
 const {authenticateToken}                   = require("../modules/auth");
 const {ObjectId}                            = require("mongodb");
@@ -51,62 +51,78 @@ router.get(
 
 
 router.put(
-    '/',
+    '/:_id',
     authenticateToken,
     checkAdminAccess,
     body('title').notEmpty(),
     body('titleEn').notEmpty(),
-    body('_id').notEmpty(),
+    param('_id').notEmpty(),
     validateInputs,
     async function (req, res, next) {
+        let _id = new ObjectId(req.params._id);
+        // check exists
+        categoriesCollection.findOne({_id: _id}).then(findResult => {
+            if (findResult) {
+                let updateArr = {
+                    title  : req.body.title,
+                    titleEn: req.body.titleEn,
+                };
 
-        let updateArr = {
-            title  : req.body.title,
-            titleEn: req.body.titleEn,
-        };
+                if (req.body.icon) updateArr['icon'] = req.body.icon;
 
-        if (req.body.icon) updateArr['icon'] = req.body.icon;
-
-        categoriesCollection.updateOne(
-            {_id: new ObjectId(req.body._id)},
-            {$set: updateArr}
-        ).then((result) => {
-            res.sendStatus(result.acknowledged ? 200 : 400);
+                categoriesCollection.updateOne(
+                    {_id: _id},
+                    {$set: updateArr}
+                ).then((result) => {
+                    res.sendStatus(result.acknowledged ? 200 : 400);
+                });
+            } else {
+                return res.sendStatus(404);
+            }
         });
+
+
     }
 );
 
 router.delete(
-    '/',
+    '/:_id',
     authenticateToken,
     checkAdminAccess,
-    body('_id').notEmpty(),
+    param('_id').notEmpty(),
     validateInputs,
     async function (req, res, next) {
-        let _id = new ObjectId(req.body._id);
+        let _id = new ObjectId(req.params._id);
         let childrenIds;
 
-        // get all children
-        categoriesCollection.find().project({_id: 1, children: 1}).toArray().then((result) => {
-            childrenIds = findChildrenIds(result, _id);
-        }).then(() => {
-            // delete category
-            categoriesCollection.deleteOne({
-                _id: _id
-            }).then((result) => {
+        // check exists
+        categoriesCollection.findOne({_id: _id}).then(findResult => {
+            if (findResult) {
+                // get all children
+                categoriesCollection.find().project({_id: 1, children: 1}).toArray().then((result) => {
+                    childrenIds = findChildrenIds(result, _id);
+                }).then(() => {
+                    // delete category
+                    categoriesCollection.deleteOne({
+                        _id: _id
+                    }).then((result) => {
 
-                // delete category children
-                categoriesCollection.deleteMany({_id: {$in: childrenIds}});
+                        // delete category children
+                        categoriesCollection.deleteMany({_id: {$in: childrenIds}});
 
-                // update children of parent
-                categoriesCollection.updateOne(
-                    {children: {$in: [_id]}},
-                    {$pull: {children: _id}}
-                ).then((result) => {
-                    res.sendStatus(200);
+                        // update children of parent
+                        categoriesCollection.updateOne(
+                            {children: {$in: [_id]}},
+                            {$pull: {children: _id}}
+                        ).then((result) => {
+                            res.sendStatus(200);
+                        });
+
+                    });
                 });
-
-            });
+            } else {
+                return res.sendStatus(404);
+            }
         });
 
     }
