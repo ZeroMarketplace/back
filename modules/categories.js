@@ -33,6 +33,10 @@ function findChildrenIds(list, _id) {
     return result;
 }
 
+async function categoryDetail(_id) {
+    return await categoriesCollection.findOne({_id: _id});
+}
+
 function reformatCategories(list) {
     let result = [];
 
@@ -53,3 +57,4 @@ function reformatCategories(list) {
 exports.reformatCategories = reformatCategories;
 exports.findChildren       = findChildren;
 exports.findChildrenIds    = findChildrenIds;
+exports.categoryDetail     = categoryDetail;

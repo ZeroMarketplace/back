@@ -14,6 +14,7 @@ let brandsRouter     = require('./routes/brands');
 let unitsRouter      = require('./routes/units');
 let colorsRouter     = require('./routes/colors');
 let sizesRouter      = require('./routes/sizes');
+let productsRouter   = require('./routes/products');
 
 let app = express();
 
@@ -36,5 +37,6 @@ app.use('/api/brands', brandsRouter);
 app.use('/api/units', unitsRouter);
 app.use('/api/colors', colorsRouter);
 app.use('/api/sizes', sizesRouter);
+app.use('/api/products', productsRouter);
 
 module.exports = app;

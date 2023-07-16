@@ -1,4 +1,3 @@
-const axios    = require("axios");
 module.exports = {
     sendSMS(toPhone, text, callback) {
         fetch('https://login.niazpardaz.ir/SMSInOutBox/Send', {
