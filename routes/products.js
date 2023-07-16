@@ -48,6 +48,7 @@ router.post(
     body('barcode').notEmpty(),
     body('iranCode').notEmpty(),
     body('variants').notEmpty(),
+    body('weight').notEmpty(),
     body('dimensions').notEmpty(),
     body('tags').notEmpty(),
     body('properties').notEmpty(),
@@ -85,6 +86,7 @@ router.post(
                 barcode   : req.body.barcode,
                 iranCode  : req.body.iranCode,
                 variants  : req.body.variants,
+                weight    : req.body.weight,
                 dimensions: req.body.dimensions,
                 tags      : req.body.tags,
                 properties: req.body.properties,
@@ -151,7 +153,10 @@ router.post(
 router.get(
     '/',
     function (req, res) {
-        productsCollection.find().toArray().then((result) => {
+        productsCollection
+            .find()
+            .project({_id: 1, name: 1, files: {$arrayElemAt: ["$files", 0]}})
+            .toArray().then((result) => {
             res.json(result);
         });
     }
