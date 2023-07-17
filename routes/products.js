@@ -15,10 +15,11 @@ const {sizeDetail}                     = require("../modules/sizes");
 const productsCollection               = db.getDB().collection('products');
 
 // config upload service
+const filesPath = 'public/products/files/';
 const multer             = require('multer');
 const fileStorage        = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'public/products/files/')
+        cb(null, filesPath)
     },
     filename   : function (req, file, cb) {
         const uniqueSuffix = new ObjectId().toString() + '.' + file.mimetype.split('/')[1];
@@ -267,7 +268,7 @@ router.delete(
         productsCollection.findOne({_id: _id}).then((result) => {
             if (result) {
                 // delete file
-                fs.unlink('public/products/files/' + req.params.fileName, (err) => {
+                fs.unlink(filesPath + req.params.fileName, (err) => {
                     if (err) return res.status(500).json(err);
 
                     // update
@@ -297,6 +298,13 @@ router.delete(
         // check exists
         productsCollection.findOne({_id: _id}).then(findResult => {
             if (findResult) {
+                // delete files
+                if(findResult.files) {
+                    findResult.files.forEach((file) => {
+                        fs.unlink(filesPath + file, () => {});
+                    });
+                }
+
                 // delete
                 productsCollection.deleteOne({_id: _id}).then((result) => {
                     res.sendStatus(result.acknowledged ? 200 : 400);
