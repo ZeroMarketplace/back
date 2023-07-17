@@ -35,7 +35,7 @@ router.post(
                 {$push: {children: new ObjectId(result.insertedId)}}
             );
 
-            res.sendStatus(result.acknowledged ? 200 : 400);
+            return res.sendStatus(result.acknowledged ? 200 : 400);
         });
     }
 );
@@ -74,7 +74,7 @@ router.put(
                     {_id: _id},
                     {$set: updateArr}
                 ).then((result) => {
-                    res.sendStatus(result.acknowledged ? 200 : 400);
+                    return res.sendStatus(result.acknowledged ? 200 : 400);
                 });
             } else {
                 return res.sendStatus(404);
@@ -115,7 +115,7 @@ router.delete(
                             {children: {$in: [_id]}},
                             {$pull: {children: _id}}
                         ).then((result) => {
-                            res.sendStatus(200);
+                            return res.sendStatus(200);
                         });
 
                     });

@@ -25,7 +25,7 @@ router.put(
             let base64File = req.body.avatar.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
 
             if (base64File.length !== 3) {
-                res.sendStatus(406);
+                return res.sendStatus(406);
             }
 
             // write file
@@ -97,7 +97,7 @@ router.delete(
             db.getDB().collection('users').updateOne({
                 _id: ObjectID(req.user.data.id)
             }, {$set: {avatar: ''}}).then(function () {
-                res.sendStatus(200);
+                return res.sendStatus(200);
             });
 
         });

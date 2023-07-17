@@ -26,7 +26,7 @@ router.post(
                 code   : await getNextSequence('colors')
             }
         ).then((result) => {
-            res.sendStatus(result.acknowledged ? 200 : 400);
+            return res.sendStatus(result.acknowledged ? 200 : 400);
         });
     }
 );
@@ -66,7 +66,7 @@ router.put(
                         }
                     }
                 ).then((result) => {
-                    res.sendStatus(result.acknowledged ? 200 : 400);
+                    return res.sendStatus(result.acknowledged ? 200 : 400);
                 });
 
             } else {
@@ -89,7 +89,7 @@ router.delete(
             if (findResult) {
                 // delete
                 colorsCollection.deleteOne({_id: _id}).then((result) => {
-                    res.sendStatus(result.acknowledged ? 200 : 400);
+                    return res.sendStatus(result.acknowledged ? 200 : 400);
                 });
             } else {
                 return res.sendStatus(404);

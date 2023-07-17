@@ -24,7 +24,7 @@ router.post(
                 code   : await getNextSequence('sizes')
             }
         ).then((result) => {
-            res.sendStatus(result.acknowledged ? 200 : 400);
+            return res.sendStatus(result.acknowledged ? 200 : 400);
         });
     }
 );
@@ -57,7 +57,7 @@ router.put(
                     {_id: _id},
                     {$set: {title: req.body.title, titleEn: req.body.titleEn}}
                 ).then((result) => {
-                    res.sendStatus(result.acknowledged ? 200 : 400);
+                    return res.sendStatus(result.acknowledged ? 200 : 400);
                 });
             } else {
                 return res.sendStatus(404);
@@ -79,7 +79,7 @@ router.delete(
             if (findResult) {
                 // delete
                 sizesCollection.deleteOne({_id: _id}).then((result) => {
-                    res.sendStatus(result.acknowledged ? 200 : 400);
+                    return res.sendStatus(result.acknowledged ? 200 : 400);
                 });
             } else {
                 return res.sendStatus(404);
