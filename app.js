@@ -6,16 +6,6 @@ let cookieParser = require('cookie-parser');
 const helmet     = require("helmet");
 const cors       = require('cors');
 
-// load routes
-let usersRouter      = require('./routes/users');
-let authRouter       = require('./routes/auth');
-let categoriesRouter = require('./routes/categories');
-let brandsRouter     = require('./routes/brands');
-let unitsRouter      = require('./routes/units');
-let colorsRouter     = require('./routes/colors');
-let sizesRouter      = require('./routes/sizes');
-let productsRouter   = require('./routes/products');
-
 let app = express();
 
 // add middlewares
@@ -30,13 +20,14 @@ app.use(cors());
 process.env.TZ = "Asia/Tehran";
 
 // add routes
-app.use('/api/users', usersRouter);
-app.use('/api/auth', authRouter);
-app.use('/api/categories', categoriesRouter);
-app.use('/api/brands', brandsRouter);
-app.use('/api/units', unitsRouter);
-app.use('/api/colors', colorsRouter);
-app.use('/api/sizes', sizesRouter);
-app.use('/api/products', productsRouter);
+app.use('/api/users', require('./routes/users'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/categories', require('./routes/categories'));
+app.use('/api/brands', require('./routes/brands'));
+app.use('/api/units', require('./routes/units'));
+app.use('/api/colors', require('./routes/colors'));
+app.use('/api/sizes', require('./routes/sizes'));
+app.use('/api/products', require('./routes/products'));
+app.use('/api/warehouses', require('./routes/warehouses'));
 
 module.exports = app;
