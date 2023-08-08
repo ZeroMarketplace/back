@@ -7,21 +7,27 @@ const {ObjectId}                       = require("mongodb");
 const {checkAdminAccess}               = require("../modules/permission");
 const {validateInputs}                 = require("../modules/validation");
 const {getNextSequence, startCounters} = require("../modules/counters");
-const sizesCollection                  = db.getDB().collection('sizes');
+const propertiesCollection             = db.getDB().collection('properties');
 
 router.post(
     '/',
     authenticateToken,
     checkAdminAccess,
-    body('title').notEmpty(),
-    body('titleEn').notEmpty(),
+    body('title').notEmpty().escape(),
+    body('titleEn').notEmpty().escape(),
     validateInputs,
     async function (req, res, next) {
-        sizesCollection.insertOne(
+        // create code for values
+        for (let value of req.body.values) {
+            value.code = await getNextSequence('properties-values', true)
+        }
+
+        propertiesCollection.insertOne(
             {
                 title  : req.body.title,
                 titleEn: req.body.titleEn,
-                code   : await getNextSequence('sizes')
+                variant: req.body.variant,
+                values : req.body.values
             }
         ).then((result) => {
             return res.sendStatus(result.acknowledged ? 200 : 400);
@@ -32,7 +38,7 @@ router.post(
 router.get(
     '/',
     function (req, res) {
-        sizesCollection.find().toArray().then((result) => {
+        propertiesCollection.find().toArray().then((result) => {
             res.json(result);
         });
     }
@@ -43,19 +49,32 @@ router.put(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    body('title').notEmpty(),
-    body('titleEn').notEmpty(),
-    param('_id').notEmpty(),
+    body('title').notEmpty().escape(),
+    body('titleEn').notEmpty().escape(),
+    param('_id').notEmpty().escape(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);
         // check exists
-        sizesCollection.findOne({_id: _id}).then(findResult => {
+        propertiesCollection.findOne({_id: _id}).then(async findResult => {
             if (findResult) {
+
+                // create code for values
+                for (let value of req.body.values) {
+                    if (!value.code)
+                        value.code = await getNextSequence('properties-values', true)
+                }
+
                 // update
-                sizesCollection.updateOne(
+                propertiesCollection.updateOne(
                     {_id: _id},
-                    {$set: {title: req.body.title, titleEn: req.body.titleEn}}
+                    {
+                        $set: {
+                            title  : req.body.title,
+                            titleEn: req.body.titleEn,
+                            values : req.body.values
+                        }
+                    }
                 ).then((result) => {
                     return res.sendStatus(result.acknowledged ? 200 : 400);
                 });
@@ -70,15 +89,15 @@ router.delete(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    param('_id').notEmpty(),
+    param('_id').notEmpty().escape(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);
         // check exists
-        sizesCollection.findOne({_id: _id}).then(findResult => {
+        propertiesCollection.findOne({_id: _id}).then(findResult => {
             if (findResult) {
                 // delete
-                sizesCollection.deleteOne({_id: _id}).then((result) => {
+                propertiesCollection.deleteOne({_id: _id}).then((result) => {
                     return res.sendStatus(result.acknowledged ? 200 : 400);
                 });
             } else {

@@ -9,13 +9,14 @@ const {validateInputs}                      = require("../modules/validation");
 const {getNextSequence, startCounters}      = require("../modules/counters");
 const {reformatCategories, findChildrenIds} = require("../modules/categories");
 const categoriesCollection                  = db.getDB().collection('categories');
+const propertiesCollection                  = db.getDB().collection('properties');
 
 router.post(
     '/',
     authenticateToken,
     checkAdminAccess,
-    body('title').notEmpty(),
-    body('titleEn').notEmpty(),
+    body('title').notEmpty().escape(),
+    body('titleEn').notEmpty().escape(),
     validateInputs,
     async function (req, res, next) {
         let insertArr = {
@@ -23,6 +24,15 @@ router.post(
             titleEn: req.body.titleEn,
             code   : await getNextSequence("categories")
         };
+
+        // create properties object id
+        if (req.body._properties) {
+            req.body._properties.forEach((property, index) => {
+                req.body._properties[index] = new ObjectId(property);
+            });
+            insertArr['_properties'] = req.body._properties;
+        }
+
 
         if (req.body.icon) insertArr['icon'] = req.body.icon;
         if (req.body._parent) insertArr['_parent'] = new ObjectId(req.body._parent);
@@ -43,8 +53,29 @@ router.post(
 router.get(
     '/',
     function (req, res) {
-        categoriesCollection.find().toArray().then((result) => {
+        categoriesCollection.find()
+            .toArray().then((result) => {
             res.json(reformatCategories(result));
+        });
+    }
+);
+
+router.get(
+    '/:_id/properties',
+    param('_id').notEmpty().escape(),
+    function (req, res) {
+        let _id = new ObjectId(req.params._id);
+        // check exists
+        categoriesCollection.findOne({_id: _id}).then(findResult => {
+            if (findResult) {
+                propertiesCollection.find({_id: {$in: findResult._properties}})
+                    .toArray()
+                    .then((result) => {
+                        res.json(result);
+                    });
+            } else {
+                return res.sendStatus(404);
+            }
         });
     }
 );
@@ -54,9 +85,9 @@ router.put(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    body('title').notEmpty(),
-    body('titleEn').notEmpty(),
-    param('_id').notEmpty(),
+    body('title').notEmpty().escape(),
+    body('titleEn').notEmpty().escape(),
+    param('_id').notEmpty().escape(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);
@@ -67,6 +98,14 @@ router.put(
                     title  : req.body.title,
                     titleEn: req.body.titleEn,
                 };
+
+                // create properties object id
+                if (req.body._properties) {
+                    req.body._properties.forEach((property, index) => {
+                        req.body._properties[index] = new ObjectId(property);
+                    });
+                    updateArr['_properties'] = req.body._properties;
+                }
 
                 if (req.body.icon) updateArr['icon'] = req.body.icon;
 
@@ -89,7 +128,7 @@ router.delete(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    param('_id').notEmpty(),
+    param('_id').notEmpty().escape(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);

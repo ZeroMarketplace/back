@@ -12,8 +12,8 @@ router.post(
     '/',
     authenticateToken,
     checkAdminAccess,
-    body('title').notEmpty(),
-    body('titleEn').notEmpty(),
+    body('title').notEmpty().escape(),
+    body('titleEn').notEmpty().escape(),
     validateInputs,
     async function (req, res, next) {
         warehousesCollection.insertOne(
@@ -42,9 +42,9 @@ router.put(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    body('title').notEmpty(),
-    body('titleEn').notEmpty(),
-    param('_id').notEmpty(),
+    body('title').notEmpty().escape(),
+    body('titleEn').notEmpty().escape(),
+    param('_id').notEmpty().escape(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);
@@ -76,7 +76,7 @@ router.delete(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    param('_id').notEmpty(),
+    param('_id').notEmpty().escape(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);

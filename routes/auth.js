@@ -13,9 +13,9 @@ const validationsCollection                    = db.getDB().collection('validati
 // LOGIN POST
 router.post(
     '/login',
-    body('phone').notEmpty().isNumeric().isLength({max: 11}),
-    body('password').isLength({min: 8}),
-    body('validation').isMongoId(),
+    body('phone').notEmpty().isNumeric().isLength({max: 11}).escape(),
+    body('password').isLength({min: 8}).escape(),
+    body('validation').isMongoId().escape(),
     validateInputs,
     function (req, res) {
 
@@ -39,14 +39,14 @@ router.post(
                         let resultInsert = await usersCollection.insertOne({
                             phone    : req.body.phone,
                             password : password,
-                            role     : 0,
+                            role     : 'user',
                             validated: 'phone'
                         });
 
                         // create token
                         let token = generateAccessToken({
                             id  : resultInsert.insertedId,
-                            role: 0
+                            role: 'user'
                         });
 
                         // send token
@@ -130,7 +130,7 @@ router.get(
 // Send OTP Code
 router.post(
     '/sendOTP',
-    body('phone').notEmpty().isNumeric().isLength({max: 11}),
+    body('phone').notEmpty().isNumeric().isLength({max: 11}).escape(),
     validateInputs,
     function (req, res) {
 
@@ -171,8 +171,8 @@ router.post(
 // verify OTP code
 router.post(
     '/verifyOTP',
-    body('phone').notEmpty().isNumeric().isLength({max: 11}),
-    body('code').notEmpty().isNumeric().isLength({max: 5}),
+    body('phone').notEmpty().isNumeric().isLength({max: 11}).escape(),
+    body('code').notEmpty().isNumeric().isLength({max: 5}).escape(),
     validateInputs,
     function (req, res) {
 

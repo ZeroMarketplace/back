@@ -27,14 +27,6 @@ function startCounters() {
         {
             _id: 'categories',
             seq: 100
-        },
-        {
-            _id: 'colors',
-            seq: 10
-        },
-        {
-            _id: 'sizes',
-            seq: 10
         }
     ]).then((result) => {
         console.log('Counters is set');

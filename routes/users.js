@@ -11,7 +11,7 @@ let {sendSMS}                  = require("../modules/helper");
 router.put(
     '/me/avatar',
     authenticateToken,
-    body('avatar').notEmpty().isString(),
+    body('avatar').notEmpty().isString().escape(),
     function (req, res) {
 
         // check validation
