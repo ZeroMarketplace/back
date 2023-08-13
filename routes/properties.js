@@ -15,6 +15,7 @@ router.post(
     checkAdminAccess,
     body('title').notEmpty().escape(),
     body('titleEn').notEmpty().escape(),
+    body('variant').isBoolean().escape(),
     validateInputs,
     async function (req, res, next) {
         // create code for values
@@ -26,7 +27,7 @@ router.post(
             {
                 title  : req.body.title,
                 titleEn: req.body.titleEn,
-                variant: req.body.variant,
+                variant: (req.body.variant === 'true'),
                 values : req.body.values
             }
         ).then((result) => {
@@ -51,6 +52,7 @@ router.put(
     checkAdminAccess,
     body('title').notEmpty().escape(),
     body('titleEn').notEmpty().escape(),
+    body('variant').isBoolean().escape(),
     param('_id').notEmpty().escape(),
     validateInputs,
     async function (req, res, next) {
@@ -72,6 +74,7 @@ router.put(
                         $set: {
                             title  : req.body.title,
                             titleEn: req.body.titleEn,
+                            variant: (req.body.variant === 'true'),
                             values : req.body.values
                         }
                     }

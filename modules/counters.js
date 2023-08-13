@@ -1,7 +1,7 @@
 const db                 = require('../modules/db');
 const countersCollection = db.getDB().collection('counters');
 
-async function getNextSequence(name, createIfNotExists = false) {
+async function getNextSequence(name, createIfNotExists = false, startAt = 10) {
     let ret = await countersCollection.findOneAndUpdate(
         {_id: name},
         {$inc: {seq: 1}},
@@ -13,7 +13,7 @@ async function getNextSequence(name, createIfNotExists = false) {
 
         await countersCollection.insertOne({
             _id: name,
-            seq: 100
+            seq: startAt
         });
 
         return getNextSequence(name);

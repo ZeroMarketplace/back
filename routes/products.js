@@ -15,7 +15,7 @@ const {sizeDetail}                     = require("../modules/sizes");
 const productsCollection               = db.getDB().collection('products');
 
 // config upload service
-const filesPath = 'public/products/files/';
+const filesPath          = 'public/products/files/';
 const multer             = require('multer');
 const fileStorage        = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -49,7 +49,6 @@ router.post(
     body('unit').notEmpty().escape(),
     body('barcode').notEmpty().escape(),
     body('iranCode').notEmpty().escape(),
-    body('variants').notEmpty().escape(),
     body('weight').notEmpty().escape(),
     body('dimensions').notEmpty().escape(),
     body('tags').notEmpty().escape(),
@@ -66,36 +65,49 @@ router.post(
 
         // create product code
         let category    = await categoryDetail(req.body.categories[0]);
-        let productCode = Number(category.code + '' +
-            await getNextSequence('Category No. ' + category.code + ' products', true));
+        let productCode = Number(
+            category.code + '' +
+            await getNextSequence(
+                'Category No. ' + category.code + ' products',
+                true,
+                1000000
+            )
+        );
+
+
+        let insertArray = {
+            name       : req.body.name,
+            code       : productCode,
+            _categories: req.body.categories,
+            _brand     : new ObjectId(req.body.brand),
+            _unit      : new ObjectId(req.body.unit),
+            barcode    : req.body.barcode,
+            iranCode   : req.body.iranCode,
+            weight     : req.body.weight,
+            dimensions : req.body.dimensions,
+            tags       : req.body.tags,
+            properties : req.body.properties,
+            title      : req.body.title,
+            content    : req.body.content
+        };
 
         // variants
-        for (let variant of req.body.variants) {
-            variant.color = new ObjectId(variant.color);
-            variant.size  = new ObjectId(variant.size);
-            variant.code  = Number(productCode + '' +
-                (await sizeDetail(variant.size)).code +
-                (await colorDetail(variant.color)).code);
+        if (req.body.variants) {
+            for (let variant of req.body.variants) {
+                variant.code = Number(category.code + '' +
+                    await getNextSequence('Category No. ' + category.code + ' products'));
+                // create property object id's
+                variant.properties.forEach((property) => {
+                    property.propertyId = new ObjectId(property.propertyId);
+                });
+            }
+
+            // add to insert array
+            insertArray.variants = req.body.variants
         }
 
-        productsCollection.insertOne(
-            {
-                name      : req.body.name,
-                code      : productCode,
-                categories: req.body.categories,
-                brand     : new ObjectId(req.body.brand),
-                unit      : new ObjectId(req.body.unit),
-                barcode   : req.body.barcode,
-                iranCode  : req.body.iranCode,
-                variants  : req.body.variants,
-                weight    : req.body.weight,
-                dimensions: req.body.dimensions,
-                tags      : req.body.tags,
-                properties: req.body.properties,
-                title     : req.body.title,
-                content   : req.body.content
-            }
-        ).then((result) => {
+        // insert to db
+        productsCollection.insertOne(insertArray).then((result) => {
             if (result.acknowledged) {
                 res.json({
                     _id: result.insertedId
@@ -299,9 +311,10 @@ router.delete(
         productsCollection.findOne({_id: _id}).then(findResult => {
             if (findResult) {
                 // delete files
-                if(findResult.files) {
+                if (findResult.files) {
                     findResult.files.forEach((file) => {
-                        fs.unlink(filesPath + file, () => {});
+                        fs.unlink(filesPath + file, () => {
+                        });
                     });
                 }
 
