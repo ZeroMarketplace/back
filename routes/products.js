@@ -10,8 +10,7 @@ const {validateInputs}                 = require("../modules/validation");
 const {createProductCode}              = require("../modules/products");
 const {categoryDetail}                 = require("../modules/categories");
 const {getNextSequence, startCounters} = require("../modules/counters");
-const {colorDetail}                    = require("../modules/colors");
-const {sizeDetail}                     = require("../modules/sizes");
+const validator                        = require("express-validator");
 const productsCollection               = db.getDB().collection('products');
 
 // config upload service
@@ -43,18 +42,17 @@ router.post(
     '/',
     authenticateToken,
     checkAdminAccess,
-    body('name').notEmpty().escape(),
-    body('categories').notEmpty().isArray().escape(),
-    body('brand').notEmpty().escape(),
-    body('unit').notEmpty().escape(),
-    body('barcode').notEmpty().escape(),
-    body('iranCode').notEmpty().escape(),
-    body('weight').notEmpty().escape(),
-    body('dimensions').notEmpty().escape(),
-    body('tags').notEmpty().escape(),
-    body('properties').notEmpty().escape(),
-    body('title').notEmpty().escape(),
-    body('content').notEmpty().escape(),
+    body('name').notEmpty(),
+    body('categories').notEmpty().isArray(),
+    body('brand').notEmpty(),
+    body('unit').notEmpty(),
+    body('barcode').notEmpty(),
+    body('iranCode').notEmpty(),
+    body('weight').notEmpty(),
+    body('dimensions').notEmpty(),
+    body('tags').notEmpty(),
+    body('title').notEmpty(),
+    body('content').notEmpty(),
     validateInputs,
     async function (req, res, next) {
 
@@ -84,7 +82,6 @@ router.post(
             barcode    : req.body.barcode,
             iranCode   : req.body.iranCode,
             weight     : req.body.weight,
-            dimensions : req.body.dimensions,
             tags       : req.body.tags,
             properties : req.body.properties,
             title      : req.body.title,
@@ -106,6 +103,25 @@ router.post(
             insertArray.variants = req.body.variants
         }
 
+        // properties
+        if (req.body.properties) {
+            // create ObjectId for dynamic properties
+            req.body.properties.forEach((property) => {
+                if (property._id) {
+                    property._id = new ObjectId(property._id);
+                }
+            });
+            insertArray.properties = req.body.properties;
+        }
+
+        // dimensions
+        if (req.body.dimensions && req.body.dimensions.length && req.body.dimensions.width) {
+            insertArray.dimensions = {
+                width : req.body.dimensions.width,
+                length: req.body.dimensions.length
+            };
+        }
+
         // insert to db
         productsCollection.insertOne(insertArray).then((result) => {
             if (result.acknowledged) {
@@ -123,7 +139,7 @@ router.post(
     '/:_id/files',
     authenticateToken,
     checkAdminAccess,
-    param('_id').notEmpty().escape(),
+    param('_id').notEmpty(),
     validateInputs,
     function (req, res) {
         let _id = new ObjectId(req.params._id);
@@ -169,20 +185,18 @@ router.put(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    param('_id').notEmpty().escape(),
-    body('name').notEmpty().escape(),
-    body('categories').notEmpty().isArray().escape(),
-    body('brand').notEmpty().escape(),
-    body('unit').notEmpty().escape(),
-    body('barcode').notEmpty().escape(),
-    body('iranCode').notEmpty().escape(),
-    body('variants').notEmpty().escape(),
-    body('weight').notEmpty().escape(),
-    body('dimensions').notEmpty().escape(),
-    body('tags').notEmpty().escape(),
-    body('properties').notEmpty().escape(),
-    body('title').notEmpty().escape(),
-    body('content').notEmpty().escape(),
+    param('_id').notEmpty(),
+    body('name').notEmpty(),
+    body('categories').notEmpty().isArray(),
+    body('brand').notEmpty(),
+    body('unit').notEmpty(),
+    body('barcode').notEmpty(),
+    body('iranCode').notEmpty(),
+    body('weight').notEmpty(),
+    body('dimensions').notEmpty(),
+    body('tags').notEmpty(),
+    body('title').notEmpty(),
+    body('content').notEmpty(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);
@@ -191,40 +205,73 @@ router.put(
         productsCollection.findOne({_id: _id}).then(async (result) => {
             // check if exists
             if (result) {
+
+                let updateArray = {
+                    name       : req.body.name,
+                    _categories: req.body.categories,
+                    _brand     : new ObjectId(req.body.brand),
+                    _unit      : new ObjectId(req.body.unit),
+                    barcode    : req.body.barcode,
+                    iranCode   : req.body.iranCode,
+                    weight     : req.body.weight,
+                    tags       : req.body.tags,
+                    title      : req.body.title,
+                    content    : req.body.content
+                };
+
                 // convert categories id's to ObjectId
-                req.body.categories.forEach((category, index) => {
-                    req.body.categories[index] = new ObjectId(category)
+                updateArray._categories.forEach((category, index) => {
+                    updateArray._categories[index] = new ObjectId(category)
                 });
 
                 // variants
-                for (let variant of req.body.variants) {
-                    variant.color = new ObjectId(variant.color);
-                    variant.size  = new ObjectId(variant.size);
-                    variant.code  = Number(result.code + '' +
-                        (await sizeDetail(variant.size)).code +
-                        (await colorDetail(variant.color)).code);
+                if (req.body.variants) {
+                    let category = await categoryDetail(req.body.categories[0]);
+                    for (let variant of req.body.variants) {
+                        if (!variant.code) {
+                            variant.code = Number(category.code + '' +
+                                await getNextSequence
+                                (
+                                    'Category No. ' + category.code + ' products',
+                                    true,
+                                    1000000
+                                )
+                            );
+                        }
+
+                        // create property object id's
+                        variant.properties.forEach((property) => {
+                            property.propertyId = new ObjectId(property.propertyId);
+                        });
+                    }
+
+                    // add to insert array
+                    updateArray.variants = req.body.variants
+                }
+
+                // properties
+                if (req.body.properties) {
+                    // create ObjectId for dynamic properties
+                    req.body.properties.forEach((property) => {
+                        if (property._id) {
+                            property._id = new ObjectId(property._id);
+                        }
+                    });
+                    updateArray.properties = req.body.properties;
+                }
+
+                // dimensions
+                if (req.body.dimensions && req.body.dimensions.length && req.body.dimensions.width) {
+                    updateArray.dimensions = {
+                        width : req.body.dimensions.width ?? '',
+                        length: req.body.dimensions.length ?? ''
+                    };
                 }
 
                 // update
                 productsCollection.updateOne(
                     {_id: _id},
-                    {
-                        $set: {
-                            name      : req.body.name,
-                            categories: req.body.categories,
-                            brand     : new ObjectId(req.body.brand),
-                            unit      : new ObjectId(req.body.unit),
-                            barcode   : req.body.barcode,
-                            iranCode  : req.body.iranCode,
-                            variants  : req.body.variants,
-                            weight    : req.body.weight,
-                            dimensions: req.body.dimensions,
-                            tags      : req.body.tags,
-                            properties: req.body.properties,
-                            title     : req.body.title,
-                            content   : req.body.content
-                        }
-                    }
+                    {$set: updateArray}
                 ).then((result) => {
                     return res.sendStatus(result.acknowledged ? 200 : 400);
                 });
@@ -252,7 +299,7 @@ router.get(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    param('_id').notEmpty().escape(),
+    param('_id').notEmpty(),
     validateInputs,
     function (req, res) {
         let _id = new ObjectId(req.params._id);
@@ -271,8 +318,8 @@ router.delete(
     '/:_id/files/:fileName',
     authenticateToken,
     checkAdminAccess,
-    param('_id').notEmpty().escape(),
-    param('fileName').notEmpty().escape(),
+    param('_id').notEmpty(),
+    param('fileName').notEmpty(),
     validateInputs,
     function (req, res) {
         let _id = new ObjectId(req.params._id);
@@ -303,7 +350,7 @@ router.delete(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    param('_id').notEmpty().escape(),
+    param('_id').notEmpty(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);

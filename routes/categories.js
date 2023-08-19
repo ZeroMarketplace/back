@@ -15,8 +15,8 @@ router.post(
     '/',
     authenticateToken,
     checkAdminAccess,
-    body('title').notEmpty().escape(),
-    body('titleEn').notEmpty().escape(),
+    body('title').notEmpty(),
+    body('titleEn').notEmpty(),
     validateInputs,
     async function (req, res, next) {
         let insertArr = {
@@ -62,7 +62,7 @@ router.get(
 
 router.get(
     '/:_id/properties',
-    param('_id').notEmpty().escape(),
+    param('_id').notEmpty(),
     function (req, res) {
         let _id = new ObjectId(req.params._id);
         // check exists
@@ -85,9 +85,9 @@ router.put(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    body('title').notEmpty().escape(),
-    body('titleEn').notEmpty().escape(),
-    param('_id').notEmpty().escape(),
+    body('title').notEmpty(),
+    body('titleEn').notEmpty(),
+    param('_id').notEmpty(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);
@@ -128,7 +128,7 @@ router.delete(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    param('_id').notEmpty().escape(),
+    param('_id').notEmpty(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);

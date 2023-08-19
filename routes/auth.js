@@ -13,9 +13,9 @@ const validationsCollection                    = db.getDB().collection('validati
 // LOGIN POST
 router.post(
     '/login',
-    body('phone').notEmpty().isNumeric().isLength({max: 11}).escape(),
-    body('password').isLength({min: 8}).escape(),
-    body('validation').isMongoId().escape(),
+    body('phone').notEmpty().isNumeric().isLength({max: 11}),
+    body('password').isLength({min: 8}),
+    body('validation').isMongoId(),
     validateInputs,
     function (req, res) {
 
@@ -130,7 +130,7 @@ router.get(
 // Send OTP Code
 router.post(
     '/sendOTP',
-    body('phone').notEmpty().isNumeric().isLength({max: 11}).escape(),
+    body('phone').notEmpty().isNumeric().isLength({max: 11}),
     validateInputs,
     function (req, res) {
 
@@ -171,8 +171,8 @@ router.post(
 // verify OTP code
 router.post(
     '/verifyOTP',
-    body('phone').notEmpty().isNumeric().isLength({max: 11}).escape(),
-    body('code').notEmpty().isNumeric().isLength({max: 5}).escape(),
+    body('phone').notEmpty().isNumeric().isLength({max: 11}),
+    body('code').notEmpty().isNumeric().isLength({max: 5}),
     validateInputs,
     function (req, res) {
 

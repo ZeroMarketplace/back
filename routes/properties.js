@@ -13,9 +13,9 @@ router.post(
     '/',
     authenticateToken,
     checkAdminAccess,
-    body('title').notEmpty().escape(),
-    body('titleEn').notEmpty().escape(),
-    body('variant').isBoolean().escape(),
+    body('title').notEmpty(),
+    body('titleEn').notEmpty(),
+    body('variant').isBoolean(),
     validateInputs,
     async function (req, res, next) {
         // create code for values
@@ -50,10 +50,10 @@ router.put(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    body('title').notEmpty().escape(),
-    body('titleEn').notEmpty().escape(),
-    body('variant').isBoolean().escape(),
-    param('_id').notEmpty().escape(),
+    body('title').notEmpty(),
+    body('titleEn').notEmpty(),
+    body('variant').isBoolean(),
+    param('_id').notEmpty(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);
@@ -92,7 +92,7 @@ router.delete(
     '/:_id',
     authenticateToken,
     checkAdminAccess,
-    param('_id').notEmpty().escape(),
+    param('_id').notEmpty(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);
