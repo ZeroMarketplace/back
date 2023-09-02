@@ -47,12 +47,7 @@ router.post(
     body('brand').notEmpty(),
     body('unit').notEmpty(),
     body('barcode').notEmpty(),
-    body('iranCode').notEmpty(),
-    body('weight').notEmpty(),
-    body('dimensions').notEmpty(),
-    body('tags').notEmpty(),
     body('title').notEmpty(),
-    body('content').notEmpty(),
     validateInputs,
     async function (req, res, next) {
 
@@ -80,12 +75,12 @@ router.post(
             _brand     : new ObjectId(req.body.brand),
             _unit      : new ObjectId(req.body.unit),
             barcode    : req.body.barcode,
-            iranCode   : req.body.iranCode,
-            weight     : req.body.weight,
-            tags       : req.body.tags,
+            iranCode   : req.body.iranCode ?? '',
+            weight     : req.body.weight ?? 0,
+            tags       : req.body.tags ?? '',
             properties : req.body.properties,
             title      : req.body.title,
-            content    : req.body.content
+            content    : req.body.content ?? ''
         };
 
         // variants
@@ -115,10 +110,16 @@ router.post(
         }
 
         // dimensions
-        if (req.body.dimensions && req.body.dimensions.length && req.body.dimensions.width) {
+        // dimensions
+        if (req.body.dimensions) {
             insertArray.dimensions = {
                 width : req.body.dimensions.width,
                 length: req.body.dimensions.length
+            };
+        } else {
+            insertArray.dimensions = {
+                width : 0,
+                length: 0
             };
         }
 
@@ -191,12 +192,7 @@ router.put(
     body('brand').notEmpty(),
     body('unit').notEmpty(),
     body('barcode').notEmpty(),
-    body('iranCode').notEmpty(),
-    body('weight').notEmpty(),
-    body('dimensions').notEmpty(),
-    body('tags').notEmpty(),
     body('title').notEmpty(),
-    body('content').notEmpty(),
     validateInputs,
     async function (req, res, next) {
         let _id = new ObjectId(req.params._id);
@@ -212,11 +208,11 @@ router.put(
                     _brand     : new ObjectId(req.body.brand),
                     _unit      : new ObjectId(req.body.unit),
                     barcode    : req.body.barcode,
-                    iranCode   : req.body.iranCode,
-                    weight     : req.body.weight,
-                    tags       : req.body.tags,
+                    iranCode   : req.body.iranCode ?? '',
+                    weight     : req.body.weight ?? 0,
+                    tags       : req.body.tags ?? '',
                     title      : req.body.title,
-                    content    : req.body.content
+                    content    : req.body.content ?? ''
                 };
 
                 // convert categories id's to ObjectId
@@ -261,10 +257,15 @@ router.put(
                 }
 
                 // dimensions
-                if (req.body.dimensions && req.body.dimensions.length && req.body.dimensions.width) {
+                if (req.body.dimensions) {
                     updateArray.dimensions = {
-                        width : req.body.dimensions.width ?? '',
-                        length: req.body.dimensions.length ?? ''
+                        width : req.body.dimensions.width,
+                        length: req.body.dimensions.length
+                    };
+                } else {
+                    updateArray.dimensions = {
+                        width : 0,
+                        length: 0
                     };
                 }
 

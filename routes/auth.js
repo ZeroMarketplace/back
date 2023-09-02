@@ -26,7 +26,7 @@ router.post(
             if (validation && validation.expDate.getTime() > (new Date().getTime())) {
 
                 // create encrypted password
-                let password = md5(req.body.password + process.env.PasswordSalt);
+                let password = md5(req.body.password);
 
                 // search in db for user
                 usersCollection.findOne({
