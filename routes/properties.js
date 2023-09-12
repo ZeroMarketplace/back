@@ -27,7 +27,7 @@ router.post(
             {
                 title  : req.body.title,
                 titleEn: req.body.titleEn,
-                variant: (req.body.variant === 'true'),
+                variant: req.body.variant,
                 values : req.body.values
             }
         ).then((result) => {
@@ -74,7 +74,7 @@ router.put(
                         $set: {
                             title  : req.body.title,
                             titleEn: req.body.titleEn,
-                            variant: (req.body.variant === 'true'),
+                            variant: req.body.variant,
                             values : req.body.values
                         }
                     }
