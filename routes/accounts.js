@@ -23,7 +23,7 @@ router.post(
     body('balance').notEmpty().isNumeric(),
     body('description').isString(),
     validateInputs,
-    async function (req, res, next) {
+    async function (req, res) {
         accountsCollection.insertOne(
             {
                 title      : req.body.title,
@@ -64,7 +64,7 @@ router.put(
     body('balance').notEmpty().isNumeric(),
     body('description').isString(),
     validateInputs,
-    async function (req, res, next) {
+    async function (req, res) {
         let _id = new ObjectId(req.params._id);
         // check exists
         accountsCollection.findOne({_id: _id}).then(findResult => {
@@ -97,7 +97,7 @@ router.delete(
     checkAdminAccess,
     param('_id').notEmpty(),
     validateInputs,
-    async function (req, res, next) {
+    async function (req, res) {
         let _id = new ObjectId(req.params._id);
         // check exists
         accountsCollection.findOne({_id: _id}).then(findResult => {
