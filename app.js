@@ -15,7 +15,7 @@ app.use(helmet({crossOriginResourcePolicy: false}));
 app.use(express.json({limit: '5mb'}));
 app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(process.env.STATICS_URL, express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
 process.env.TZ = "Asia/Tehran";
