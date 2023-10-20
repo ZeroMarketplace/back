@@ -45,13 +45,14 @@ router.post(
 
                         // create token
                         let token = generateAccessToken({
-                            id  : resultInsert.insertedId,
+                            _id : resultInsert.insertedId,
                             role: 'user'
                         });
 
                         // send token
                         res.json({
-                            token: token
+                            token: token,
+                            role : 'user'
                         });
 
                     } else {
@@ -59,16 +60,14 @@ router.post(
                         if (user.password === password) {
                             // create token
                             let token = generateAccessToken({
-                                id  : user._id,
+                                _id : user._id,
                                 role: user.role
                             });
 
                             // send token
                             res.json({
-                                token    : token,
-                                role     : user.role,
-                                firstName: user.firstName ?? '',
-                                lastName : user.lastName ?? ''
+                                token: token,
+                                role : user.role
                             });
                         } else {
                             return res.sendStatus(401);
@@ -96,12 +95,12 @@ router.post(
 
 // GET ME INFO
 router.get(
-    '/me',
+    '/session',
     authenticateToken,
     function (req, res) {
         // search in db for user
         db.getDB().collection('users').findOne({
-            _id: ObjectID(req.user.data.id)
+            _id: new ObjectId(req.user.data._id)
         }).then((user) => {
 
             // not found
@@ -109,16 +108,14 @@ router.get(
                 return res.sendStatus(401);
             } else {
                 res.json({
-                    user: {
-                        id       : user._id,
-                        firstName: user.firstName,
-                        lastName : user.lastName,
-                        email    : user.email,
-                        color    : user.color,
-                        avatar   : user.avatar,
-                        phone    : user.phone ?? '',
-                        validate : user.validate ?? false,
-                    }
+                    _id      : user._id,
+                    role     : user.role,
+                    firstName: user.firstName ?? '',
+                    lastName : user.lastName ?? '',
+                    email    : user.email ?? '',
+                    color    : user.color ?? '',
+                    avatar   : user.avatar ?? '',
+                    phone    : user.phone ?? ''
                 });
             }
         });
