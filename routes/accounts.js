@@ -1,12 +1,14 @@
-let express               = require('express');
-let router                = express.Router();
-const {body, param}       = require('express-validator');
-const db                  = require('../modules/db');
-const {authenticateToken} = require("../modules/auth");
-const {ObjectId}          = require("mongodb");
-const {checkAdminAccess}  = require("../modules/permission");
-const {validateInputs}    = require("../modules/validation");
-const accountsCollection  = db.getDB().collection('accounts');
+let express                = require('express');
+let router                 = express.Router();
+const {body, param, query} = require('express-validator');
+const db                   = require('../modules/db');
+const {authenticateToken}  = require("../modules/auth");
+const {ObjectId}           = require("mongodb");
+const {checkAdminAccess}   = require("../modules/permission");
+const {validateInputs}     = require("../modules/validation");
+const {checkPermission}    = require("../modules/requestMiddlewares");
+const accountsCollection   = db.getDB().collection('accounts');
+import AccountsController from "../controllers/accountsController";
 
 router.post(
     '/',
@@ -21,7 +23,6 @@ router.post(
         }
     }),
     body('balance').notEmpty().isNumeric(),
-    body('description').isString(),
     validateInputs,
     async function (req, res) {
         accountsCollection.insertOne(
@@ -40,7 +41,18 @@ router.post(
 
 router.get(
     '/',
-    function (req, res) {
+    authenticateToken,
+    checkAdminAccess,
+    query('title').escape(),
+    query('balance').escape(),
+    query('type').escape(),
+    query('description').escape(),
+    function (req, res, next) {
+        // check permission
+        checkPermission(req, res, next, ['admin']);
+
+        AccountsController.getAll(req.query);
+
         accountsCollection.find().toArray().then((result) => {
             res.json(result);
         });
@@ -62,7 +74,6 @@ router.put(
         }
     }),
     body('balance').notEmpty().isNumeric(),
-    body('description').isString(),
     validateInputs,
     async function (req, res) {
         let _id = new ObjectId(req.params._id);
