@@ -13,6 +13,9 @@ const {getNextSequence, startCounters} = require("../modules/counters");
 const validator                        = require("express-validator");
 const productsCollection               = db.getDB().collection('products');
 
+startCounters();
+
+
 // config upload service
 const filesPath          = 'public/products/files/';
 const multer             = require('multer');

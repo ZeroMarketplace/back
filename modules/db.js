@@ -1,20 +1,21 @@
-const {MongoClient} = require('mongodb');
-let _db;
+const ottoman = require("ottoman");
 
 module.exports = {
     connect: async function () {
-        const user     = encodeURIComponent(process.env.MongoDB_USER);
-        const password = encodeURIComponent(process.env.MongoDB_PASSWORD);
-        const host     = encodeURIComponent(process.env.MongoDB_HOST);
-        //const uri      = 'mongodb://' + user + ':' + password + '@' + host + ':27017/?authSource=admin';
-        const uri      = `mongodb://0.0.0.0:27017`;
-        const client   = new MongoClient(uri);
-        await client.connect();
-        _db = client.db(process.env.MongoDB_DATABASE);
+
+        await ottoman.connect({
+            connectionString: process.env.CouchBase_CONNECTION,
+            username: process.env.CouchBase_USER,
+            password: process.env.CouchBase_PASSWORD,
+            bucketName: process.env.CouchBase_BUCKET
+        });
+
+        await ottoman.start();
+
         console.log('db connected');
     },
 
     getDB: function () {
-        return _db;
+        return ottoman;
     }
 };

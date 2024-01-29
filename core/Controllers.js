@@ -3,4 +3,4 @@ class Controllers {
     constructor() {}
 }
 
-export default Controllers;
+module.exports = Controllers;

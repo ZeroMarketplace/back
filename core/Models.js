@@ -1,15 +1,15 @@
-const db = require("../modules/db");
+const {model} = require("ottoman");
 
 class Models {
-    collection     = null;
+    collectionModel = null;
 
-    constructor($collectionName) {
-        this.collection = db.getDB().collection($collectionName);
+    constructor($collectionModelName, $schema) {
+        this.collectionModel = model($collectionModelName, $schema);
     }
 
-    item($conditions) {
+    item($filter, $options = {}) {
         return new Promise((resolve, reject) => {
-            this.collection.findOne($conditions).then((queryResult) => {
+            this.collectionModel.findOne($filter, $options).then((queryResult) => {
                 if (queryResult) {
                     return resolve(queryResult);
                 } else {
@@ -21,9 +21,9 @@ class Models {
         });
     }
 
-    update($conditions,$set) {
+    update($conditions, $set) {
         return new Promise((resolve, reject) => {
-            this.collection.updateOne($conditions,$set).then((queryResult) => {
+            this.collectionModel.updateOne($conditions, $set).then((queryResult) => {
                 if (queryResult.acknowledged) {
                     return resolve(queryResult);
                 } else {
@@ -37,7 +37,7 @@ class Models {
 
     insertOne($data) {
         return new Promise((resolve, reject) => {
-            this.collection.insertOne($data).then((queryResult) => {
+            this.collectionModel.insertOne($data).then((queryResult) => {
                 if (queryResult.acknowledged) {
                     return resolve(queryResult);
                 } else {
@@ -58,4 +58,4 @@ class Models {
     }
 }
 
-export default Models;
+module.exports = Models;

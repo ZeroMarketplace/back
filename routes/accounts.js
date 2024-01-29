@@ -8,7 +8,7 @@ const {checkAdminAccess}   = require("../modules/permission");
 const {validateInputs}     = require("../modules/validation");
 const {checkPermission}    = require("../modules/requestMiddlewares");
 const accountsCollection   = db.getDB().collection('accounts');
-import AccountsController from "../controllers/accountsController";
+import AccountsController from "../controllers/AccountsController";
 
 router.post(
     '/',
