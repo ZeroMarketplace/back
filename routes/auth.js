@@ -7,17 +7,31 @@ const {generateAccessToken, authenticateToken} = require("../modules/auth");
 const md5                                      = require('md5');
 const {ObjectId}                               = require("mongodb");
 const {validateInputs}                         = require("../modules/validation");
+const {login}                                  = require("../controllers/AuthController");
+const {clearInput}                             = require("../controllers/InputController");
 const usersCollection                          = db.getDB().collection('users');
 const validationsCollection                    = db.getDB().collection('validations');
 
 // LOGIN POST
 router.post(
     '/login',
-    body('phone').notEmpty().isNumeric().isLength({max: 11}),
-    body('password').isLength({min: 8}),
-    body('validation').isMongoId(),
-    validateInputs,
+    // body('phone').notEmpty().isNumeric().isLength({max: 11}),
+    // body('password').isLength({min: 8}),
+    // body('validation').isMongoId(),
+    // validateInputs,
     function (req, res) {
+
+        // clear input
+        clearInput(req.body).then(($input) => {
+
+            // do the login
+            login($input).then((response) => {
+                return res.status(response.code).json(response.data);
+            }).catch((response) => {
+                return res.status(response.code).json(response.data);
+            });
+
+        });
 
         // check validation is not expired
         validationsCollection.findOne(
@@ -182,7 +196,7 @@ router.post(
                         {$set: {expDate: new Date(validation.expDate.getTime() + 3 * 60000)}}
                     );
 
-                    // check user is exists for get action to log in dialog
+                    // check user is existing for get action to log in dialog
                     usersCollection.findOne({phone: req.body.phone}).then((user) => {
                         return res.json({
                             validation  : validation._id,
