@@ -2,9 +2,11 @@ const {model} = require("ottoman");
 
 class Models {
     collectionModel = null;
+    schema          = null;
 
     constructor($collectionModelName, $schema) {
         this.collectionModel = model($collectionModelName, $schema);
+        this.schema          = $schema;
     }
 
     item($filter, $options = {}) {
