@@ -1,12 +1,9 @@
-const ValidationsController from "../../controllers/ValidationsController";
-
-const LoginStrategies = require("./LoginStrategies");
+const ValidationsController = require('../../controllers/ValidationsController');
+const LoginStrategies       = require("./LoginStrategies");
 
 class LoginByPhone extends LoginStrategies {
-    authenticate($input) {
-
-        new Promise((resolve, reject) => {
-
+    static authenticate($input) {
+        return new Promise((resolve, reject) => {
             ValidationsController.item({certificate: $input.phone, type: 'phone'}).then(validation => {
                 if ((validation && validation.expDate.getTime() < (new Date().getTime())) || !validation) {
 

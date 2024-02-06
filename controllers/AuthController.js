@@ -1,14 +1,13 @@
-const Controllers = require("../core/Controllers");
-const jwt                                  = require("jsonwebtoken");
-const {verification, access, authenticate} = require("../core/Auth/LoginByPhone");
-
+const Controllers  = require("../core/Controllers");
+const jwt          = require("jsonwebtoken");
+const LoginByPhone = require('../core/Auth/LoginByPhone');
 
 class AuthController extends Controllers {
     constructor() {
         super();
     }
 
-    login($input) {
+    static login($input) {
         return new Promise((resolve, reject) => {
             // check method of login
             if (!$input.method || ($input.method && !['phone', 'email'].includes($input.method))) {
@@ -25,19 +24,23 @@ class AuthController extends Controllers {
                     if ($input.phone) {
                         if ($input.code) {
                             // verify phone
-                            verification($input)
+                            LoginByPhone.verification($input)
                                 .then(response => resolve(response))
                                 .catch(response => reject(response));
                         } else if ($input.password && $input.validation) {
                             // access with password
-                            access($input)
+                            LoginByPhone.access($input)
                                 .then(response => resolve(response))
                                 .catch(response => reject(response));
                         } else {
                             // authenticate phone
-                            authenticate($input)
-                                .then(response => resolve(response))
-                                .catch(response => reject(response));
+                            LoginByPhone.authenticate($input)
+                                .then(response => {
+                                    return resolve(response)
+                                })
+                                .catch(response => {
+                                    return reject(response)
+                                });
                         }
                     } else {
                         return reject({

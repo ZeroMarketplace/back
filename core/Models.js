@@ -1,11 +1,11 @@
-const {model} = require("ottoman");
+const {model, Ottoman} = require("ottoman");
 
 class Models {
     collectionModel = null;
     schema          = null;
 
-    constructor($collectionModelName, $schema) {
-        this.collectionModel = model($collectionModelName, $schema);
+    constructor($collectionModelName, $schema, $options = {}) {
+        this.collectionModel = model($collectionModelName, $schema, $options);
         this.schema          = $schema;
     }
 

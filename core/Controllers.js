@@ -1,6 +1,6 @@
 class Controllers {
-    model = null;
-    constructor() {}
+    constructor() {
+    }
 }
 
 module.exports = Controllers;

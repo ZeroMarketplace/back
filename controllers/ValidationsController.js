@@ -1,14 +1,14 @@
-import Controllers      from "../core/Controllers";
-import ValidationsModel from "../models/ValidationsModel";
+const Controllers      = require('../core/Controllers');
+const ValidationsModel = require("../models/ValidationsModel");
 
 class ValidationsController extends Controllers {
+    static model = new ValidationsModel();
 
     constructor() {
         super();
-        this.model = new ValidationsModel();
     }
 
-    insertOne($input) {
+    static insertOne($input) {
         return new Promise((resolve, reject) => {
             // check data is valid ...
 
@@ -36,7 +36,7 @@ class ValidationsController extends Controllers {
         });
     }
 
-    deleteOne($input) {
+    static deleteOne($input) {
         return new Promise((resolve, reject) => {
             // check filter is valid ...
 
@@ -50,9 +50,9 @@ class ValidationsController extends Controllers {
         });
     }
 
-    item($input) {
+    static item($input) {
         return new Promise((resolve, reject) => {
-            // check filter is valid ...
+            // check filter is valid and remove other parameters (just valid query by user role) ...
 
             // filter
             this.model.item($input).then(response => {
@@ -64,3 +64,5 @@ class ValidationsController extends Controllers {
         });
     }
 }
+
+module.exports = ValidationsController;

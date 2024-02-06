@@ -7,10 +7,10 @@ const {generateAccessToken, authenticateToken} = require("../modules/auth");
 const md5                                      = require('md5');
 const {ObjectId}                               = require("mongodb");
 const {validateInputs}                         = require("../modules/validation");
-const {login}                                  = require("../controllers/AuthController");
-const {clearInput}                             = require("../controllers/InputController");
-const usersCollection                          = db.getDB().collection('users');
-const validationsCollection                    = db.getDB().collection('validations');
+const AuthController                           = require("../controllers/AuthController");
+const InputsController                         = require("../controllers/InputsController");
+// const usersCollection                          = db.getDB().collection('users');
+// const validationsCollection                    = db.getDB().collection('validations');
 
 // LOGIN POST
 router.post(
@@ -21,16 +21,14 @@ router.post(
     // validateInputs,
     function (req, res) {
 
-        // clear input
-        clearInput(req.body).then(($input) => {
+        // create clean input
+        let $input = InputsController.clearInput(req.body);
 
-            // do the login
-            login($input).then((response) => {
-                return res.status(response.code).json(response.data ?? {});
-            }).catch((response) => {
-                return res.status(response.code).json(response.data);
-            });
-
+        // do the login
+        AuthController.login($input).then((response) => {
+            return res.status(response.code).json(response.data ?? {});
+        }).catch((response) => {
+            return res.status(response.code ?? 500).json(response);
         });
 
         // check validation is not expired
@@ -145,37 +143,37 @@ router.post(
     validateInputs,
     function (req, res) {
 
-        validationsCollection.findOne({phone: req.body.phone}).then((validation) => {
-            if ((validation && validation.expDate.getTime() < (new Date().getTime())) || !validation) {
-                // generate opt code
-                let code = '';
-                for (let i = 0; i < 5; i++) {
-                    code += '' + Math.floor(Math.random() * 10);
-                }
-
-                // add otp code to validations
-                validationsCollection.insertOne({
-                    phone  : req.body.phone,
-                    code   : code,
-                    expDate: new Date(new Date().getTime() + 2 * 60000)
-                });
-
-                // delete the expired code
-                if (validation) {
-                    validationsCollection.deleteOne({_id: validation._id});
-                }
-
-                // create text and send to user
-                let text = 'code:' + code + '\n' + 'به فروشگاه زیرو خوش آمدید!';
-                return res.sendStatus(200);
-                // sendSMS(req.body.phone, text, () => {
-                //     return res.sendStatus(200);
-                // });
-
-            } else {
-                return res.sendStatus(403);
-            }
-        });
+        // validationsCollection.findOne({phone: req.body.phone}).then((validation) => {
+        //     if ((validation && validation.expDate.getTime() < (new Date().getTime())) || !validation) {
+        //         // generate opt code
+        //         let code = '';
+        //         for (let i = 0; i < 5; i++) {
+        //             code += '' + Math.floor(Math.random() * 10);
+        //         }
+        //
+        //         // add otp code to validations
+        //         validationsCollection.insertOne({
+        //             phone  : req.body.phone,
+        //             code   : code,
+        //             expDate: new Date(new Date().getTime() + 2 * 60000)
+        //         });
+        //
+        //         // delete the expired code
+        //         if (validation) {
+        //             validationsCollection.deleteOne({_id: validation._id});
+        //         }
+        //
+        //         // create text and send to user
+        //         let text = 'code:' + code + '\n' + 'به فروشگاه زیرو خوش آمدید!';
+        //         return res.sendStatus(200);
+        //         // sendSMS(req.body.phone, text, () => {
+        //         //     return res.sendStatus(200);
+        //         // });
+        //
+        //     } else {
+        //         return res.sendStatus(403);
+        //     }
+        // });
     }
 );
 
@@ -185,37 +183,37 @@ router.post(
     body('phone').notEmpty().isNumeric().isLength({max: 11}),
     body('code').notEmpty().isNumeric().isLength({max: 5}),
     validateInputs,
-    function (req, res) {
-
-        validationsCollection.findOne({phone: req.body.phone, code: req.body.code}).then((validation) => {
-            if (validation) {
-                if (validation.expDate.getTime() > (new Date().getTime())) {
-                    // get validation time to enter password
-                    validationsCollection.updateOne(
-                        {_id: validation._id},
-                        {$set: {expDate: new Date(validation.expDate.getTime() + 3 * 60000)}}
-                    );
-
-                    // check user is existing for get action to log in dialog
-                    usersCollection.findOne({phone: req.body.phone}).then((user) => {
-                        return res.json({
-                            validation  : validation._id,
-                            userIsExists: !!user
-                        });
-                    });
-
-                } else {
-                    return res.status(400).json({
-                        message: 'otpIsExpired'
-                    });
-                }
-            } else {
-                return res.status(400).json({
-                    message: 'otpIsWrong'
-                });
-            }
-        });
-    }
+    // function (req, res) {
+    //
+    //     validationsCollection.findOne({phone: req.body.phone, code: req.body.code}).then((validation) => {
+    //         if (validation) {
+    //             if (validation.expDate.getTime() > (new Date().getTime())) {
+    //                 // get validation time to enter password
+    //                 validationsCollection.updateOne(
+    //                     {_id: validation._id},
+    //                     {$set: {expDate: new Date(validation.expDate.getTime() + 3 * 60000)}}
+    //                 );
+    //
+    //                 // check user is existing for get action to log in dialog
+    //                 // usersCollection.findOne({phone: req.body.phone}).then((user) => {
+    //                 //     return res.json({
+    //                 //         validation  : validation._id,
+    //                 //         userIsExists: !!user
+    //                 //     });
+    //                 // });
+    //
+    //             } else {
+    //                 return res.status(400).json({
+    //                     message: 'otpIsExpired'
+    //                 });
+    //             }
+    //         } else {
+    //             return res.status(400).json({
+    //                 message: 'otpIsWrong'
+    //             });
+    //         }
+    //     });
+    // }
 );
 
 module.exports = router;

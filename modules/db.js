@@ -1,13 +1,14 @@
-const ottoman = require("ottoman");
+const {Ottoman} = require('ottoman');
+const ottoman   = new Ottoman();
 
 module.exports = {
     connect: async function () {
 
         await ottoman.connect({
             connectionString: process.env.CouchBase_CONNECTION,
-            username: process.env.CouchBase_USER,
-            password: process.env.CouchBase_PASSWORD,
-            bucketName: process.env.CouchBase_BUCKET
+            username        : process.env.CouchBase_USER,
+            password        : process.env.CouchBase_PASSWORD,
+            bucketName      : process.env.CouchBase_BUCKET,
         });
 
         await ottoman.start();
