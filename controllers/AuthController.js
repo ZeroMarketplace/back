@@ -1,6 +1,7 @@
 const Controllers = require("../core/Controllers");
-const jwt         = require("jsonwebtoken");
-import LoginByPhone from '../core/Auth/LoginByPhone'
+const jwt                                  = require("jsonwebtoken");
+const {verification, access, authenticate} = require("../core/Auth/LoginByPhone");
+
 
 class AuthController extends Controllers {
     constructor() {
@@ -24,17 +25,17 @@ class AuthController extends Controllers {
                     if ($input.phone) {
                         if ($input.code) {
                             // verify phone
-                            LoginByPhone.verification($input)
+                            verification($input)
                                 .then(response => resolve(response))
                                 .catch(response => reject(response));
                         } else if ($input.password && $input.validation) {
                             // access with password
-                            LoginByPhone.access($input)
+                            access($input)
                                 .then(response => resolve(response))
                                 .catch(response => reject(response));
                         } else {
                             // authenticate phone
-                            LoginByPhone.authenticate($input)
+                            authenticate($input)
                                 .then(response => resolve(response))
                                 .catch(response => reject(response));
                         }

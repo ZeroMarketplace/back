@@ -19,6 +19,11 @@ class Models {
                         code: 404
                     });
                 }
+            }).catch((error) => {
+                console.log(error);
+                return reject({
+                    code: 500
+                });
             });
         });
     }

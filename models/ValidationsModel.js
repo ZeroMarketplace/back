@@ -1,15 +1,16 @@
 const Models   = require("../core/Models");
 const {Schema} = require("ottoman");
 
-class AccountsModel extends Models {
+class ValidationsModel extends Models {
 
     // const Account = null;
 
     constructor() {
         let schema = new Schema({
-                user: String, // user model
-                code   : Number,
-                expDate: Date
+                certificate: String,
+                type       : {type: String, enum: ['email', 'phone']},
+                code       : Number,
+                expDate    : Date
             },
             {timestamps: true});
 
@@ -18,4 +19,4 @@ class AccountsModel extends Models {
 
 }
 
-module.exports = AccountsModel;
+module.exports = ValidationsModel;

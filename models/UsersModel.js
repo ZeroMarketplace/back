@@ -1,7 +1,8 @@
-const Models   = require("../core/Models");
-const {Schema} = require("ottoman");
+const Models              = require("../core/Models");
+const {Schema}            = require("ottoman");
+const {permissionsSchema} = require("./PermissionsModel");
 
-class AccountsModel extends Models {
+class UsersModel extends Models {
 
     // const Account = null;
 
@@ -18,7 +19,7 @@ class AccountsModel extends Models {
                 validated  : Array,
                 color      : String,
                 avatars    : Array,
-                permissions: ''
+                permissions: permissionsSchema
             },
             {timestamps: true});
 
@@ -27,4 +28,4 @@ class AccountsModel extends Models {
 
 }
 
-module.exports = AccountsModel;
+module.exports = UsersModel;

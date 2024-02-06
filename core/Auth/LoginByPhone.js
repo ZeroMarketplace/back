@@ -1,41 +1,54 @@
-import LoginStrategies from "./LoginStrategies";
+const ValidationsController from "../../controllers/ValidationsController";
+
+const LoginStrategies = require("./LoginStrategies");
 
 class LoginByPhone extends LoginStrategies {
     authenticate($input) {
-        validationsCollection.findOne({phone: req.body.phone}).then((validation) => {
-            if ((validation && validation.expDate.getTime() < (new Date().getTime())) || !validation) {
-                // generate opt code
-                let code = '';
-                for (let i = 0; i < 5; i++) {
-                    code += '' + Math.floor(Math.random() * 10);
+
+        new Promise((resolve, reject) => {
+
+            ValidationsController.item({certificate: $input.phone, type: 'phone'}).then(validation => {
+                if ((validation && validation.expDate.getTime() < (new Date().getTime())) || !validation) {
+
+                    // insert the new validation
+                    ValidationsController.insertOne($input).then(insertResponse => {
+
+                        // delete the expired validation
+                        if (validation) {
+                            ValidationsController.deleteOne({_id: validation._id});
+                        }
+
+                        // message text
+                        let text = 'code:' + code + '\n' + 'به فروشگاه زیرو خوش آمدید!';
+
+
+                        return resolve({
+                            code: 200
+                        });
+                        // sendSMS(req.body.phone, text, () => {
+                        //     return res.sendStatus(200);
+                        // });
+                    }).catch(insertResponse => {
+                        return reject(insertResponse);
+                    });
+
+                } else {
+                    return reject({
+                        code   : 403,
+                        message: 'Forbidden, The otp code has already been sent to you'
+                    });
                 }
-
-                // add otp code to validations
-                validationsCollection.insertOne({
-                    phone  : req.body.phone,
-                    code   : code,
-                    expDate: new Date(new Date().getTime() + 2 * 60000)
-                });
-
-                // delete the expired code
-                if (validation) {
-                    validationsCollection.deleteOne({_id: validation._id});
-                }
-
-                // create text and send to user
-                let text = 'code:' + code + '\n' + 'به فروشگاه زیرو خوش آمدید!';
-                return res.sendStatus(200);
-                // sendSMS(req.body.phone, text, () => {
-                //     return res.sendStatus(200);
-                // });
-
-            } else {
-                return res.sendStatus(403);
-            }
+            }).catch(response => {
+                return reject(response);
+            });
         });
     }
 
-    verification($input) {}
+    verification($input) {
+    }
 
-    access($input) {}
+    access($input) {
+    }
 }
+
+module.exports = LoginByPhone;

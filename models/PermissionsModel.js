@@ -1,21 +1,20 @@
 const Models   = require("../core/Models");
 const {Schema} = require("ottoman");
 
-class AccountsModel extends Models {
+class PermissionsModel extends Models {
 
     // const Account = null;
+    permissionsSchema = new Schema({
+            title: String,
+            type : {type: String, enum: ['individual', 'collective']},
+            rules: Array,
+        },
+        {timestamps: true});
 
     constructor() {
-        let schema = new Schema({
-                title: String,
-                type : {type: String, enum: ['individual', 'collective']},
-
-            },
-            {timestamps: true});
-
-        super('Account', schema);
+        super('Permission', this.permissionsSchema);
     }
 
 }
 
-module.exports = AccountsModel;
+module.exports = PermissionsModel;
