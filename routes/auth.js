@@ -1,7 +1,7 @@
 let express                                    = require('express');
 let router                                     = express.Router();
 const {body, validationResult}                 = require('express-validator');
-const db                                       = require('../modules/db');
+const db                                       = require('../core/DataBaseConnection');
 const {generateRandomColor, sendSMS}           = require("../modules/helper");
 const {generateAccessToken, authenticateToken} = require("../modules/auth");
 const md5                                      = require('md5');

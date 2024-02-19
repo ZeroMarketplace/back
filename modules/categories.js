@@ -1,4 +1,4 @@
-const db                   = require('../modules/db');
+const db                   = require('../core/DataBaseConnection');
 const categoriesCollection = db.getDB().collection('categories');
 
 function findChildren(list, children) {

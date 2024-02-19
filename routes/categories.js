@@ -1,7 +1,7 @@
 let express                                 = require('express');
 let router                                  = express.Router();
 const {body, validationResult, param}       = require('express-validator');
-const db                                    = require('../modules/db');
+const db                                    = require('../core/DataBaseConnection');
 const {authenticateToken}                   = require("../modules/auth");
 const {ObjectId}                            = require("mongodb");
 const {checkAdminAccess}                    = require("../modules/permission");

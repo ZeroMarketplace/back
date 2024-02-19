@@ -14,7 +14,24 @@ class ValidationsModel extends Models {
             },
             {timestamps: true});
 
-        super('Validation', schema);
+        super('validations', schema, {maxExpiry: 5000});
+    }
+
+    insertOne($data) {
+        return new Promise((resolve, reject) => {
+            try {
+                this.collectionModel.create($data).then(resultInsert => {
+                    return resolve({
+                        id: resultInsert.id
+                    });
+                });
+            } catch (e) {
+                console.log(e);
+                return reject({
+                    code: 500
+                });
+            }
+        });
     }
 
 }

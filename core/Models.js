@@ -1,4 +1,6 @@
 const {model, Ottoman} = require("ottoman");
+const couchbase        = require('couchbase');
+const Logger           = require('./Logger');
 
 class Models {
     collectionModel = null;
@@ -11,20 +13,21 @@ class Models {
 
     item($filter, $options = {}) {
         return new Promise((resolve, reject) => {
-            this.collectionModel.findOne($filter, $options).then((queryResult) => {
-                if (queryResult) {
-                    return resolve(queryResult);
-                } else {
+            try {
+                let queryResult = this.collectionModel.findOne($filter, $options);
+                return resolve(queryResult);
+            } catch (error) {
+                if (error instanceof couchbase.DocumentNotFoundError) {
                     return reject({
                         code: 404
                     });
+                } else {
+                    Logger.systemError('DB', error);
+                    return reject({
+                        code: 500
+                    });
                 }
-            }).catch((error) => {
-                console.log(error);
-                return reject({
-                    code: 500
-                });
-            });
+            }
         });
     }
 

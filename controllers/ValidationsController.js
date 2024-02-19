@@ -26,6 +26,13 @@ class ValidationsController extends Controllers {
                 expDate    : new Date(new Date().getTime() + 2 * 60000)
             }).then(response => {
                 // check the result ... and return
+
+                // message text
+                let text = 'code:' + code + '\n' + 'به فروشگاه زیرو خوش آمدید!';
+                // sendSMS(req.body.phone, text, () => {
+                //     return res.sendStatus(200);
+                // });
+
                 return resolve(response);
             }).catch(response => {
                 return reject({

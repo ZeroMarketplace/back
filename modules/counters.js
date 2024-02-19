@@ -1,4 +1,4 @@
-const db                 = require('../modules/db');
+const db                 = require('../core/DataBaseConnection');
 const countersCollection = db.getDB().collection('counters');
 
 async function getNextSequence(name, createIfNotExists = false, startAt = 10) {
