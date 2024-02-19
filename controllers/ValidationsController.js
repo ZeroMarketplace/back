@@ -61,6 +61,8 @@ class ValidationsController extends Controllers {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
+            console.log($input);
+
             // filter
             this.model.item($input).then(response => {
                 // check the result ... and return

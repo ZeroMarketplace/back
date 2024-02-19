@@ -4,15 +4,15 @@ const {Schema} = require("ottoman");
 class PermissionsModel extends Models {
 
     // const Account = null;
-    permissionsSchema = new Schema({
+    static permissionsSchema = new Schema({
             title: String,
             type : {type: String, enum: ['individual', 'collective']},
-            rules: Array,
+            rules: [String],
         },
         {timestamps: true});
 
     constructor() {
-        super('Permission', this.permissionsSchema);
+        super('Permissions', PermissionsModel.permissionsSchema);
     }
 
 }

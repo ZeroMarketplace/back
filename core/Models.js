@@ -17,6 +17,7 @@ class Models {
                 let queryResult = this.collectionModel.findOne($filter, $options);
                 return resolve(queryResult);
             } catch (error) {
+                console.log(error);
                 if (error instanceof couchbase.DocumentNotFoundError) {
                     return reject({
                         code: 404
