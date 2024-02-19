@@ -20,7 +20,14 @@ class ValidationsModel extends Models {
     insertOne($data) {
         return new Promise((resolve, reject) => {
             try {
-                this.collectionModel.create($data).then(resultInsert => {
+                const validation = new this.collectionModel($data);
+
+                validation.save().then(resultInsert => {
+                    // setTime out to delete
+                    setTimeout(() => {
+                        validation.remove();
+                    }, 120000);
+
                     return resolve({
                         id: resultInsert.id
                     });

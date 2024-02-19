@@ -1,4 +1,4 @@
-const {model, Ottoman} = require("ottoman");
+const {model} = require("ottoman");
 const couchbase        = require('couchbase');
 const Logger           = require('./Logger');
 
