@@ -12,7 +12,7 @@ class PermissionsModel extends Models {
         {timestamps: true});
 
     constructor() {
-        super('Permissions', PermissionsModel.permissionsSchema);
+        super('permissions', PermissionsModel.permissionsSchema);
     }
 
 }

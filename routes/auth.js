@@ -28,7 +28,6 @@ router.post(
         AuthController.login($input).then((response) => {
             return res.status(response.code).json(response.data ?? {});
         }).catch((response) => {
-            console.log(response);
             return res.status(response.code ?? 500).json(response);
         });
 

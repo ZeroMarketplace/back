@@ -1,5 +1,6 @@
 const Models   = require("../core/Models");
 const {Schema} = require("ottoman");
+const Logger   = require("../core/Logger");
 
 class ValidationsModel extends Models {
 
@@ -14,7 +15,7 @@ class ValidationsModel extends Models {
             },
             {timestamps: true});
 
-        super('validations', schema, {maxExpiry: 5000});
+        super('validations', schema);
     }
 
     insertOne($data) {
@@ -32,8 +33,8 @@ class ValidationsModel extends Models {
                         id: resultInsert.id
                     });
                 });
-            } catch (e) {
-                console.log(e);
+            } catch (error) {
+                Logger.systemError('DB', error);
                 return reject({
                     code: 500
                 });

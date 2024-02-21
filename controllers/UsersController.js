@@ -1,5 +1,5 @@
-const Controllers      = require('../core/Controllers');
-const UsersModel = require("../models/UsersModel");
+const Controllers = require('../core/Controllers');
+const UsersModel  = require('../models/UsersModel');
 
 class UsersController extends Controllers {
     static model = new UsersModel();

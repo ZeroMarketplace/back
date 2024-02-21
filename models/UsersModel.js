@@ -21,7 +21,7 @@ class UsersModel extends Models {
         {timestamps: true});
 
     constructor() {
-        super('Users', UsersModel.schema);
+        super('users', UsersModel.schema);
     }
 
 }

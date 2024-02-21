@@ -1,6 +1,6 @@
-const {model} = require("ottoman");
-const couchbase        = require('couchbase');
-const Logger           = require('./Logger');
+const {model}                 = require("ottoman");
+const Logger                  = require('./Logger');
+const {DocumentNotFoundError} = require("couchbase");
 
 class Models {
     collectionModel = null;
@@ -13,12 +13,10 @@ class Models {
 
     item($filter, $options = {}) {
         return new Promise((resolve, reject) => {
-            try {
-                let queryResult = this.collectionModel.findOne($filter, $options);
-                return resolve(queryResult);
-            } catch (error) {
-                console.log(error);
-                if (error instanceof couchbase.DocumentNotFoundError) {
+            this.collectionModel.findOne($filter, $options).then((response) => {
+                return resolve(response);
+            }).catch((error) => {
+                if (error instanceof DocumentNotFoundError) {
                     return reject({
                         code: 404
                     });
@@ -28,7 +26,7 @@ class Models {
                         code: 500
                     });
                 }
-            }
+            });
         });
     }
 

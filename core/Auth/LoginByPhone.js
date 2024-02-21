@@ -1,6 +1,7 @@
 const ValidationsController = require('../../controllers/ValidationsController');
 const LoginStrategies       = require("./LoginStrategies");
 const UserController        = require('../../controllers/UsersController');
+const {DocumentNotFoundError} = require("couchbase");
 
 class LoginByPhone extends LoginStrategies {
     static authenticate($input) {
@@ -33,28 +34,30 @@ class LoginByPhone extends LoginStrategies {
                     certificate: $input.phone,
                     type       : 'phone',
                     code       : Number($input.code)
-                }).then((response) => {
+                }).then((validationQueryResponse) => {
 
                 // check user exists
                 UserController.item({
                     phone: $input.phone
-                }).then((response) => {
+                }).then((userQueryResponse) => {
                     return resolve({
                         code: 200,
                         data: {
-                            validation  : response.id,
+                            validation  : validationQueryResponse.id,
                             userIsExists: true
                         }
                     });
-                }).catch((response) => {
-                    if (response.code === 404) {
+                }).catch((userQueryResponse) => {
+                    if(userQueryResponse.code === 404) {
                         return resolve({
                             code: 200,
                             data: {
-                                validation  : response.id,
+                                validation  : validationQueryResponse.id,
                                 userIsExists: false
                             }
                         });
+                    } else {
+                        return reject({code: 500});
                     }
                 });
 
