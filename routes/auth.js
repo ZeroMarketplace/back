@@ -31,68 +31,6 @@ router.post(
             return res.status(response.code ?? 500).json(response);
         });
 
-        // check validation is not expired
-        // validationsCollection.findOne(
-        //     {_id: new ObjectId(req.body.validation)}
-        // ).then((validation) => {
-        //     if (validation && validation.expDate.getTime() > (new Date().getTime())) {
-        //
-        //         // create encrypted password
-        //         let password = md5(req.body.password);
-        //
-        //         // search in db for user
-        //         usersCollection.findOne({
-        //             phone: req.body.phone
-        //         }).then(async (user) => {
-        //
-        //             // not found
-        //             if (!user) {
-        //                 // create user
-        //                 let resultInsert = await usersCollection.insertOne({
-        //                     phone    : req.body.phone,
-        //                     password : password,
-        //                     role     : 'user',
-        //                     validated: 'phone'
-        //                 });
-        //
-        //                 // create token
-        //                 let token = generateAccessToken({
-        //                     _id : resultInsert.insertedId,
-        //                     role: 'user'
-        //                 });
-        //
-        //                 // send token
-        //                 res.json({
-        //                     token: token,
-        //                     role : 'user'
-        //                 });
-        //
-        //             } else {
-        //
-        //                 if (user.password === password) {
-        //                     // create token
-        //                     let token = generateAccessToken({
-        //                         _id : user._id,
-        //                         role: user.role
-        //                     });
-        //
-        //                     // send token
-        //                     res.json({
-        //                         token: token,
-        //                         role : user.role
-        //                     });
-        //                 } else {
-        //                     return res.sendStatus(401);
-        //                 }
-        //             }
-        //         });
-        //     } else {
-        //         return res.status(400).json({
-        //             message: "validationExpired"
-        //         });
-        //     }
-        // });
-
     }
 );
 

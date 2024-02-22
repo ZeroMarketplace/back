@@ -22,6 +22,26 @@ class UsersController extends Controllers {
         });
     }
 
+    static insertOne($input) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid ...
+
+            // filter
+            this.model.insertOne({
+                phone    : $input.phone,
+                password : $input.password,
+                validated: $input.validated,
+                role     : 'user',
+                status   : 'active'
+            }).then(response => {
+                // check the result ... and return
+                return resolve(response);
+            }).catch(response => {
+                return reject(response);
+            });
+        });
+    }
+
     static item($input) {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
@@ -30,6 +50,7 @@ class UsersController extends Controllers {
             this.model.item($input).then(response => {
                 // check the result ... and return
                 return resolve(response);
+                console.log("User Founded");
             }).catch(response => {
                 return reject(response);
             });

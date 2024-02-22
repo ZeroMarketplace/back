@@ -3,9 +3,6 @@ const jwt          = require("jsonwebtoken");
 const LoginByPhone = require('../core/Auth/LoginByPhone');
 
 class AuthController extends Controllers {
-    constructor() {
-        super();
-    }
 
     static login($input) {
         return new Promise((resolve, reject) => {
@@ -24,23 +21,22 @@ class AuthController extends Controllers {
                     if ($input.phone) {
                         if ($input.code) {
                             // verify phone
-                            LoginByPhone.verification($input)
-                                .then(response => resolve(response))
-                                .catch(response => reject(response));
+                            LoginByPhone.verification($input).then(
+                                (resolved) => resolve(resolved),
+                                (rejected) => reject(rejected)
+                            );
                         } else if ($input.password && $input.validation) {
                             // access with password
-                            LoginByPhone.access($input)
-                                .then(response => resolve(response))
-                                .catch(response => reject(response));
+                            LoginByPhone.access($input).then(
+                                (resolved) => resolve(resolved),
+                                (rejected) => reject(rejected)
+                            );
                         } else {
                             // authenticate phone
-                            LoginByPhone.authenticate($input)
-                                .then(response => {
-                                    return resolve(response)
-                                })
-                                .catch(response => {
-                                    return reject(response)
-                                });
+                            LoginByPhone.authenticate($input).then(
+                                (resolved) => resolve(resolved),
+                                (rejected) => reject(rejected)
+                            );
                         }
                     } else {
                         return reject({
@@ -54,7 +50,7 @@ class AuthController extends Controllers {
         });
     }
 
-    generateJsonWebToken(data) {
+    static createJWT(data) {
         return jwt.sign(
             {
                 data     : data,
@@ -65,7 +61,7 @@ class AuthController extends Controllers {
         );
     }
 
-    authenticateToken(req, res, next) {
+    static authorizeJWT(req, res, next) {
         const authHeader = req.headers['authorization'];
         const token      = authHeader && authHeader.split(' ')[1];
 

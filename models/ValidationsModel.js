@@ -27,7 +27,7 @@ class ValidationsModel extends Models {
                     // setTime out to delete
                     setTimeout(() => {
                         validation.remove();
-                    }, 120000);
+                    }, 300000);
 
                     return resolve({
                         id: resultInsert.id

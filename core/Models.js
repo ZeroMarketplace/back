@@ -21,6 +21,7 @@ class Models {
                         code: 404
                     });
                 } else {
+                    console.log();
                     Logger.systemError('DB', error);
                     return reject({
                         code: 500
@@ -46,14 +47,13 @@ class Models {
 
     insertOne($data) {
         return new Promise((resolve, reject) => {
-            this.collectionModel.insertOne($data).then((queryResult) => {
-                if (queryResult.acknowledged) {
-                    return resolve(queryResult);
-                } else {
-                    return reject({
-                        code: 500
-                    });
-                }
+            this.collectionModel.create($data).then((queryResult) => {
+                return resolve(queryResult);
+            }).catch((error) => {
+                Logger.systemError('DB-Insert', error);
+                return reject({
+                    code: 500
+                });
             });
         });
     }
