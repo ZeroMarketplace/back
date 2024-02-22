@@ -16,7 +16,7 @@ class UsersModel extends Models {
             validated  : [String],
             avatars    : [String],
             color      : String,
-            permissions: PermissionsModel.permissionsSchema
+            permissions: {type: PermissionsModel.permissionsSchema, ref: 'permissions'}
         },
         {timestamps: true});
 

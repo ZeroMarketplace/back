@@ -1,6 +1,6 @@
 # zero-back
 
-
+CREATE PRIMARY INDEX ON `default`:`Zero`.`_default`.`permissions`
 
 ## Getting started
 

@@ -50,7 +50,6 @@ class UsersController extends Controllers {
             this.model.item($input).then(response => {
                 // check the result ... and return
                 return resolve(response);
-                console.log("User Founded");
             }).catch(response => {
                 return reject(response);
             });

@@ -22,7 +22,7 @@ class Models {
                     });
                 } else {
                     console.log();
-                    Logger.systemError('DB', error);
+                    Logger.systemError('DB-findOne', error);
                     return reject({
                         code: 500
                     });
@@ -31,17 +31,19 @@ class Models {
         });
     }
 
-    update($conditions, $set) {
+    updateOne($id, $set) {
         return new Promise((resolve, reject) => {
-            this.collectionModel.updateOne($conditions, $set).then((queryResult) => {
-                if (queryResult.acknowledged) {
-                    return resolve(queryResult);
-                } else {
+            this.collectionModel.updateById($id, $set).then(
+                (response) => {
+                    return resolve(response);
+                },
+                (error) => {
+                    Logger.systemError('DB-Update', error);
                     return reject({
                         code: 500
                     });
                 }
-            });
+            );
         });
     }
 
@@ -58,8 +60,36 @@ class Models {
         });
     }
 
-    list($conditions) {
+    deleteOne($id) {
+        return new Promise((resolve, reject) => {
+            this.collectionModel.removeById($id).then(
+                (response) => {
+                    return resolve(response);
+                },
+                (error) => {
+                    Logger.systemError('DB-Delete', error);
+                    return reject({
+                        code: 500
+                    });
+                }
+            );
+        });
+    }
 
+    list($conditions, $options) {
+        return new Promise((resolve, reject) => {
+            this.collectionModel.find($conditions, $options).then(
+                (list) => {
+                    return resolve(list.rows);
+                },
+                (error) => {
+                    Logger.systemError('DB-find', error);
+                    return reject({
+                        code: 500
+                    });
+                }
+            );
+        });
     }
 
     processConditions($conditions) {

@@ -76,6 +76,14 @@ class AuthController extends Controllers {
         });
     }
 
+    static checkAccess($listOfAccess, req, res, next) {
+        if ($listOfAccess.includes(req.user.data.role)) {
+            next();
+        } else {
+            return res.sendStatus(401);
+        }
+    }
+
 }
 
 module.exports = AuthController;
