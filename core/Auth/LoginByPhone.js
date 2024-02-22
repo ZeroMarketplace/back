@@ -1,5 +1,6 @@
 const ValidationsController = require('../../controllers/ValidationsController');
 const LoginStrategies       = require("./LoginStrategies");
+const Sender                = require("../Sender");
 const UserController        = require('../../controllers/UsersController');
 const md5                   = require('md5');
 const jwt                   = require("jsonwebtoken");
@@ -23,7 +24,20 @@ class LoginByPhone extends LoginStrategies {
                         type       : 'phone'
                     }).then(
                         (insertResponse) => {
-                            return resolve({code: 200});
+                            // message text
+                            Sender.sendAuthSMS(insertResponse.code, $input.phone).then(
+                                (response) => {
+                                    return resolve({code: 200});
+                                },
+                                (reason) => {
+                                    return reject({
+                                        code: 500,
+                                        data: {
+                                            message: 'There is a problem with the SMS sending service, contact support'
+                                        }
+                                    });
+                                }
+                            );
                         },
                         (insertRejected) => {
                             return reject(insertRejected);

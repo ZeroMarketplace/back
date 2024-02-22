@@ -27,12 +27,6 @@ class ValidationsController extends Controllers {
             }).then(response => {
                 // check the result ... and return
 
-                // message text
-                let text = 'code:' + code + '\n' + 'به فروشگاه زیرو خوش آمدید!';
-                // sendSMS(req.body.phone, text, () => {
-                //     return res.sendStatus(200);
-                // });
-
                 return resolve(response);
             }).catch(response => {
                 return reject({

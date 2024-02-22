@@ -29,9 +29,7 @@ class ValidationsModel extends Models {
                         validation.remove();
                     }, 300000);
 
-                    return resolve({
-                        id: resultInsert.id
-                    });
+                    return resolve(resultInsert);
                 });
             } catch (error) {
                 Logger.systemError('DB', error);
