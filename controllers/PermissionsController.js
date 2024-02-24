@@ -1,8 +1,8 @@
-const Controllers = require('../core/Controllers');
-const UnitsModel  = require("../models/UnitsModel");
+const Controllers      = require("../core/Controllers");
+const PermissionsModel = require("../models/PermissionsModel");
 
-class UnitsController extends Controllers {
-    static model = new UnitsModel();
+class PermissionsController extends Controllers {
+    static model = new PermissionsModel();
 
     constructor() {
         super();
@@ -95,6 +95,75 @@ class UnitsController extends Controllers {
         });
     }
 
+    static addUsersDefaultPermissions() {
+        return new Promise((resolve, reject) => {
+
+            // admins
+            this.model.insertOne({
+                title: 'usersDefaultPermissions',
+                type : 'collective',
+                label: 'admins',
+                urls : {
+                    '/api/units': {
+                        POST  : true,
+                        GET   : true,
+                        PUT   : true,
+                        DELETE: true
+                    }
+                }
+            });
+
+            // users
+            this.model.insertOne({
+                title: 'usersDefaultPermissions',
+                type : 'collective',
+                label: 'users',
+                urls : {}
+            });
+
+        });
+    }
+
+    static getUsersDefaultPermissions() {
+        return new Promise((resolve, reject) => {
+            // check filter is valid and remove other parameters (just valid query by user role) ...
+
+            // filter
+            this.model.item({
+                label: 'users'
+            }).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200,
+                        data: response
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
+    }
+
+    static get($id) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid and remove other parameters (just valid query by user role) ...
+
+            // filter
+            this.model.get($id).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200,
+                        data: response
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
+    }
+
     static list($input) {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
@@ -118,8 +187,6 @@ class UnitsController extends Controllers {
                 });
         });
     }
-
-
 }
 
-module.exports = UnitsController;
+module.exports = PermissionsController;

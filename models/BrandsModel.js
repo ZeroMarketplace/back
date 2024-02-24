@@ -2,7 +2,7 @@ const Models     = require("../core/Models");
 const {Schema}   = require("ottoman");
 const UsersModel = require("./UsersModel");
 
-class UnitsModel extends Models {
+class BrandsModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
@@ -16,9 +16,9 @@ class UnitsModel extends Models {
         {timestamps: true});
 
     constructor() {
-        super('units', UnitsModel.schema);
+        super('brands', BrandsModel.schema);
     }
 
 }
 
-module.exports = UnitsModel;
+module.exports = BrandsModel;

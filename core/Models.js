@@ -21,7 +21,6 @@ class Models {
                         code: 404
                     });
                 } else {
-                    console.log();
                     Logger.systemError('DB-findOne', error);
                     return reject({
                         code: 500
@@ -30,6 +29,26 @@ class Models {
             });
         });
     }
+
+    get($id) {
+        return new Promise((resolve, reject) => {
+            this.collectionModel.findById($id).then((response) => {
+                return resolve(response);
+            }).catch((error) => {
+                if (error instanceof DocumentNotFoundError) {
+                    return reject({
+                        code: 404
+                    });
+                } else {
+                    Logger.systemError('DB-get', error);
+                    return reject({
+                        code: 500
+                    });
+                }
+            });
+        });
+    }
+
 
     updateOne($id, $set) {
         return new Promise((resolve, reject) => {

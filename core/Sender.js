@@ -3,7 +3,9 @@ class Sender {
     static sendAuthSMS($code, $phone) {
         return new Promise((resolve, reject) => {
             let $text = 'code:' + $code + '\n' + 'به فروشگاه زیرو خوش آمدید!';
-
+            return resolve({
+                code: 200
+            });
             fetch('https://login.niazpardaz.ir/SMSInOutBox/Send', {
                 method : 'post',
                 headers: {

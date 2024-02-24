@@ -7,7 +7,8 @@ class PermissionsModel extends Models {
     static permissionsSchema = new Schema({
             title: String,
             type : {type: String, enum: ['individual', 'collective']},
-            rules: [String],
+            label: String,
+            urls : {type: Schema.Types.Mixed},
         },
         {timestamps: true});
 

@@ -1,6 +1,9 @@
-const Controllers  = require("../core/Controllers");
-const jwt          = require("jsonwebtoken");
-const LoginByPhone = require('../core/Auth/LoginByPhone');
+const jwt                   = require("jsonwebtoken");
+const Controllers           = require("../core/Controllers");
+const PermissionsController = require("./PermissionsController");
+const LoginByPhone          = require('../core/Auth/LoginByPhone');
+const Logger                = require('../core/Logger');
+
 
 class AuthController extends Controllers {
 
@@ -76,12 +79,23 @@ class AuthController extends Controllers {
         });
     }
 
-    static checkAccess($listOfAccess, req, res, next) {
-        if ($listOfAccess.includes(req.user.data.role)) {
-            next();
-        } else {
-            return res.sendStatus(401);
-        }
+    static checkAccess(req, res, next) {
+        PermissionsController.get(req.user.data.permissions).then(
+            (response) => {
+                if (
+                    response.data.urls &&
+                    response.data.urls[req.baseUrl] &&
+                    response.data.urls[req.baseUrl][req.method]
+                ) {
+                    next();
+                } else {
+                    return res.sendStatus(401);
+                }
+            },
+            (error) => {
+                Logger.systemError('AUTH-Permissions', error)
+            }
+        );
     }
 
 }

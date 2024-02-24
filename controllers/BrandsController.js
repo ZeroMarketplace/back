@@ -1,8 +1,8 @@
 const Controllers = require('../core/Controllers');
-const UnitsModel  = require("../models/UnitsModel");
+const BrandsModel  = require("../models/BrandsModel");
 
-class UnitsController extends Controllers {
-    static model = new UnitsModel();
+class BrandsController extends Controllers {
+    static model = new BrandsModel();
 
     constructor() {
         super();
@@ -122,4 +122,4 @@ class UnitsController extends Controllers {
 
 }
 
-module.exports = UnitsController;
+module.exports = BrandsController;

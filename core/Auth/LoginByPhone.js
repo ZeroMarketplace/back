@@ -117,8 +117,9 @@ class LoginByPhone extends LoginStrategies {
                                 let token = jwt.sign(
                                     {
                                         data     : {
-                                            id  : responseUserQuery.id,
-                                            role: responseUserQuery.role
+                                            id         : responseUserQuery.id,
+                                            role       : responseUserQuery.role,
+                                            permissions: responseUserQuery._permissions
                                         },
                                         expiresIn: 60 * 60 * 24 * 30,
                                         algorithm: 'RS256'
@@ -153,8 +154,9 @@ class LoginByPhone extends LoginStrategies {
                                     let token = jwt.sign(
                                         {
                                             data     : {
-                                                id  : responseUserInsertQuery.id,
-                                                role: responseUserInsertQuery.role
+                                                id         : responseUserInsertQuery.id,
+                                                role       : responseUserInsertQuery.role,
+                                                permissions: responseUserInsertQuery._permissions
                                             },
                                             expiresIn: 60 * 60 * 24 * 30,
                                             algorithm: 'RS256'

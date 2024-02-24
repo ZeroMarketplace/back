@@ -1,88 +1,92 @@
-let express               = require('express');
-let router                = express.Router();
-const {body, param}       = require('express-validator');
-const db                  = require('../core/DataBaseConnection');
-const {authenticateToken} = require("../modules/auth");
-const {ObjectId}          = require("mongodb");
-const {checkAdminAccess}  = require("../modules/permission");
-const {validateInputs}    = require("../modules/validation");
-const brandsCollection    = db.getDB().collection('brands');
+let express            = require('express');
+let router             = express.Router();
+const InputsController = require("../controllers/InputsController");
+const BrandsController  = require("../controllers/BrandsController");
+const AuthController   = require("../controllers/AuthController");
 
 router.post(
     '/',
-    authenticateToken,
-    checkAdminAccess,
-    body('title').notEmpty(),
-    body('titleEn').notEmpty(),
-    validateInputs,
-    async function (req, res, next) {
-        brandsCollection.insertOne(
-            {
-                title  : req.body.title,
-                titleEn: req.body.titleEn
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res, next) {
+
+        // create clean input
+        let $input = InputsController.clearInput(req.body);
+
+        // add author to created brand
+        $input.user = req.user;
+
+        BrandsController.insertOne($input).then(
+            (response) => {
+                return res.status(response.code).json(response.data ?? {});
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
             }
-        ).then((result) => {
-            return res.sendStatus(result.acknowledged ? 200 : 400);
-        });
+        );
     }
 );
 
 router.get(
     '/',
     function (req, res) {
-        brandsCollection.find().toArray().then((result) => {
-            res.json(result);
-        });
+        // create clean input
+        let $input = InputsController.clearInput(req.params);
+
+        BrandsController.list($input).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
     }
 );
 
-
 router.put(
-    '/:_id',
-    authenticateToken,
-    checkAdminAccess,
-    body('title').notEmpty(),
-    body('titleEn').notEmpty(),
-    param('_id').notEmpty(),
-    validateInputs,
-    async function (req, res, next) {
-        let _id = new ObjectId(req.params._id);
-        // check exists
-        brandsCollection.findOne({_id: _id}).then(findResult => {
-            if (findResult) {
-                // update
-                brandsCollection.updateOne(
-                    {_id: _id},
-                    {$set: {title: req.body.title, titleEn: req.body.titleEn}}
-                ).then((result) => {
-                    return res.sendStatus(result.acknowledged ? 200 : 400);
-                });
-            } else {
-                return res.sendStatus(404);
+    '/:id',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res, next) {
+
+        // create clean input
+        let $input = InputsController.clearInput(req.body);
+
+        // get id from params and put into Input
+        let $params = InputsController.clearInput(req.params);
+
+        // add author to created brand
+        $input.user = req.user;
+
+        BrandsController.updateOne($params.id, $input).then(
+            (response) => {
+                return res.status(response.code).json(response.data ?? {});
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
             }
-        });
+        );
     }
 );
 
 router.delete(
-    '/:_id',
-    authenticateToken,
-    checkAdminAccess,
-    param('_id').notEmpty(),
-    validateInputs,
-    async function (req, res, next) {
-        let _id = new ObjectId(req.params._id);
-        // check exists
-        brandsCollection.findOne({_id: _id}).then(findResult => {
-            if (findResult) {
-                // delete
-                brandsCollection.deleteOne({_id: _id}).then((result) => {
-                    return res.sendStatus(result.acknowledged ? 200 : 400);
-                });
-            } else {
-                return res.sendStatus(404);
+    '/:id',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res, next) {
+
+        // get id from params and put into Input
+        let $params = InputsController.clearInput(req.params);
+
+        BrandsController.deleteOne($params.id).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
             }
-        });
+        );
     }
 );
 

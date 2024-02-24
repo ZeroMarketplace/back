@@ -1,5 +1,8 @@
-const Controllers = require('../core/Controllers');
-const UsersModel  = require('../models/UsersModel');
+const Controllers           = require('../core/Controllers');
+const PermissionsController = require('./PermissionsController');
+const UsersModel            = require('../models/UsersModel');
+const {response}            = require("express");
+const Logger                = require("../core/Logger");
 
 class UsersController extends Controllers {
     static model = new UsersModel();
@@ -26,19 +29,30 @@ class UsersController extends Controllers {
         return new Promise((resolve, reject) => {
             // check filter is valid ...
 
-            // filter
-            this.model.insertOne({
-                phone    : $input.phone,
-                password : $input.password,
-                validated: $input.validated,
-                role     : 'user',
-                status   : 'active'
-            }).then(response => {
-                // check the result ... and return
-                return resolve(response);
-            }).catch(response => {
-                return reject(response);
-            });
+            // get permissions for add to new user
+            PermissionsController.getUsersDefaultPermissions().then(
+                (responseDefaultPermission) => {
+                    // filter
+                    this.model.insertOne({
+                        phone       : $input.phone,
+                        password    : $input.password,
+                        validated   : $input.validated,
+                        role        : 'user',
+                        status      : 'active',
+                        _permissions: responseDefaultPermission.data.id
+                    }).then(
+                        (response) => {
+                            // check the result ... and return
+                            return resolve(response);
+                        },
+                        (error) => {
+                            return reject(error);
+                        });
+                },
+                (error) => {
+                    Logger.systemError('AUTH-Permissions', error)
+                }
+            );
         });
     }
 
