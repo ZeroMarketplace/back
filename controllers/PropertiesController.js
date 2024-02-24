@@ -1,5 +1,6 @@
-const Controllers     = require('../core/Controllers');
-const PropertiesModel = require("../models/PropertiesModel");
+const Controllers        = require('../core/Controllers');
+const PropertiesModel    = require("../models/PropertiesModel");
+const CountersController = require("../controllers/CountersController");
 
 class PropertiesController extends Controllers {
     static model = new PropertiesModel();
@@ -27,13 +28,13 @@ class PropertiesController extends Controllers {
     }
 
     static insertOne($input) {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             // check filter is valid ...
 
             // create code for values
-            // for (let value of $input.values) {
-            //     value.code = this.model.initValueCode();
-            // }
+            for (let value of $input.values) {
+                value.code = await CountersController.increment('properties-values');
+            }
 
             // filter
             this.model.insertOne({
@@ -60,12 +61,18 @@ class PropertiesController extends Controllers {
     }
 
     static updateOne($id, $input) {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             // check filter is valid ...
+
+            // create code for values
+            for (let value of $input.values) {
+                if (!value.code)
+                    value.code = await CountersController.increment('properties-values');
+            }
 
             // filter
             this.model.updateOne($id, {
-                title: {
+                title  : {
                     en: $input.title.en,
                     fa: $input.title.fa
                 },
@@ -108,9 +115,6 @@ class PropertiesController extends Controllers {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
-
-            this.model.initValueCode();
-            console.log('this is thest');
             // filter
             this.model.list($input).then(
                 (response) => {

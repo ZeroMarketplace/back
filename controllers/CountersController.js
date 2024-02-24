@@ -1,15 +1,33 @@
-const Controllers = require('../core/Controllers');
-const UnitsModel  = require("../models/UnitsModel");
+const Controllers   = require('../core/Controllers');
+const CountersModel = require("../models/CountersModel");
+const Logger        = require("../core/Logger");
 
 class CountersController extends Controllers {
-    static model = new UnitsModel();
+    static model = new CountersModel();
 
     constructor() {
         super();
     }
 
     static createCounters() {
+        // properties-values
+        this.model.insertOne({
+            name : 'properties-values',
+            value: 100
+        });
+    }
 
+    static increment($name) {
+        return new Promise((resolve, reject) => {
+            this.model.increment($name).then(
+                (response) => {
+                    return resolve(response.data);
+                },
+                (error) => {
+                    return reject(error);
+                }
+            );
+        });
     }
 
     static deleteOne($id) {
@@ -126,4 +144,4 @@ class CountersController extends Controllers {
 
 }
 
-module.exports = UnitsController;
+module.exports = CountersController;

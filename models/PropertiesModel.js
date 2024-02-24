@@ -20,10 +20,6 @@ class PropertiesModel extends Models {
         super('properties', PropertiesModel.schema);
     }
 
-    initValueCode() {
-        console.log(DataBaseConnection.ottoman);
-    }
-
 }
 
 module.exports = PropertiesModel;
