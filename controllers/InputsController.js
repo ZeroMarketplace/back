@@ -1,5 +1,5 @@
 const Controllers = require('../core/Controllers');
-const validator = require('validator');
+const validator   = require('validator');
 
 // import {validationResult} from "express-validator";
 
@@ -12,7 +12,8 @@ class InputsController extends Controllers {
                 $input[$index] = this.clearInput($value);
             } else {
                 // check xss
-                $input[$index] = validator.escape($value);
+                if (typeof $input[$index] === 'string')
+                    $input[$index] = validator.escape($value);
             }
         }
 
