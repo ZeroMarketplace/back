@@ -1,11 +1,49 @@
-const Controllers = require('../core/Controllers');
-const CategoriesModel  = require("../models/UnitsModel");
+const Controllers        = require('../core/Controllers');
+const CategoriesModel    = require("../models/CategoriesModel");
+const CountersController = require("../controllers/CountersController");
 
-class UnitsController extends Controllers {
-    static model = new UnitsModel();
+class CategoriesController extends Controllers {
+    static model = new CategoriesModel();
 
     constructor() {
         super();
+    }
+
+    findChildren(list, children) {
+        let result = [];
+
+        return result;
+    }
+
+    static findCategoryChildren($list, $children) {
+        let result = [];
+        $children.forEach(item => {
+            item = $list.find(i => i.id.toString() === item.toString());
+
+            if (item && item.children) {
+                item.children = CategoriesController.findCategoryChildren($list, item.children);
+            }
+
+            result.push(item);
+        })
+        return result;
+    }
+
+    static sortCategories($list) {
+        let result = [];
+
+        // find children
+        $list.forEach((item) => {
+            if (!item._parent) {
+                if (item.children) {
+                    item.children = CategoriesController.findCategoryChildren($list, item.children);
+                }
+
+                result.push(item);
+            }
+        });
+
+        return result;
     }
 
     static deleteOne($id) {
@@ -27,24 +65,47 @@ class UnitsController extends Controllers {
     }
 
     static insertOne($input) {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             // check filter is valid ...
 
             // filter
             this.model.insertOne({
-                title : {
+                title      : {
                     en: $input.title.en,
                     fa: $input.title.fa
                 },
-                status: 'active',
-                _user : $input.user.data.id
+                code       : await CountersController.increment('categories'),
+                _properties: $input._properties,
+                _parent    : $input._parent,
+                status     : 'active',
+                _user      : $input.user.data.id
             }).then(
                 (response) => {
                     // check the result ... and return
+                    if ($input._parent) {
+                        CategoriesController.addChild($input._parent, response.id);
+                    }
+
                     return resolve({
                         code: 200,
                         data: response.toObject()
                     });
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
+    }
+
+    static addChild($id, $childId) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid ...
+
+            // filter
+            this.model.addChild($id, $childId).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({code: 200});
                 },
                 (response) => {
                     return reject(response);
@@ -58,10 +119,11 @@ class UnitsController extends Controllers {
 
             // filter
             this.model.updateOne($id, {
-                title: {
+                title      : {
                     en: $input.title.en,
                     fa: $input.title.fa
-                }
+                },
+                _properties: $input._properties
             }).then(
                 (response) => {
                     // check the result ... and return
@@ -106,7 +168,7 @@ class UnitsController extends Controllers {
                     return resolve({
                         code: 200,
                         data: {
-                            list: response
+                            list: CategoriesController.sortCategories(response)
                         }
                     });
                 },
@@ -122,4 +184,4 @@ class UnitsController extends Controllers {
 
 }
 
-module.exports = UnitsController;
+module.exports = CategoriesController;

@@ -23,7 +23,7 @@ process.env.TZ = "Asia/Tehran";
 // add routes
 // app.use('/api/users', require('./routes/users'));
 app.use('/api/auth', require('./routes/auth'));
-// app.use('/api/categories', require('./routes/categories'));
+app.use('/api/categories', require('./routes/categories'));
 app.use('/api/brands', require('./routes/brands'));
 app.use('/api/units', require('./routes/units'));
 app.use('/api/properties', require('./routes/properties'));

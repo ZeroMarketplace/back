@@ -1,26 +1,67 @@
-const Models     = require("../core/Models");
-const {Schema}   = require("ottoman");
-const UsersModel = require("./UsersModel");
+const Models          = require("../core/Models");
+const {Schema}        = require("ottoman");
+const UsersModel      = require("./UsersModel");
+const PropertiesModel = require("./PropertiesModel");
+const Logger          = require("../core/Logger");
 
-class UnitsModel extends Models {
+class CategoriesModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
-            title  : {
+            title      : {
                 en: String,
                 fa: String
             },
-            variant: Boolean,
-            values : {type: Schema.Types.Mixed},
-            status : {type: String, enum: ['active', 'inactive']},
-            _user  : {type: UsersModel.schema, ref: 'users'}
+            code       : Number,
+            _properties: [{type: PropertiesModel.schema, ref: 'properties'}],
+            _parent    : String,
+            children   : [String],
+            status     : {type: String, enum: ['active', 'inactive']},
+            _user      : {type: UsersModel.schema, ref: 'users'}
         },
         {timestamps: true});
 
     constructor() {
-        super('units', UnitsModel.schema);
+        super('categories', CategoriesModel.schema);
+    }
+
+    addChild($id, $childId) {
+        return new Promise((resolve, reject) => {
+            this.collectionModel.findById($id).then(
+                (response) => {
+                    // add child id to children array
+                    if (response.children) {
+                        response.children.push($childId);
+                    } else {
+                        response.children = [$childId];
+                    }
+                    // save parent document
+                    response.save().then(
+                        (responseSave) => {
+                            return resolve({
+                                code: 200,
+                                data: responseSave
+                            });
+                        },
+                        (error) => {
+                            Logger.systemError('Categories-AddChild-SaveChild', error);
+                            return reject({
+                                code: 500
+                            });
+                        },
+                    );
+
+                },
+                (error) => {
+                    Logger.systemError('Categories-AddChild', error);
+                    return reject({
+                        code: 500
+                    });
+                }
+            );
+        });
     }
 
 }
 
-module.exports = UnitsModel;
+module.exports = CategoriesModel;
