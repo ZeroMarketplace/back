@@ -15,10 +15,10 @@ function findChildren(list, children) {
     return result;
 }
 
-function findChildrenIds(list, _id) {
+function findChildrenIds(list, id) {
     let result = [];
 
-    let item = list.find(i => i._id.toString() === _id.toString());
+    let item = list.find(i => i.id.toString() === id.toString());
 
     if (item.children) {
         item.children.forEach((childItem) => {

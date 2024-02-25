@@ -62,6 +62,56 @@ class CategoriesModel extends Models {
         });
     }
 
+    deleteOne($id) {
+        return new Promise((resolve, reject) => {
+            this.collectionModel.findById($id).then(
+                async (category) => {
+
+                    // delete sub categories
+                    await this.collectionModel.removeMany({
+                        id: {$in: category.children ?? []}
+                    });
+
+
+                    // update parent children
+                    if (category._parent) {
+                        await this.collectionModel.findById(category._parent).then(
+                            async (parentsResponse) => {
+                                // update parent
+                                parentsResponse.children.splice(parentsResponse.children.indexOf($id), 1);
+                                await parentsResponse.save();
+
+                            }
+                        );
+                    }
+
+                    // at end remove the category
+                    category.remove().then(
+                        (response) => {
+                            return resolve({
+                                code: 200
+                            });
+                        },
+                        (error) => {
+                            Logger.systemError('DB-Delete-Category-remove', error);
+                            return reject({
+                                code: 500
+                            });
+                        },
+                    );
+
+
+                },
+                (error) => {
+                    Logger.systemError('DB-Delete-Category-Find', error);
+                    return reject({
+                        code: 404
+                    });
+                }
+            );
+        });
+    }
+
 }
 
 module.exports = CategoriesModel;
