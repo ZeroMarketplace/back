@@ -30,9 +30,9 @@ class Models {
         });
     }
 
-    get($id) {
+    get($id, $options = {}) {
         return new Promise((resolve, reject) => {
-            this.collectionModel.findById($id).then((response) => {
+            this.collectionModel.findById($id, $options).then((response) => {
                 return resolve(response);
             }).catch((error) => {
                 if (error instanceof DocumentNotFoundError) {

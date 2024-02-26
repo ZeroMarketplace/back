@@ -30,7 +30,7 @@ class ProductsModel extends Models {
         {timestamps: true});
 
     constructor() {
-        super('units', ProductsModel.schema);
+        super('products', ProductsModel.schema);
     }
 
 }

@@ -97,12 +97,12 @@ class CategoriesController extends Controllers {
         });
     }
 
-    static get($id) {
+    static get($id, $options) {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
             // filter
-            this.model.get($id).then(
+            this.model.get($id, $options).then(
                 (response) => {
                     // check the result ... and return
                     return resolve({
@@ -197,6 +197,24 @@ class CategoriesController extends Controllers {
                         code: 500
                     });
                 });
+        });
+    }
+
+    static properties($id) {
+        return new Promise((resolve, reject) => {
+            this.get($id, {populate: '_properties', lean: true}).then(
+                (category) => {
+                    return resolve({
+                        code: 200,
+                        data: {
+                            list: category.data._properties
+                        }
+                    });
+                },
+                (error) => {
+                    return reject(error);
+                }
+            );
         });
     }
 

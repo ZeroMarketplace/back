@@ -37,24 +37,18 @@ class CountersModel extends Models {
                     );
                 },
                 (error) => {
-                    if (error instanceof DocumentNotFoundError) {
-                        // create if not exists
-                        this.collectionModel.insertOne({
-                            name : $name,
-                            value: 100
-                        }).then(
-                            (response) => {
-                                return resolve({
-                                    code: 200,
-                                    data: response.value
-                                });
-                            }
-                        );
-                    }
-                    Logger.systemError('Counters-find', error);
-                    return reject({
-                        code: 500
-                    });
+                    // create if not exists
+                    this.collectionModel.create({
+                        name : $name,
+                        value: 100
+                    }).then(
+                        (response) => {
+                            return resolve({
+                                code: 200,
+                                data: response.value
+                            });
+                        }
+                    );
                 }
             );
         });
