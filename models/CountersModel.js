@@ -1,6 +1,7 @@
-const Models   = require("../core/Models");
-const {Schema} = require("ottoman");
-const Logger   = require("../core/Logger");
+const Models                  = require("../core/Models");
+const {Schema}                = require("ottoman");
+const Logger                  = require("../core/Logger");
+const {DocumentNotFoundError} = require("couchbase");
 
 class CountersModel extends Models {
 
@@ -36,6 +37,20 @@ class CountersModel extends Models {
                     );
                 },
                 (error) => {
+                    if (error instanceof DocumentNotFoundError) {
+                        // create if not exists
+                        this.collectionModel.insertOne({
+                            name : $name,
+                            value: 100
+                        }).then(
+                            (response) => {
+                                return resolve({
+                                    code: 200,
+                                    data: response.value
+                                });
+                            }
+                        );
+                    }
                     Logger.systemError('Counters-find', error);
                     return reject({
                         code: 500

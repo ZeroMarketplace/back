@@ -11,10 +11,10 @@ class CountersController extends Controllers {
 
     static createCounters() {
         // properties-values
-        // this.model.insertOne({
-        //     name : 'properties-values',
-        //     value: 100
-        // });
+        this.model.insertOne({
+            name : 'properties-values',
+            value: 100
+        });
 
         this.model.insertOne({
             name : 'categories',
