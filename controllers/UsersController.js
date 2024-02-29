@@ -11,20 +11,6 @@ class UsersController extends Controllers {
         super();
     }
 
-    static deleteOne($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.deleteOne($input).then(response => {
-                // check the result ... and return
-                return resolve(response);
-            }).catch(response => {
-                return reject(response);
-            });
-        });
-    }
-
     static insertOne($input) {
         return new Promise((resolve, reject) => {
             // check filter is valid ...
@@ -43,14 +29,20 @@ class UsersController extends Controllers {
                     }).then(
                         (response) => {
                             // check the result ... and return
-                            return resolve(response);
+                            return resolve({
+                                code: 200,
+                                data: response
+                            });
                         },
                         (error) => {
                             return reject(error);
                         });
                 },
                 (error) => {
-                    Logger.systemError('AUTH-Permissions', error)
+                    Logger.systemError('AUTH-Permissions', error);
+                    return reject({
+                        code: 500
+                    });
                 }
             );
         });
@@ -61,7 +53,69 @@ class UsersController extends Controllers {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
             // filter
-            this.model.item($input).then(response => {
+            this.model.item($input).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200,
+                        data: response
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
+    }
+
+    static list($input) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid and remove other parameters (just valid query by user role) ...
+
+            // filter
+            this.model.list($input).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200,
+                        data: {
+                            list: response
+                        }
+                    });
+                },
+                (error) => {
+                    console.log(error);
+                    return reject({
+                        code: 500
+                    });
+                });
+        });
+    }
+
+    static updateOne($id, $input) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid ...
+
+            // filter
+            this.model.updateOne($id, {}).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200,
+                        data: response.toObject()
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
+    }
+
+    static deleteOne($input) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid ...
+
+            // filter
+            this.model.deleteOne($input).then(response => {
                 // check the result ... and return
                 return resolve(response);
             }).catch(response => {
@@ -69,6 +123,7 @@ class UsersController extends Controllers {
             });
         });
     }
+
 }
 
 module.exports = UsersController;

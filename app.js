@@ -21,14 +21,14 @@ app.use(cors());
 process.env.TZ = "Asia/Tehran";
 
 // add routes
-// app.use('/api/users', require('./routes/users'));
+app.use('/api/users', require('./routes/users'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/categories', require('./routes/categories'));
 app.use('/api/brands', require('./routes/brands'));
 app.use('/api/units', require('./routes/units'));
 app.use('/api/properties', require('./routes/properties'));
 app.use('/api/products', require('./routes/products'));
-// app.use('/api/warehouses', require('./routes/warehouses'));
-// app.use('/api/accounts', require('./routes/accounts'));
+app.use('/api/warehouses', require('./routes/warehouses'));
+app.use('/api/accounts', require('./routes/accounts'));
 
 module.exports = app;

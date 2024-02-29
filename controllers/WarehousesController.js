@@ -1,8 +1,8 @@
-const Controllers   = require('../core/Controllers');
-const AccountsModel = require("../models/AccountsModel");
+const Controllers     = require('../core/Controllers');
+const WarehousesModel = require("../models/WarehousesModel");
 
-class AccountsController extends Controllers {
-    static model = new AccountsModel();
+class WarehousesController extends Controllers {
+    static model = new WarehousesModel();
 
     constructor() {
         super();
@@ -32,15 +32,13 @@ class AccountsController extends Controllers {
 
             // filter
             this.model.insertOne({
-                title      : {
+                title     : {
                     en: $input.title.en,
                     fa: $input.title.fa
                 },
-                type       : $input.type,
-                balance    : Number($input.balance),
-                description: $input.description,
-                status     : 'active',
-                _user      : $input.user.data.id
+                sellOnline: $input.sellOnline,
+                status    : 'active',
+                _user     : $input.user.data.id
             }).then(
                 (response) => {
                     // check the result ... and return
@@ -61,13 +59,11 @@ class AccountsController extends Controllers {
 
             // filter
             this.model.updateOne($id, {
-                title      : {
+                title     : {
                     en: $input.title.en,
                     fa: $input.title.fa
                 },
-                type       : $input.type,
-                balance    : Number($input.balance),
-                description: $input.description,
+                sellOnline: $input.sellOnline,
             }).then(
                 (response) => {
                     // check the result ... and return
@@ -128,4 +124,4 @@ class AccountsController extends Controllers {
 
 }
 
-module.exports = AccountsController;
+module.exports = WarehousesController;

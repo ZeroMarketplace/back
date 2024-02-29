@@ -112,6 +112,8 @@ class LoginByPhone extends LoginStrategies {
                     }).then(
                         // user founded
                         (responseUserQuery) => {
+                            responseUserQuery = responseUserQuery.data;
+
                             if (responseUserQuery.password === password) {
                                 // create token and return
                                 let token = jwt.sign(
@@ -150,8 +152,10 @@ class LoginByPhone extends LoginStrategies {
                             }).then(
                                 // user inserted
                                 (responseUserInsertQuery) => {
+                                    responseUserInsertQuery = responseUserInsertQuery.data;
+
                                     // create token and return
-                                    let token = jwt.sign(
+                                    let token               = jwt.sign(
                                         {
                                             data     : {
                                                 id         : responseUserInsertQuery.id,
