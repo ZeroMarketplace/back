@@ -44,6 +44,25 @@ router.get(
     }
 );
 
+router.get(
+    '/:id',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res) {
+        // create clean input
+        let $input = InputsController.clearInput(req.params);
+
+        ProductsController.get($input.id).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
 router.put(
     '/:id',
     AuthController.authorizeJWT,

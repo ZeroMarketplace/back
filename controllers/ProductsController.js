@@ -4,7 +4,7 @@ const CategoriesController = require("../controllers/CategoriesController");
 const CountersController   = require("../controllers/CountersController");
 const Logger               = require("../core/Logger");
 const fs                   = require("fs");
-const md5                   = require('md5');
+const md5                  = require('md5');
 
 // config upload service
 const filesPath          = 'public/products/files/';
@@ -14,7 +14,7 @@ const fileStorage        = multer.diskStorage({
         cb(null, filesPath)
     },
     filename   : function (req, file, cb) {
-        const uniqueSuffix = md5('PF' + new Date().toString()) + '.' + file.mimetype.split('/')[1];
+        const uniqueSuffix = md5('PF' + new Date().getTime()) + '.' + file.mimetype.split('/')[1];
         cb(null, uniqueSuffix)
     }
 });
@@ -42,6 +42,8 @@ class ProductsController extends Controllers {
         return new Promise((resolve, reject) => {
             this.get($id).then(
                 (product) => {
+                    product = product.data;
+
                     // upload files with multer
                     uploadProductFiles($input.req, $input.res, (err) => {
                         if (err) {
@@ -51,31 +53,29 @@ class ProductsController extends Controllers {
                             });
                         }
 
-                        // create file Names list
-                        let filesNamesList = [];
-                        $input.req.files.forEach((file) => {
-                            filesNamesList.push(file.filename);
-                        });
 
-                        // merge or create files list
-                        if (product.files) {
-                            product.files.forEach((file) => {
-                                filesNamesList.push(file);
-                            });
+                        // create array of files
+                        if (!product.files) {
+                            product.files = [];
                         }
 
-                        // update filesList
-                        this.updateOne($id, {
-                            files: filesNamesList
-                        }).then(
-                            (responseUpdate) => {
+                        // add file Names to the list
+                        $input.req.files.forEach((file) => {
+                            product.files.push(file.filename);
+                        });
+
+                        product.save().then(
+                            (responseSave) => {
                                 return resolve({
                                     code: 200
                                 });
                             },
-                            (errorUpdate) => {
-                                return reject(errorUpdate);
-                            }
+                            (error) => {
+                                Logger.systemError('products-saveFilesName', error);
+                                return reject({
+                                    code: 500
+                                });
+                            },
                         );
 
                     })
@@ -91,13 +91,14 @@ class ProductsController extends Controllers {
         return new Promise((resolve, reject) => {
             this.get($id).then(
                 (product) => {
+                    product = product.data;
                     // check file is exiting
-                    if (product.files && product.files.includes($input.fileName)) {
+                    if (product.files.length && product.files.includes($input.fileName)) {
                         // delete File
-                        fs.unlink($input.fileName, (error) => {
+                        fs.unlink(filesPath + $input.fileName, (error) => {
                             if (error) return reject({code: 500});
 
-                            product.files.splice(product.files.indexOf($input.fileName));
+                            product.files.splice(product.files.indexOf($input.fileName), 1);
 
                             product.save().then(
                                 (responseSave) => {
@@ -150,6 +151,9 @@ class ProductsController extends Controllers {
                     width : 0,
                     length: 0
                 };
+            } else {
+                $input.dimensions.width  = Number($input.dimensions.width);
+                $input.dimensions.length = Number($input.dimensions.length);
             }
 
             // filter
@@ -157,12 +161,12 @@ class ProductsController extends Controllers {
                 name       : $input.name,
                 code       : $input.code,
                 _categories: $input.categories,
-                _brand     : $input._brand,
-                _unit      : $input._unit,
-                barcode    : $input.barcode ?? 0,
-                iranCode   : $input.iranCode ?? 0,
-                weight     : $input.weight ?? 0,
-                tags       : $input.tags ?? '',
+                _brand     : $input.brand,
+                _unit      : $input.unit,
+                barcode    : $input.barcode,
+                iranCode   : $input.iranCode,
+                weight     : Number($input.weight),
+                tags       : $input.tags,
                 properties : $input.properties,
                 variants   : $input.variants,
                 dimensions : $input.dimensions,
@@ -252,12 +256,12 @@ class ProductsController extends Controllers {
 
             // variants
             if ($input.variants) {
-                let category = CategoriesController.get($input.categories[0]).data;
+                let category = await CategoriesController.get($input.categories[0]);
                 for (let variant of $input.variants) {
                     if (!variant.code)
                         variant.code = Number(
-                            category.code + '' +
-                            await CountersController.increment('Category No. ' + category.code + ' products')
+                            category.data.code + '' +
+                            await CountersController.increment('Category No. ' + category.data.code + ' products')
                         );
                 }
             }
@@ -268,18 +272,21 @@ class ProductsController extends Controllers {
                     width : 0,
                     length: 0
                 };
+            } else {
+                $input.dimensions.width  = Number($input.dimensions.width);
+                $input.dimensions.length = Number($input.dimensions.length);
             }
 
             // filter
             this.model.updateOne($id, {
                 name       : $input.name,
-                _categories: $input._categories,
-                _brand     : $input._brand,
-                _unit      : $input._unit,
-                barcode    : $input.barcode ?? 0,
-                iranCode   : $input.iranCode ?? 0,
-                weight     : $input.weight ?? 0,
-                tags       : $input.tags ?? '',
+                _categories: $input.categories,
+                _brand     : $input.brand,
+                _unit      : $input.unit,
+                barcode    : $input.barcode,
+                iranCode   : $input.iranCode,
+                weight     : Number($input.weight),
+                tags       : $input.tags,
                 properties : $input.properties,
                 variants   : $input.variants,
                 dimensions : $input.dimensions,
