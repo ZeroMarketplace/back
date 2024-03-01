@@ -1,10 +1,10 @@
 // init app and plugins
-let express           = require('express');
-let path              = require('path');
-let cookieParser      = require('cookie-parser');
+let express      = require('express');
+let path         = require('path');
+let cookieParser = require('cookie-parser');
 // let logger       = require('morgan');
-const helmet          = require("helmet");
-const cors            = require('cors');
+const helmet     = require("helmet");
+const cors       = require('cors');
 
 
 let app = express();
@@ -30,5 +30,6 @@ app.use('/api/properties', require('./routes/properties'));
 app.use('/api/products', require('./routes/products'));
 app.use('/api/warehouses', require('./routes/warehouses'));
 app.use('/api/accounts', require('./routes/accounts'));
+app.use('/api/add-and-subtract', require('./routes/add-and-subtract'));
 
 module.exports = app;
