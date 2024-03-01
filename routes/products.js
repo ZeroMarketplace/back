@@ -31,7 +31,7 @@ router.get(
     '/',
     function (req, res) {
         // create clean input
-        let $input = InputsController.clearInput(req.params);
+        let $input = InputsController.clearInput(req.query);
 
         ProductsController.list($input).then(
             (response) => {

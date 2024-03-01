@@ -207,12 +207,26 @@ class ProductsController extends Controllers {
         });
     }
 
+    static sortQuery($input) {
+        Object.entries($input).forEach((field) => {
+            // field [0] => index
+            // field [1] => value
+            switch (field[0]) {
+                case 'title':
+                    $input[field[0]] = {$like: '%' + field[1] + '%'};
+                    break;
+            }
+        });
+
+        return $input;
+    }
+
     static list($input) {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
             // filter
-            this.model.list($input).then(
+            this.model.list(this.sortQuery($input)).then(
                 (response) => {
                     // check the result ... and return
                     return resolve({
