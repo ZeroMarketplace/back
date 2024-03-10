@@ -32,12 +32,13 @@ class PurchaseInvoicesController extends Controllers {
 
             // filter
             this.model.insertOne({
-                title : {
-                    en: $input.title.en,
-                    fa: $input.title.fa
-                },
-                status: 'active',
-                _user : $input.user.data.id
+                customer      : $input.customer,
+                dateTime      : $input.dateTime,
+                warehouse     : $input.warehouse,
+                products      : $input.products,
+                addAndSubtract: $input.addAndSubtract,
+                status        : 'active',
+                _user         : $input.user.data.id
             }).then(
                 (response) => {
                     // check the result ... and return
