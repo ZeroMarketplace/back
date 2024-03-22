@@ -1,23 +1,26 @@
-const Models     = require("../core/Models");
-const {Schema}   = require("ottoman");
-const UsersModel = require("./UsersModel");
+const Models              = require("../core/Models");
+const {Schema}            = require("ottoman");
+const UsersModel          = require("./UsersModel");
+const AddAndSubtractModel = require("./AddAndSubtractModel");
+const WarehousesModel     = require("./WarehousesModel");
 
 class PurchaseInvoicesModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
             code       : Number,
-            date       : Date,
             customer   : {type: UsersModel.schema, ref: 'users'},
+            warehouse  : {type: WarehousesModel.schema, ref: 'warehouses'},
+            dateTime   : Date,
             description: String,
             products   : Schema.Types.Mixed,
-            status     : {type: String, enum: ['active', 'inactive']},
             AddAndSub  : [
                 {
-                    reason: {type: UsersModel.schema, ref: 'users'},
+                    reason: {type: AddAndSubtractModel.schema, ref: 'add-and-subtract'},
                     value : Number,
                 }
             ],
+            status     : {type: String, enum: ['active', 'inactive']},
             total      : Number,
             _user      : {type: UsersModel.schema, ref: 'users'}
         },

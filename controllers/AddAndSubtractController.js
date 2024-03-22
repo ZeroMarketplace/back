@@ -125,6 +125,24 @@ class AddAndSubtractController extends Controllers {
         });
     }
 
+    static get($id, $options) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid and remove other parameters (just valid query by user role) ...
+
+            // filter
+            this.model.get($id, $options).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200,
+                        data: response
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
+    }
 
 }
 

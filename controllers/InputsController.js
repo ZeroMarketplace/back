@@ -6,14 +6,17 @@ const validator   = require('validator');
 class InputsController extends Controllers {
     static clearInput($input) {
 
-        for (const [$index, $value] of Object.entries($input)) {
-            if (typeof $value === 'object') {
-                // clean every child
-                $input[$index] = this.clearInput($value);
-            } else {
-                // check xss
-                if (typeof $input[$index] === 'string')
-                    $input[$index] = validator.escape($value);
+        if ($input) {
+            // clear every key and index
+            for (const [$index, $value] of Object.entries($input)) {
+                if (typeof $value === 'object') {
+                    // clean every child
+                    $input[$index] = this.clearInput($value);
+                } else {
+                    // check xss
+                    if (typeof $input[$index] === 'string')
+                        $input[$index] = validator.escape($value);
+                }
             }
         }
 
