@@ -29,7 +29,7 @@ class PurchaseInvoicesController extends Controllers {
             detailAddAndSubtract     = detailAddAndSubtract.data;
 
             if (detailAddAndSubtract.operation === 'add') {
-                if (detailAddAndSubtract.type === 'percent') {
+                if (addAndSub.value <= 100) {
                     operationSum = ($input.sum * addAndSub.value / 100)
                     $input.total += operationSum;
                 } else {
@@ -37,7 +37,7 @@ class PurchaseInvoicesController extends Controllers {
                     $input.total += addAndSub.value;
                 }
             } else {
-                if (detailAddAndSubtract.type === 'percent') {
+                if (addAndSub.value <= 100) {
                     operationSum = ($input.sum * addAndSub.value / 100)
                     $input.total -= operationSum;
                 } else {
