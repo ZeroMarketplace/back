@@ -8,16 +8,17 @@ class CategoriesModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
-            title      : {
+            title        : {
                 en: String,
                 fa: String
             },
-            code       : Number,
-            _properties: [{type: PropertiesModel.schema, ref: 'properties'}],
-            _parent    : String,
-            children   : [String],
-            status     : {type: String, enum: ['active', 'inactive']},
-            _user      : {type: UsersModel.schema, ref: 'users'}
+            code         : Number,
+            profitPercent: Number,
+            _properties  : [{type: PropertiesModel.schema, ref: 'properties'}],
+            _parent      : String,
+            children     : [String],
+            status       : {type: String, enum: ['active', 'inactive']},
+            _user        : {type: UsersModel.schema, ref: 'users'}
         },
         {timestamps: true});
 

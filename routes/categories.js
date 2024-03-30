@@ -45,6 +45,23 @@ router.get(
 );
 
 router.get(
+    '/:id',
+    function (req, res) {
+        // create clean input
+        let $input = InputsController.clearInput(req.params);
+
+        CategoriesController.get($input.id).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+router.get(
     '/:id/properties',
     function (req, res) {
         // create clean input

@@ -46,21 +46,37 @@ class CategoriesController extends Controllers {
         return result;
     }
 
-    static deleteOne($id) {
+    static addChild($id, $childId) {
         return new Promise((resolve, reject) => {
             // check filter is valid ...
 
             // filter
-            this.model.deleteOne($id).then(
+            this.model.addChild($id, $childId).then(
                 (response) => {
                     // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
+                    return resolve({code: 200});
                 },
                 (response) => {
                     return reject(response);
                 });
+        });
+    }
+
+    static properties($id) {
+        return new Promise((resolve, reject) => {
+            this.get($id, {populate: '_properties', lean: true}).then(
+                (category) => {
+                    return resolve({
+                        code: 200,
+                        data: {
+                            list: category.data._properties
+                        }
+                    });
+                },
+                (error) => {
+                    return reject(error);
+                }
+            );
         });
     }
 
@@ -70,15 +86,16 @@ class CategoriesController extends Controllers {
 
             // filter
             this.model.insertOne({
-                title      : {
+                title        : {
                     en: $input.title.en,
                     fa: $input.title.fa
                 },
-                code       : await CountersController.increment('categories'),
-                _properties: $input._properties,
-                _parent    : $input._parent,
-                status     : 'active',
-                _user      : $input.user.data.id
+                code         : await CountersController.increment('categories'),
+                profitPercent: $input.profitPercent,
+                _properties  : $input._properties,
+                _parent      : $input._parent,
+                status       : 'active',
+                _user        : $input.user.data.id
             }).then(
                 (response) => {
                     // check the result ... and return
@@ -108,47 +125,6 @@ class CategoriesController extends Controllers {
                     return resolve({
                         code: 200,
                         data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
-    static addChild($id, $childId) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.addChild($id, $childId).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({code: 200});
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
-    static updateOne($id, $input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.updateOne($id, {
-                title      : {
-                    en: $input.title.en,
-                    fa: $input.title.fa
-                },
-                _properties: $input._properties
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
                     });
                 },
                 (response) => {
@@ -200,25 +176,49 @@ class CategoriesController extends Controllers {
         });
     }
 
-    static properties($id) {
+    static updateOne($id, $input) {
         return new Promise((resolve, reject) => {
-            this.get($id, {populate: '_properties', lean: true}).then(
-                (category) => {
+            // check filter is valid ...
+
+            // filter
+            this.model.updateOne($id, {
+                title        : {
+                    en: $input.title.en,
+                    fa: $input.title.fa
+                },
+                profitPercent: $input.profitPercent,
+                _properties  : $input._properties
+            }).then(
+                (response) => {
+                    // check the result ... and return
                     return resolve({
                         code: 200,
-                        data: {
-                            list: category.data._properties
-                        }
+                        data: response.toObject()
                     });
                 },
-                (error) => {
-                    return reject(error);
-                }
-            );
+                (response) => {
+                    return reject(response);
+                });
         });
     }
 
+    static deleteOne($id) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid ...
 
+            // filter
+            this.model.deleteOne($id).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
+    }
 }
 
 module.exports = CategoriesController;
