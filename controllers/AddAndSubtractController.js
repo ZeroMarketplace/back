@@ -37,7 +37,6 @@ class AddAndSubtractController extends Controllers {
                     fa: $input.title.fa
                 },
                 default  : $input.default,
-                type     : $input.type,
                 operation: $input.operation,
                 status   : 'active',
                 _user    : $input.user.data.id
@@ -66,7 +65,6 @@ class AddAndSubtractController extends Controllers {
                     fa: $input.title.fa
                 },
                 default  : $input.default,
-                type     : $input.type,
                 operation: $input.operation,
             }).then(
                 (response) => {

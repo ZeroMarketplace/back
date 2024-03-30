@@ -11,7 +11,6 @@ class AddAndSubtractModel extends Models {
                 fa: String
             },
             default  : {type: Number, default: 0},
-            type     : {type: String, enum: ['percent', 'number']},
             operation: {type: String, enum: ['add', 'subtract']},
             status   : {type: String, enum: ['active', 'inactive']},
             _user    : {type: UsersModel.schema, ref: 'users'}
