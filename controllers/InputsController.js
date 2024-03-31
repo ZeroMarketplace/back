@@ -1,8 +1,6 @@
 const Controllers = require('../core/Controllers');
 const validator   = require('validator');
 
-// import {validationResult} from "express-validator";
-
 class InputsController extends Controllers {
     static clearInput($input) {
 

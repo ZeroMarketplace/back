@@ -25,7 +25,7 @@ class PurchaseInvoicesController extends Controllers {
         $input.total     = $input.sum;
         for (const addAndSub of $input.AddAndSub) {
             // get add and subtract
-            let detailAddAndSubtract = await AddAndSubtractController.get(addAndSub.reason);
+            let detailAddAndSubtract = await AddAndSubtractController.get(addAndSub._reason);
             detailAddAndSubtract     = detailAddAndSubtract.data;
 
             if (detailAddAndSubtract.operation === 'add') {
@@ -59,9 +59,9 @@ class PurchaseInvoicesController extends Controllers {
             // filter
             this.model.insertOne({
                 code       : code,
-                customer   : $input.customer,
+                _customer  : $input.customer,
                 dateTime   : $input.dateTime,
-                warehouse  : $input.warehouse,
+                _warehouse : $input.warehouse,
                 description: $input.description,
                 products   : $input.products,
                 AddAndSub  : $input.AddAndSub,
@@ -125,7 +125,13 @@ class PurchaseInvoicesController extends Controllers {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
             // filter
-            this.model.list($input).then(
+            this.model.list($input, {
+                select  : ['_customer.phone', '_warehouse', 'total'],
+                populate: [
+                    {path1: '_customer'},
+                    {path1: '_warehouse'}
+                ]
+            }).then(
                 (response) => {
                     // check the result ... and return
                     return resolve({
@@ -151,9 +157,9 @@ class PurchaseInvoicesController extends Controllers {
 
             // filter
             this.model.updateOne($id, {
-                customer   : $input.customer,
+                _customer  : $input.customer,
                 dateTime   : $input.dateTime,
-                warehouse  : $input.warehouse,
+                _warehouse : $input.warehouse,
                 description: $input.description,
                 products   : $input.products,
                 AddAndSub  : $input.AddAndSub,

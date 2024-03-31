@@ -20,6 +20,6 @@
     "nodemon": "^2.0.22",
     "persian-date": "^1.1.0",
     "ottoman": "^2.4.0",
-    "couchbase": "^4.2.9"
+    "couchbase": "^4.3.0"
   }
 }
