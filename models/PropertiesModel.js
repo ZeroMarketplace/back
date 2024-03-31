@@ -1,6 +1,5 @@
 const Models             = require("../core/Models");
-const {Schema}           = require("ottoman");
-const UsersModel         = require("./UsersModel");
+const {Schema} = require("mongoose");
 
 class PropertiesModel extends Models {
 
@@ -13,7 +12,7 @@ class PropertiesModel extends Models {
             variant: Boolean,
             values : {type: Schema.Types.Mixed},
             status : {type: String, enum: ['active', 'inactive']},
-            _user  : {type: UsersModel.schema, ref: 'users'}
+            _user  : {type: Schema.Types.ObjectId, ref: 'users'}
         },
         {timestamps: true});
 

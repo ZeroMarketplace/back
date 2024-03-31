@@ -1,8 +1,6 @@
-const Models          = require("../core/Models");
-const {Schema}        = require("ottoman");
-const UsersModel      = require("./UsersModel");
-const PropertiesModel = require("./PropertiesModel");
-const Logger          = require("../core/Logger");
+const Models   = require("../core/Models");
+const {Schema} = require("mongoose");
+const Logger   = require("../core/Logger");
 
 class CategoriesModel extends Models {
 
@@ -14,11 +12,11 @@ class CategoriesModel extends Models {
             },
             code         : Number,
             profitPercent: Number,
-            _properties  : [{type: PropertiesModel.schema, ref: 'properties'}],
+            _properties  : [{type: Schema.Types.ObjectId, ref: 'properties'}],
             _parent      : String,
             children     : [String],
             status       : {type: String, enum: ['active', 'inactive']},
-            _user        : {type: UsersModel.schema, ref: 'users'}
+            _user        : {type: Schema.Types.ObjectId, ref: 'users'}
         },
         {timestamps: true});
 

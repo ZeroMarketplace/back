@@ -8,6 +8,84 @@ class PermissionsController extends Controllers {
         super();
     }
 
+    static initDefaultPermissions() {
+        let admin = {
+            "title": "usersDefaultPermissions",
+            "type": "collective",
+            "label": "admins",
+            "urls": {
+                "/api/units": {
+                    "POST": true,
+                    "GET": true,
+                    "PUT": true,
+                    "DELETE": true
+                },
+                "/api/brands": {
+                    "POST": true,
+                    "GET": true,
+                    "PUT": true,
+                    "DELETE": true
+                },
+                "/api/properties": {
+                    "POST": true,
+                    "GET": true,
+                    "PUT": true,
+                    "DELETE": true
+                },
+                "/api/categories": {
+                    "POST": true,
+                    "GET": true,
+                    "PUT": true,
+                    "DELETE": true
+                },
+                "/api/products": {
+                    "POST": true,
+                    "GET": true,
+                    "PUT": true,
+                    "DELETE": true
+                },
+                "/api/warehouses": {
+                    "POST": true,
+                    "GET": true,
+                    "PUT": true,
+                    "DELETE": true
+                },
+                "/api/accounts": {
+                    "POST": true,
+                    "GET": true,
+                    "PUT": true,
+                    "DELETE": true
+                },
+                "/api/users": {
+                    "POST": true,
+                    "GET": true,
+                    "PUT": true,
+                    "DELETE": true
+                },
+                "/api/add-and-subtract": {
+                    "POST": true,
+                    "GET": true,
+                    "PUT": true,
+                    "DELETE": true
+                },
+                "/api/purchase-invoices": {
+                    "POST": true,
+                    "GET": true,
+                    "PUT": true,
+                    "DELETE": true
+                }
+            }
+        };
+        let user = {
+            "title": "usersDefaultPermissions",
+            "type": "collective",
+            "label": "users",
+            "urls": {},
+        };
+        this.model.insertOne(admin);
+        this.model.insertOne(user);
+    }
+
     static deleteOne($id) {
         return new Promise((resolve, reject) => {
             // check filter is valid ...
@@ -180,7 +258,6 @@ class PermissionsController extends Controllers {
                     });
                 },
                 (error) => {
-                    console.log(error);
                     return reject({
                         code: 500
                     });

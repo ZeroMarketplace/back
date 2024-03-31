@@ -4,6 +4,7 @@ const Sender                = require("../Sender");
 const UserController        = require('../../controllers/UsersController');
 const md5                   = require('md5');
 const jwt                   = require("jsonwebtoken");
+const {ObjectId}            = require("mongodb");
 
 
 class LoginByPhone extends LoginStrategies {
@@ -99,7 +100,7 @@ class LoginByPhone extends LoginStrategies {
         return new Promise((resolve, reject) => {
             // check validation is not expired
             ValidationsController.item({
-                id: $input.validation
+                _id: new ObjectId($input.validation)
             }).then(
                 // validation founded
                 (validationQueryResponse) => {
@@ -155,7 +156,7 @@ class LoginByPhone extends LoginStrategies {
                                     responseUserInsertQuery = responseUserInsertQuery.data;
 
                                     // create token and return
-                                    let token               = jwt.sign(
+                                    let token = jwt.sign(
                                         {
                                             data     : {
                                                 id         : responseUserInsertQuery.id,

@@ -57,11 +57,12 @@ class ValidationsController extends Controllers {
 
             // filter
             this.model.item($input).then(response => {
-                // check the result ... and return
-                return resolve(response);
-            }).catch(response => {
-                return reject(response);
-            });
+                    // check the result ... and return
+                    return resolve(response);
+                },
+                (error) => {
+                    return reject(error);
+                });
         });
     }
 }

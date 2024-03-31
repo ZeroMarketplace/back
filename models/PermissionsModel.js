@@ -1,5 +1,5 @@
-const Models   = require("../core/Models");
-const {Schema} = require("ottoman");
+const Models             = require("../core/Models");
+const {Schema} = require("mongoose");
 
 class PermissionsModel extends Models {
 

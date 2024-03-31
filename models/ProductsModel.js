@@ -1,19 +1,14 @@
-const Models          = require("../core/Models");
-const {Schema}        = require("ottoman");
-const UsersModel      = require("./UsersModel");
-const CategoriesModel = require("./CategoriesModel");
-const BrandsModel     = require("./BrandsModel");
-const UnitsModel      = require("./UnitsModel");
-const {ObjectId}      = require("mongodb");
+const Models   = require("../core/Models");
+const {Schema} = require("mongoose");
 
 class ProductsModel extends Models {
 
     static schema = new Schema({
             name       : String,
             code       : Number,
-            _categories: [{type: CategoriesModel.schema, ref: 'categories'}],
-            _brand     : {type: BrandsModel.schema, ref: 'brands'},
-            _unit      : {type: UnitsModel.schema, ref: 'units'},
+            _categories: [{type: Schema.Types.ObjectId, ref: 'categories'}],
+            _brand     : {type: Schema.Types.ObjectId, ref: 'brands'},
+            _unit      : {type: Schema.Types.ObjectId, ref: 'units'},
             barcode    : String,
             iranCode   : String,
             weight     : Number,
@@ -25,7 +20,7 @@ class ProductsModel extends Models {
             content    : String,
             files      : [String],
             status     : {type: String, enum: ['active', 'inactive']},
-            _user      : {type: UsersModel.schema, ref: 'users'}
+            _user      : {type: Schema.Types.ObjectId, ref: 'users'}
         },
         {timestamps: true});
 

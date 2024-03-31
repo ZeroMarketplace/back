@@ -1,6 +1,6 @@
-const Models   = require("../core/Models");
-const {Schema} = require("ottoman");
-const Logger   = require("../core/Logger");
+const Models             = require("../core/Models");
+const {Schema} = require("mongoose");
+const Logger             = require("../core/Logger");
 
 class ValidationsModel extends Models {
 

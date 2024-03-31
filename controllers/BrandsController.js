@@ -1,5 +1,5 @@
 const Controllers = require('../core/Controllers');
-const BrandsModel  = require("../models/BrandsModel");
+const BrandsModel = require("../models/BrandsModel");
 
 class BrandsController extends Controllers {
     static model = new BrandsModel();
@@ -65,10 +65,7 @@ class BrandsController extends Controllers {
             }).then(
                 (response) => {
                     // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
+                    return resolve(response);
                 },
                 (response) => {
                     return reject(response);
@@ -111,7 +108,6 @@ class BrandsController extends Controllers {
                     });
                 },
                 (error) => {
-                    console.log(error);
                     return reject({
                         code: 500
                     });

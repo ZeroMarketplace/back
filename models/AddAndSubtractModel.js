@@ -1,6 +1,5 @@
-const Models     = require("../core/Models");
-const {Schema}   = require("ottoman");
-const UsersModel = require("./UsersModel");
+const Models             = require("../core/Models");
+const {Schema} = require("mongoose");
 
 class AddAndSubtractModel extends Models {
 
@@ -13,7 +12,7 @@ class AddAndSubtractModel extends Models {
             default  : {type: Number, default: 0},
             operation: {type: String, enum: ['add', 'subtract']},
             status   : {type: String, enum: ['active', 'inactive']},
-            _user    : {type: UsersModel.schema, ref: 'users'}
+            _user    : {type: Schema.Types.ObjectId, ref: 'users'}
         },
         {timestamps: true});
 

@@ -83,7 +83,6 @@ class UsersController extends Controllers {
                     });
                 },
                 (error) => {
-                    console.log(error);
                     return reject({
                         code: 500
                     });

@@ -1,6 +1,5 @@
-const Models     = require("../core/Models");
-const {Schema}   = require("ottoman");
-const UsersModel = require("./UsersModel");
+const Models   = require("../core/Models");
+const {Schema} = require("mongoose");
 
 class AccountsModel extends Models {
 
@@ -14,7 +13,7 @@ class AccountsModel extends Models {
             balance    : Number,
             description: String,
             status     : {type: String, enum: ['active', 'inactive']},
-            _user      : {type: UsersModel.schema, ref: 'users'}
+            _user      : {type: Schema.Types.ObjectId, ref: 'users'}
         },
         {timestamps: true});
 

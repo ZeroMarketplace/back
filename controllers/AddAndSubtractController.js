@@ -115,7 +115,6 @@ class AddAndSubtractController extends Controllers {
                     });
                 },
                 (error) => {
-                    console.log(error);
                     return reject({
                         code: 500
                     });

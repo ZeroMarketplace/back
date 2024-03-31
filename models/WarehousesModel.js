@@ -1,17 +1,17 @@
-const Models     = require("../core/Models");
-const {Schema}   = require("ottoman");
-const UsersModel = require("./UsersModel");
+const Models   = require("../core/Models");
+const {Schema} = require("mongoose");
 
 class WarehousesModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
-            title : {
+            title     : {
                 en: String,
                 fa: String
             },
-            status: {type: String, enum: ['active', 'inactive']},
-            _user : {type: UsersModel.schema, ref: 'users'}
+            sellOnline: Boolean,
+            status    : {type: String, enum: ['active', 'inactive']},
+            _user     : {type: Schema.Types.ObjectId, ref: 'users'}
         },
         {timestamps: true});
 

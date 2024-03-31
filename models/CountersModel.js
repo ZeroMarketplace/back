@@ -1,7 +1,6 @@
 const Models                  = require("../core/Models");
-const {Schema}                = require("ottoman");
+const {Schema} = require("mongoose");
 const Logger                  = require("../core/Logger");
-const {DocumentNotFoundError} = require("couchbase");
 
 class CountersModel extends Models {
 

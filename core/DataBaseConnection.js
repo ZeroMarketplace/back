@@ -1,20 +1,15 @@
-const couchbase = require('couchbase');
-const {Ottoman} = require('ottoman');
-
 class DataBaseConnection {
-    static ottoman = new Ottoman();
+    static mongoose = require('mongoose');
 
     static async connect() {
-
-        await DataBaseConnection.ottoman.connect({
-            connectionString: process.env.CouchBase_CONNECTION,
-            username        : process.env.CouchBase_USER,
-            password        : process.env.CouchBase_PASSWORD,
-            bucketName      : process.env.CouchBase_BUCKET,
-        });
-
-        await DataBaseConnection.ottoman.start();
-
+        const user     = encodeURIComponent(process.env.MongoDB_USER);
+        const password = encodeURIComponent(process.env.MongoDB_PASSWORD);
+        const host     = encodeURIComponent(process.env.MongoDB_HOST);
+        const database = encodeURIComponent(process.env.MongoDB_DATABASE);
+        const uri      = 'mongodb://' + user + ':' + password + '@' + host + ':27017/' + database;
+        await DataBaseConnection.mongoose.connect(
+            'mongodb://' + host + ':27017/' + database
+        );
 
         console.log('db connected');
     }
