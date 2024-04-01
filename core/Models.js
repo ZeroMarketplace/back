@@ -36,20 +36,23 @@ class Models {
 
     get($id, $options = {}) {
         return new Promise((resolve, reject) => {
-            this.collectionModel.findById($id, $options).then((response) => {
-                return resolve(response);
-            }).catch((error) => {
-                // if (error instanceof DocumentNotFoundError) {
-                //     return reject({
-                //         code: 404
-                //     });
-                // } else {
-                //     Logger.systemError('DB-get', error);
-                //     return reject({
-                //         code: 500
-                //     });
-                // }
-            });
+            this.collectionModel.findById($id, $options.select, $options).then(
+                (response) => {
+                    if (response) {
+                        return resolve(response);
+                    } else {
+                        return reject({
+                            code: 404
+                        });
+                    }
+                },
+                (error) => {
+                    Logger.systemError('DB-get', error);
+                    return reject({
+                        code: 500
+                    });
+                }
+            );
         });
     }
 

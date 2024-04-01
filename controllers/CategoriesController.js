@@ -1,6 +1,7 @@
 const Controllers        = require('../core/Controllers');
 const CategoriesModel    = require("../models/CategoriesModel");
 const CountersController = require("../controllers/CountersController");
+const {ObjectId}         = require("mongodb");
 
 class CategoriesController extends Controllers {
     static model = new CategoriesModel();
@@ -18,7 +19,7 @@ class CategoriesController extends Controllers {
     static findCategoryChildren($list, $children) {
         let result = [];
         $children.forEach(item => {
-            item = $list.find(i => i.id.toString() === item.toString());
+            item = $list.find(i => i._id.toString() === item.toString());
 
             if (item && item.children) {
                 item.children = CategoriesController.findCategoryChildren($list, item.children);
@@ -31,6 +32,7 @@ class CategoriesController extends Controllers {
 
     static sortCategories($list) {
         let result = [];
+
 
         // find children
         $list.forEach((item) => {
@@ -100,7 +102,7 @@ class CategoriesController extends Controllers {
                 (response) => {
                     // check the result ... and return
                     if ($input._parent) {
-                        CategoriesController.addChild($input._parent, response.id);
+                        CategoriesController.addChild($input._parent, response._id);
                     }
 
                     return resolve({
@@ -190,10 +192,7 @@ class CategoriesController extends Controllers {
             }).then(
                 (response) => {
                     // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
+                    return resolve(response);
                 },
                 (response) => {
                     return reject(response);

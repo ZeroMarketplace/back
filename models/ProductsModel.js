@@ -13,9 +13,18 @@ class ProductsModel extends Models {
             iranCode   : String,
             weight     : Number,
             tags       : String,
-            properties : Schema.Types.Mixed,
+            properties : [
+                {
+                    title: String,
+                    value: Schema.Types.Mixed,
+                    _id  : Schema.Types.ObjectId
+                }
+            ],
             variants   : Schema.Types.Mixed,
-            dimensions : Schema.Types.Mixed,
+            dimensions : {
+                length: Number,
+                width : Number
+            },
             title      : String,
             content    : String,
             files      : [String],

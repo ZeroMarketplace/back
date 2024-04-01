@@ -9,6 +9,7 @@ const md5                  = require('md5');
 // config upload service
 const filesPath          = 'public/products/files/';
 const multer             = require('multer');
+const {ObjectId}         = require("mongodb");
 const fileStorage        = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, filesPath)
@@ -142,6 +143,10 @@ class ProductsController extends Controllers {
                         category.data.code + '' +
                         await CountersController.increment('Category No. ' + category.data.code + ' products')
                     );
+
+                    variant.properties.forEach((property) => {
+                        property.propertyId = new ObjectId(property.propertyId);
+                    });
                 }
             }
 
@@ -276,6 +281,10 @@ class ProductsController extends Controllers {
                             category.data.code + '' +
                             await CountersController.increment('Category No. ' + category.data.code + ' products')
                         );
+
+                    variant.properties.forEach((property) => {
+                        property.propertyId = new ObjectId(property.propertyId);
+                    });
                 }
             }
 
@@ -308,10 +317,7 @@ class ProductsController extends Controllers {
             }).then(
                 (response) => {
                     // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
+                    return resolve(response);
                 },
                 (response) => {
                     return reject(response);
@@ -325,14 +331,15 @@ class ProductsController extends Controllers {
 
             this.get($id).then(
                 (product) => {
+                    product = product.data;
+
                     // delete files
                     if (product.files) {
                         product.files.forEach((file) => {
-                            fs.unlink(filesPath + file);
+                            fs.unlinkSync(filesPath + file);
                         });
                     }
 
-                    // filter
                     this.model.deleteOne($id).then(
                         (response) => {
                             // check the result ... and return

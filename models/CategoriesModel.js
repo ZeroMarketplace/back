@@ -1,6 +1,7 @@
-const Models   = require("../core/Models");
-const {Schema} = require("mongoose");
-const Logger   = require("../core/Logger");
+const Models     = require("../core/Models");
+const {Schema}   = require("mongoose");
+const Logger     = require("../core/Logger");
+const {ObjectId} = require("mongodb");
 
 class CategoriesModel extends Models {
 
@@ -13,8 +14,8 @@ class CategoriesModel extends Models {
             code         : Number,
             profitPercent: Number,
             _properties  : [{type: Schema.Types.ObjectId, ref: 'properties'}],
-            _parent      : String,
-            children     : [String],
+            _parent      : {type: String, required: false},
+            children     : [{type: Schema.Types.ObjectId, ref: 'categories'}],
             status       : {type: String, enum: ['active', 'inactive']},
             _user        : {type: Schema.Types.ObjectId, ref: 'users'}
         },
@@ -26,7 +27,7 @@ class CategoriesModel extends Models {
 
     addChild($id, $childId) {
         return new Promise((resolve, reject) => {
-            this.collectionModel.findById($id).then(
+            this.collectionModel.findById(new ObjectId($id)).then(
                 (response) => {
                     // add child id to children array
                     if (response.children) {
@@ -61,14 +62,33 @@ class CategoriesModel extends Models {
         });
     }
 
+    findChildrenIds(list, id) {
+        let result = [];
+
+        let item = list.find(i => i.id.toString() === id.toString());
+
+        if (item.children) {
+            item.children.forEach((childItem) => {
+                result.push(childItem);
+                let childrenIds = this.findChildrenIds(list, childItem);
+                childrenIds.forEach((jChildItem) => {
+                    result.push(jChildItem);
+                })
+            });
+        }
+
+        return result;
+    }
+
     deleteOne($id) {
         return new Promise((resolve, reject) => {
             this.collectionModel.findById($id).then(
                 async (category) => {
 
                     // delete sub categories
-                    await this.collectionModel.removeMany({
-                        id: {$in: category.children ?? []}
+                    let listOfCategories = await this.collectionModel.find();
+                    await this.collectionModel.deleteMany({
+                        _id: {$in: this.findChildrenIds(listOfCategories, category._id) ?? []}
                     });
 
 
@@ -85,7 +105,7 @@ class CategoriesModel extends Models {
                     }
 
                     // at end remove the category
-                    category.remove().then(
+                    category.deleteOne().then(
                         (response) => {
                             return resolve({
                                 code: 200

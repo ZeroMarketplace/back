@@ -166,10 +166,7 @@ class PurchaseInvoicesController extends Controllers {
             }).then(
                 (response) => {
                     // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
+                    return resolve(response);
                 },
                 (response) => {
                     return reject(response);
