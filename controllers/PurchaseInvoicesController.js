@@ -2,12 +2,52 @@ const Controllers              = require('../core/Controllers');
 const PurchaseInvoicesModel    = require("../models/PurchaseInvoicesModel");
 const CountersController       = require("../controllers/CountersController");
 const AddAndSubtractController = require("./AddAndSubtractController");
+const validator                = require("validator");
+const persianDate              = require('persian-date');
 
 class PurchaseInvoicesController extends Controllers {
     static model = new PurchaseInvoicesModel();
 
     constructor() {
         super();
+    }
+
+    static outputBuilder($row) {
+        for (const [$index, $value] of Object.entries($row)) {
+            switch ($index) {
+                case 'dateTime':
+                    let dateTimeJalali      = new persianDate($value);
+                    $row[$index + 'Jalali'] = dateTimeJalali.toLocale('fa').format();
+                    break;
+            }
+        }
+    }
+
+    static queryBuilder($input) {
+        let query = {};
+
+        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
+
+        // pagination
+        $input.perPage = $input.perPage ?? 10;
+        $input.page    = $input.page ?? 1;
+        $input.offset  = ($input.page - 1) * $input.perPage;
+
+        // sort
+        if ($input.sortColumn && $input.sortDirection) {
+            $input.sort = {};
+            $input.sort[$input.sortColumn] = Number($input.sortDirection);
+        } else {
+            $input.sort = {createdAt: -1};
+        }
+
+        // for (const [$index, $value] of Object.entries($input)) {
+        //     switch ($index) {
+        //
+        //     }
+        // }
+
+        return query;
     }
 
     static async calculateInvoice($input) {
@@ -124,24 +164,40 @@ class PurchaseInvoicesController extends Controllers {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
+            let query = this.queryBuilder($input);
+
             // filter
-            this.model.list($input, {
-                select  : ['_customer.phone', '_warehouse', 'total'],
+            this.model.list(query, {
                 populate: [
-                    {path1: '_customer'},
-                    {path1: '_warehouse'}
-                ]
+                    {path: '_customer', select: 'phone'},
+                    {path: '_warehouse', select: 'title'}
+                ],
+                skip    : $input.offset,
+                limit   : $input.perPage,
+                sort    : $input.sort
             }).then(
                 (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: {
-                            list: response
-                        }
+                    // get count
+                    this.model.count(query).then((count) => {
+
+                        // create output
+                        response.forEach((row) => {
+                            this.outputBuilder(row._doc);
+                        });
+
+                        // return result
+                        return resolve({
+                            code: 200,
+                            data: {
+                                list : response,
+                                total: count
+                            }
+                        });
+
                     });
                 },
                 (error) => {
+                    console.log(error);
                     return reject({
                         code: 500
                     });

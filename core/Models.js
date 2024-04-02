@@ -11,6 +11,20 @@ class Models {
         this.schema          = $schema;
     }
 
+    insertOne($data) {
+        return new Promise((resolve, reject) => {
+
+            this.collectionModel.create($data).then((queryResult) => {
+                return resolve(queryResult);
+            }).catch((error) => {
+                Logger.systemError('DB-Insert', error);
+                return reject({
+                    code: 500
+                });
+            });
+        });
+    }
+
     item($filter, $options = {}) {
         return new Promise((resolve, reject) => {
             this.collectionModel.findOne($filter, $options)
@@ -56,6 +70,41 @@ class Models {
         });
     }
 
+    list($conditions, $options = {}) {
+        return new Promise((resolve, reject) => {
+            // select
+            if (!$options.select)
+                $options.select = {};
+
+            this.collectionModel.find($conditions, $options.select, $options).then(
+                (list) => {
+                    return resolve(list);
+                },
+                (error) => {
+                    Logger.systemError('DB-find', error);
+                    return reject({
+                        code: 500
+                    });
+                }
+            );
+        });
+    }
+
+    count($conditions, $options = {}) {
+        return new Promise((resolve, reject) => {
+            this.collectionModel.countDocuments($conditions).then(
+                (response) => {
+                    return resolve(response);
+                },
+                (error) => {
+                    Logger.systemError('DB-count', error);
+                    return reject({
+                        code: 500
+                    });
+                }
+            );
+        });
+    }
 
     updateOne($id, $set) {
         return new Promise((resolve, reject) => {
@@ -75,20 +124,6 @@ class Models {
         });
     }
 
-    insertOne($data) {
-        return new Promise((resolve, reject) => {
-
-            this.collectionModel.create($data).then((queryResult) => {
-                return resolve(queryResult);
-            }).catch((error) => {
-                Logger.systemError('DB-Insert', error);
-                return reject({
-                    code: 500
-                });
-            });
-        });
-    }
-
     deleteOne($id) {
         return new Promise((resolve, reject) => {
             this.collectionModel.deleteOne({_id: new ObjectId($id)}).then(
@@ -105,25 +140,6 @@ class Models {
         });
     }
 
-    list($conditions, $options) {
-        return new Promise((resolve, reject) => {
-            this.collectionModel.find($conditions, $options).then(
-                (list) => {
-                    return resolve(list);
-                },
-                (error) => {
-                    Logger.systemError('DB-find', error);
-                    return reject({
-                        code: 500
-                    });
-                }
-            );
-        });
-    }
-
-    processConditions($conditions) {
-
-    }
 }
 
 module.exports = Models;
