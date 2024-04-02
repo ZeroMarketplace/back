@@ -1,4 +1,4 @@
-const Models              = require("../core/Models");
+const Models   = require("../core/Models");
 const {Schema} = require("mongoose");
 
 class PurchaseInvoicesModel extends Models {
@@ -10,7 +10,17 @@ class PurchaseInvoicesModel extends Models {
             _warehouse : {type: Schema.Types.ObjectId, ref: 'warehouses'},
             dateTime   : Date,
             description: String,
-            products   : Schema.Types.Mixed,
+            products   : [
+                {
+                    count: Number,
+                    price: {
+                        purchase: Number,
+                        consumer: Number,
+                        store   : Number
+                    },
+                    total: Number
+                }
+            ],
             AddAndSub  : [
                 {
                     _reason: {type: Schema.Types.ObjectId, ref: 'add-and-subtract'},

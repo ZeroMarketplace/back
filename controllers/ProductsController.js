@@ -218,7 +218,7 @@ class ProductsController extends Controllers {
             // field [1] => value
             switch (field[0]) {
                 case 'title':
-                    $input[field[0]] = {$like: '%' + field[1] + '%'};
+                    $input[field[0]] = {$regex: '.*' + field[1] + '.*'};
                     break;
             }
         });

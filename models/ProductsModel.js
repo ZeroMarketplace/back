@@ -20,7 +20,17 @@ class ProductsModel extends Models {
                     _id  : Schema.Types.ObjectId
                 }
             ],
-            variants   : Schema.Types.Mixed,
+            variants   : [
+                {
+                    code      : Number,
+                    properties: [
+                        {
+                            propertyId: Schema.Types.ObjectId,
+                            value     : Number
+                        }
+                    ]
+                }
+            ],
             dimensions : {
                 length: Number,
                 width : Number
