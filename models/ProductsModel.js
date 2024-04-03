@@ -17,7 +17,7 @@ class ProductsModel extends Models {
                 {
                     title: String,
                     value: Schema.Types.Mixed,
-                    _id  : Schema.Types.ObjectId
+                    _id  : {type: Schema.Types.ObjectId, ref: 'properties'}
                 }
             ],
             variants   : [
@@ -25,8 +25,8 @@ class ProductsModel extends Models {
                     code      : Number,
                     properties: [
                         {
-                            propertyId: Schema.Types.ObjectId,
-                            value     : Number
+                            _property: {type: Schema.Types.ObjectId, ref: 'properties'},
+                            value    : Number
                         }
                     ]
                 }

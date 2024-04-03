@@ -144,9 +144,7 @@ class ProductsController extends Controllers {
                         await CountersController.increment('Category No. ' + category.data.code + ' products')
                     );
 
-                    variant.properties.forEach((property) => {
-                        property.propertyId = new ObjectId(property.propertyId);
-                    });
+
                 }
             }
 
@@ -212,7 +210,7 @@ class ProductsController extends Controllers {
         });
     }
 
-    static sortQuery($input) {
+    static queryBuilder($input) {
         Object.entries($input).forEach((field) => {
             // field [0] => index
             // field [1] => value
@@ -230,8 +228,14 @@ class ProductsController extends Controllers {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
+            let query = this.queryBuilder($input);
+
             // filter
-            this.model.list(this.sortQuery($input)).then(
+            this.model.list(query, {
+                populate: [
+                    {path: 'variants.properties._property', select: 'values'}
+                ]
+            }).then(
                 (response) => {
                     // check the result ... and return
                     return resolve({
@@ -282,9 +286,6 @@ class ProductsController extends Controllers {
                             await CountersController.increment('Category No. ' + category.data.code + ' products')
                         );
 
-                    variant.properties.forEach((property) => {
-                        property.propertyId = new ObjectId(property.propertyId);
-                    });
                 }
             }
 
