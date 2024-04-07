@@ -201,4 +201,4 @@ class AccountingDocumentsController extends Controllers {
 
 }
 
-module.exports = AccountingDocumentsModel;
+module.exports = AccountingDocumentsController;
