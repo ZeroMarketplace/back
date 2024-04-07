@@ -25,6 +25,20 @@ class Models {
         });
     }
 
+    insertMany($data) {
+        return new Promise((resolve, reject) => {
+
+            this.collectionModel.insertMany($data).then((queryResult) => {
+                return resolve(queryResult);
+            }).catch((error) => {
+                Logger.systemError('DB-InsertMany', error);
+                return reject({
+                    code: 500
+                });
+            });
+        });
+    }
+
     item($filter, $options = {}) {
         return new Promise((resolve, reject) => {
             this.collectionModel.findOne($filter, $options)

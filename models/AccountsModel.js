@@ -9,7 +9,7 @@ class AccountsModel extends Models {
                 en: String,
                 fa: String
             },
-            type       : {type: String, enum: ['cash', 'bank', 'expense', 'income']},
+            type       : {type: String, enum: ['cash', 'bank', 'expense', 'income', 'system']},
             balance    : Number,
             description: String,
             status     : {type: String, enum: ['active', 'inactive']},

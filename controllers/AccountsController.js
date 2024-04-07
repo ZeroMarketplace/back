@@ -8,6 +8,115 @@ class AccountsController extends Controllers {
         super();
     }
 
+    // insert global account to db
+    static initGlobalAccounts() {
+        return new Promise((resolve, reject) => {
+            this.model.insertMany([
+                // cash purchase
+                {
+                    title      : {
+                        fa: 'خرید نقدی',
+                        en: 'cash purchase',
+                    },
+                    type       : 'system',
+                    balance    : 0,
+                    description: 'cash purchase'
+                },
+                // credit purchase
+                {
+                    title      : {
+                        fa: 'خرید اعتباری',
+                        en: 'credit purchase',
+                    },
+                    type       : 'system',
+                    balance    : 0,
+                    description: 'credit purchase'
+                },
+                // cash sales
+                {
+                    title      : {
+                        fa: 'فروش نقدی',
+                        en: 'cash sales',
+                    },
+                    type       : 'system',
+                    balance    : 0,
+                    description: 'cash sales'
+                },
+                // credit sales
+                {
+                    title      : {
+                        fa: 'فروش اعتباری',
+                        en: 'credit sales',
+                    },
+                    type       : 'system',
+                    balance    : 0,
+                    description: 'credit sales'
+                },
+                // Return from purchase
+                {
+                    title      : {
+                        fa: 'برگشت از خرید',
+                        en: 'return from purchase',
+                    },
+                    type       : 'system',
+                    balance    : 0,
+                    description: 'return from purchase'
+                },
+                // return from sale
+                {
+                    title      : {
+                        fa: 'برگشت از فروش',
+                        en: 'return from sale',
+                    },
+                    type       : 'system',
+                    balance    : 0,
+                    description: 'return from sale'
+                },
+                // discounts
+                {
+                    title      : {
+                        fa: 'تخفیفات',
+                        en: 'discounts',
+                    },
+                    type       : 'system',
+                    balance    : 0,
+                    description: 'discounts'
+                },
+                // tax savings
+                {
+                    title      : {
+                        fa: 'دخیره مالیات',
+                        en: 'tax savings',
+                    },
+                    type       : 'system',
+                    balance    : 0,
+                    description: 'tax savings'
+                },
+                // debtors
+                {
+                    title      : {
+                        fa: 'بدهکاران',
+                        en: 'debtors',
+                    },
+                    type       : 'system',
+                    balance    : 0,
+                    description: 'debtors'
+                },
+                // creditors
+                {
+                    title      : {
+                        fa: 'بستانکاران',
+                        en: 'creditors',
+                    },
+                    type       : 'system',
+                    balance    : 0,
+                    description: 'creditors'
+                },
+            ]);
+
+        });
+    }
+
     static deleteOne($id) {
         return new Promise((resolve, reject) => {
             // check filter is valid ...
@@ -71,10 +180,7 @@ class AccountsController extends Controllers {
             }).then(
                 (response) => {
                     // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
+                    return resolve(response);
                 },
                 (response) => {
                     return reject(response);
