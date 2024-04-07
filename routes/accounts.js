@@ -4,8 +4,6 @@ const InputsController   = require("../controllers/InputsController");
 const AccountsController = require("../controllers/AccountsController");
 const AuthController     = require("../controllers/AuthController");
 
-AccountsController.initGlobalAccounts();
-
 router.post(
     '/',
     AuthController.authorizeJWT,
