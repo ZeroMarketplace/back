@@ -10,9 +10,10 @@ class AccountingDocumentsModel extends Models {
             description     : String,
             accountsInvolved: [
                 {
-                    _account: {type: Schema.Types.ObjectId, ref: 'accounts'},
-                    debit   : Number,
-                    credit  : Number
+                    _account   : {type: Schema.Types.ObjectId, ref: 'accounts'},
+                    description: String,
+                    debit      : Number,
+                    credit     : Number
                 }
             ],
             amount          : Number,
@@ -20,6 +21,7 @@ class AccountingDocumentsModel extends Models {
                 type: {type: String, enum: ['purchase-invoice']},
                 _id : Schema.Types.ObjectId
             },
+            files           : [String],
             status          : {type: String, enum: ['active', 'inactive']},
             _user           : {type: Schema.Types.ObjectId, ref: 'users'}
         },
