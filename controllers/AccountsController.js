@@ -8,6 +8,35 @@ class AccountsController extends Controllers {
         super();
     }
 
+    static queryBuilder($input) {
+        let query = {};
+
+        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
+
+        // pagination
+        $input.perPage = $input.perPage ?? 10;
+        $input.page    = $input.page ?? 1;
+        $input.offset  = ($input.page - 1) * $input.perPage;
+
+        // sort
+        if ($input.sortColumn && $input.sortDirection) {
+            $input.sort                    = {};
+            $input.sort[$input.sortColumn] = Number($input.sortDirection);
+        } else {
+            $input.sort = {createdAt: -1};
+        }
+
+        for (const [$index, $value] of Object.entries($input)) {
+            switch ($index) {
+                case 'title':
+                    query['title.fa'] = {$regex: '.*' + $value + '.*'};
+                    break;
+            }
+        }
+
+        return query;
+    }
+
     // insert global account to db
     static initGlobalAccounts() {
         return new Promise((resolve, reject) => {
@@ -117,24 +146,6 @@ class AccountsController extends Controllers {
         });
     }
 
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.deleteOne($id).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
     static insertOne($input) {
         return new Promise((resolve, reject) => {
             // check filter is valid ...
@@ -156,6 +167,78 @@ class AccountsController extends Controllers {
                     return resolve({
                         code: 200,
                         data: response.toObject()
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
+    }
+
+    static item($input) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid and remove other parameters (just valid query by user role) ...
+
+            // filter
+            this.model.item($input).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200,
+                        data: response
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
+    }
+
+    static list($input) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid and remove other parameters (just valid query by user role) ...
+
+            let query   = this.queryBuilder($input);
+            let options = {
+                sort: $input.sort
+            };
+
+            // pagination
+            if ($input.pagination) {
+                options.skip  = $input.offset;
+                options.limit = $input.perPage;
+            }
+
+            // filter
+            this.model.list(query, options).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200,
+                        data: {
+                            list: response
+                        }
+                    });
+                },
+                (error) => {
+                    return reject({
+                        code: 500
+                    });
+                });
+        });
+    }
+
+    static get($id, $options) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid and remove other parameters (just valid query by user role) ...
+
+            // filter
+            this.model.get($id, $options).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200,
+                        data: response
                     });
                 },
                 (response) => {
@@ -188,17 +271,16 @@ class AccountsController extends Controllers {
         });
     }
 
-    static item($input) {
+    static deleteOne($id) {
         return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
+            // check filter is valid ...
 
             // filter
-            this.model.item($input).then(
+            this.model.deleteOne($id).then(
                 (response) => {
                     // check the result ... and return
                     return resolve({
-                        code: 200,
-                        data: response
+                        code: 200
                     });
                 },
                 (response) => {
@@ -206,30 +288,6 @@ class AccountsController extends Controllers {
                 });
         });
     }
-
-    static list($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.list($input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: {
-                            list: response
-                        }
-                    });
-                },
-                (error) => {
-                    return reject({
-                        code: 500
-                    });
-                });
-        });
-    }
-
 
 }
 

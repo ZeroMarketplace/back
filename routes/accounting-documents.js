@@ -3,6 +3,7 @@ let router                          = express.Router();
 const InputsController              = require("../controllers/InputsController");
 const AccountingDocumentsController = require("../controllers/AccountingDocumentsController");
 const AuthController                = require("../controllers/AuthController");
+const ProductsController            = require("../controllers/ProductsController");
 
 router.post(
     '/',
@@ -99,6 +100,72 @@ router.delete(
         let $params = InputsController.clearInput(req.params);
 
         AccountingDocumentsController.deleteOne($params.id).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+router.get(
+    '/:id/files/:fileName',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res) {
+        // get id from params and put into Input
+        let $params = InputsController.clearInput(req.params);
+
+        AccountingDocumentsController.getFile($params.id, $params).then(
+            (response) => {
+                res.setHeader('content-type', response.contentType);
+                return res.status(response.code).send(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+
+router.post(
+    '/:id/files',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res) {
+        // create clean input
+        let $input = InputsController.clearInput(req.body);
+
+        // add request parameters to $input
+        $input.req = req;
+        $input.res = res;
+
+        // get id from params and put into Input
+        let $params = InputsController.clearInput(req.params);
+
+        AccountingDocumentsController.uploadFile($params.id, $input).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+router.delete(
+    '/:id/files/:fileName',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res) {
+        // get id from params and put into Input
+        let $params = InputsController.clearInput(req.params);
+
+        AccountingDocumentsController.deleteFile($params.id, $params).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

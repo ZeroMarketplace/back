@@ -7,9 +7,8 @@ const fs                   = require("fs");
 const md5                  = require('md5');
 
 // config upload service
-const filesPath          = 'public/products/files/';
+const filesPath          = 'public/products/';
 const multer             = require('multer');
-const {ObjectId}         = require("mongodb");
 const fileStorage        = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, filesPath)
@@ -258,13 +257,13 @@ class ProductsController extends Controllers {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
             // filter
-            this.model.get($id).then(
+            this.model.item({
+                _id           : $id,
+                'variants._id': $id
+            }).then(
                 (response) => {
                     // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
+                    return resolve(response);
                 },
                 (response) => {
                     return reject(response);

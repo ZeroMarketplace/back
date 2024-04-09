@@ -73,6 +73,12 @@ class PermissionsController extends Controllers {
                     "GET": true,
                     "PUT": true,
                     "DELETE": true
+                },
+                "/api/accounting-documents": {
+                    "POST": true,
+                    "GET": true,
+                    "PUT": true,
+                    "DELETE": true
                 }
             }
         };

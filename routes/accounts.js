@@ -3,6 +3,7 @@ let router               = express.Router();
 const InputsController   = require("../controllers/InputsController");
 const AccountsController = require("../controllers/AccountsController");
 const AuthController     = require("../controllers/AuthController");
+const ProductsController = require("../controllers/ProductsController");
 
 router.post(
     '/',
@@ -31,9 +32,28 @@ router.get(
     '/',
     function (req, res) {
         // create clean input
-        let $input = InputsController.clearInput(req.params);
+        let $input = InputsController.clearInput(req.query);
 
         AccountsController.list($input).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+router.get(
+    '/:id',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res) {
+        // create clean input
+        let $input = InputsController.clearInput(req.params);
+
+        AccountsController.get($input.id).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

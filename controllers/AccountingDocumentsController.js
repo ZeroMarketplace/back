@@ -3,6 +3,35 @@ const AccountingDocumentsModel = require("../models/AccountingDocumentsModel");
 const CountersController       = require("../controllers/CountersController");
 const AddAndSubtractController = require("./AddAndSubtractController");
 const persianDate              = require('persian-date');
+const md5                      = require('md5');
+
+// config upload service
+const filesPath            = 'storage/files/accounting-documents/';
+const multer               = require('multer');
+const Logger               = require("../core/Logger");
+const fs                   = require("fs");
+const path                 = require("path");
+const fileStorage          = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, filesPath)
+    },
+    filename   : function (req, file, cb) {
+        const uniqueSuffix = md5('ADF' + new Date().getTime()) + '.' + file.mimetype.split('/')[1];
+        cb(null, uniqueSuffix)
+    }
+});
+const fileFilter           = (req, file, cb) => {
+
+    // check allowed type
+    let allowedTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
+    cb(null, allowedTypes.includes(file.mimetype));
+
+};
+const uploadDocumentsFiles = multer({
+    storage   : fileStorage,
+    fileFilter: fileFilter,
+    limits    : {fileSize: 5000000}
+}).array('files');
 
 class AccountingDocumentsController extends Controllers {
     static model = new AccountingDocumentsModel();
@@ -49,6 +78,146 @@ class AccountingDocumentsController extends Controllers {
         return query;
     }
 
+    static uploadFile($id, $input) {
+        return new Promise((resolve, reject) => {
+            this.get($id).then(
+                (document) => {
+                    document = document.data;
+
+                    // upload files with multer
+                    uploadDocumentsFiles($input.req, $input.res, (err) => {
+                        if (err) {
+                            return reject({
+                                code: 500,
+                                data: err
+                            });
+                        }
+
+
+                        // create array of files
+                        if (!document.files) {
+                            document.files = [];
+                        }
+
+                        // add file Names to the list
+                        $input.req.files.forEach((file) => {
+                            document.files.push(file.filename);
+                        });
+
+                        document.save().then(
+                            (responseSave) => {
+                                return resolve({
+                                    code: 200
+                                });
+                            },
+                            (error) => {
+                                Logger.systemError('accounting-documents-saveFilesName', error);
+                                return reject({
+                                    code: 500
+                                });
+                            },
+                        );
+
+                    })
+                },
+                (error) => {
+                    return reject(error);
+                }
+            );
+        });
+    }
+
+    static deleteFile($id, $input) {
+        return new Promise((resolve, reject) => {
+            this.get($id).then(
+                (document) => {
+                    document = document.data;
+                    // check file is exiting
+                    if (document.files.length && document.files.includes($input.fileName)) {
+                        // delete File
+                        fs.unlink(filesPath + $input.fileName, (error) => {
+                            if (error) return reject({code: 500});
+
+                            document.files.splice(document.files.indexOf($input.fileName), 1);
+
+                            document.save().then(
+                                (responseSave) => {
+                                    return resolve({
+                                        code: 200
+                                    });
+                                },
+                                (errorSave) => {
+                                    Logger.systemError('SaveAccountingDocuments-deleteFile');
+                                }
+                            );
+                        });
+                    } else {
+                        return reject({
+                            code: 404
+                        });
+                    }
+                },
+                (error) => {
+                    return reject(error);
+                }
+            );
+        });
+    }
+
+    static getFile($id, $input) {
+        return new Promise((resolve, reject) => {
+            this.get($id).then(
+                (document) => {
+                    document = document.data;
+                    // check file is exiting on db
+                    if (document.files.length && document.files.includes($input.fileName)) {
+                        // check file exists
+                        fs.access(filesPath + $input.fileName, fs.constants.F_OK, (err) => {
+                            if (err) {
+                                return reject({code: 404});
+                            }
+                        });
+
+                        // delete File
+                        fs.readFile(filesPath + $input.fileName, (error, buffer) => {
+                            if (error) return reject({code: 500});
+
+                            // get mimetype
+                            const fileExtension = path.extname($input.fileName);
+                            let contentType     = 'text/plain';
+                            switch (fileExtension) {
+                                case '.jpg':
+                                case '.jpeg':
+                                    contentType = 'image/jpeg';
+                                    break;
+                                case '.png':
+                                    contentType = 'image/png';
+                                    break;
+                                case '.gif':
+                                    contentType = 'image/gif';
+                                    break;
+                            }
+
+                            return resolve({
+                                code       : 200,
+                                data       : buffer,
+                                contentType: contentType
+                            })
+
+                        });
+                    } else {
+                        return reject({
+                            code: 404
+                        });
+                    }
+                },
+                (error) => {
+                    return reject(error);
+                }
+            );
+        });
+    }
+
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
             // check filter is valid ...
@@ -59,7 +228,8 @@ class AccountingDocumentsController extends Controllers {
                 code            : code,
                 dateTime        : $input.dateTime,
                 description     : $input.description,
-                accountsInvolved: $input.amount,
+                accountsInvolved: $input.accountsInvolved,
+                amount          : $input.amount,
                 status          : 'active',
                 _user           : $input.user.data.id
             }).then(
@@ -122,13 +292,9 @@ class AccountingDocumentsController extends Controllers {
 
             // filter
             this.model.list(query, {
-                populate: [
-                    {path: '_customer', select: 'phone'},
-                    {path: '_warehouse', select: 'title'}
-                ],
-                skip    : $input.offset,
-                limit   : $input.perPage,
-                sort    : $input.sort
+                skip : $input.offset,
+                limit: $input.perPage,
+                sort : $input.sort
             }).then(
                 (response) => {
                     // get count
