@@ -9,6 +9,7 @@ const md5                  = require('md5');
 // config upload service
 const filesPath          = 'public/products/';
 const multer             = require('multer');
+const {ObjectId}         = require("mongodb");
 const fileStorage        = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, filesPath)
@@ -258,12 +259,17 @@ class ProductsController extends Controllers {
 
             // filter
             this.model.item({
-                _id           : $id,
-                'variants._id': $id
+                $or: [
+                    {_id: $id},
+                    {'variants._id': $id}
+                ],
             }).then(
                 (response) => {
                     // check the result ... and return
-                    return resolve(response);
+                    return resolve({
+                        code: 200,
+                        data: response
+                    });
                 },
                 (response) => {
                     return reject(response);
