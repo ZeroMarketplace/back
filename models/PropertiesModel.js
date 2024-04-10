@@ -1,4 +1,4 @@
-const Models             = require("../core/Models");
+const Models   = require("../core/Models");
 const {Schema} = require("mongoose");
 
 class PropertiesModel extends Models {
@@ -10,7 +10,13 @@ class PropertiesModel extends Models {
                 fa: String
             },
             variant: Boolean,
-            values : {type: Schema.Types.Mixed},
+            values : [
+                {
+                    code : Number,
+                    title: String,
+                    value: String
+                }
+            ],
             status : {type: String, enum: ['active', 'inactive']},
             _user  : {type: Schema.Types.ObjectId, ref: 'users'}
         },

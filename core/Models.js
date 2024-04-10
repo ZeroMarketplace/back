@@ -41,7 +41,11 @@ class Models {
 
     item($filter, $options = {}) {
         return new Promise((resolve, reject) => {
-            this.collectionModel.findOne($filter, $options)
+            // select
+            if (!$options.select)
+                $options.select = {};
+
+            this.collectionModel.findOne($filter, $options.select, $options)
                 .then(
                     (response) => {
                         if (response) {

@@ -10,6 +10,7 @@ const md5                  = require('md5');
 const filesPath          = 'public/products/';
 const multer             = require('multer');
 const {ObjectId}         = require("mongodb");
+const persianDate        = require("persian-date");
 const fileStorage        = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, filesPath)
@@ -37,6 +38,31 @@ class ProductsController extends Controllers {
 
     constructor() {
         super();
+    }
+
+    static outputBuilder($row) {
+        for (const [$index, $value] of Object.entries($row)) {
+            switch ($index) {
+                case 'variants':
+                    $value.forEach((variant) => {
+                        variant.properties.forEach(property => {
+                            // remove unnecessary values from variant._property.values
+                            if (typeof property._property === 'object') {
+                                if (property._property.values.length > 1) {
+                                    let values = [];
+                                    property._property.values.forEach(value => {
+                                        if (value.code === property.value) {
+                                            values.push(value);
+                                        }
+                                    });
+                                    property._property.values = values;
+                                }
+                            }
+                        });
+                    })
+                    break;
+            }
+        }
     }
 
     static uploadFile($id, $input) {
@@ -238,6 +264,12 @@ class ProductsController extends Controllers {
             }).then(
                 (response) => {
                     // check the result ... and return
+
+                    // create output
+                    response.forEach((row) => {
+                        this.outputBuilder(row._doc);
+                    });
+
                     return resolve({
                         code: 200,
                         data: {
@@ -263,9 +295,15 @@ class ProductsController extends Controllers {
                     {_id: $id},
                     {'variants._id': $id}
                 ],
+            }, {
+                populate: [
+                    {path: 'variants.properties._property', select: 'values'}
+                ]
             }).then(
                 (response) => {
-                    // check the result ... and return
+                    // reformat row for output
+                    this.outputBuilder(response._doc);
+
                     return resolve({
                         code: 200,
                         data: response
