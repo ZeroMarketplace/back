@@ -121,7 +121,7 @@ router.get(
         AccountingDocumentsController.getFile($params.id, $params).then(
             (response) => {
                 res.setHeader('content-type', response.contentType);
-                return res.status(response.code).send(response.data);
+                return res.send(response.data);
             },
             (error) => {
                 return res.status(error.code ?? 500).json(error.data ?? {});

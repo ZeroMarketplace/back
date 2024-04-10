@@ -11,12 +11,15 @@ const multer               = require('multer');
 const Logger               = require("../core/Logger");
 const fs                   = require("fs");
 const path                 = require("path");
+const {ObjectId}           = require("mongodb");
 const fileStorage          = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, filesPath)
     },
     filename   : function (req, file, cb) {
-        const uniqueSuffix = md5('ADF' + new Date().getTime()) + '.' + file.mimetype.split('/')[1];
+        const uniqueSuffix = md5(
+            'ADF' + (new Date().getTime() + Math.floor(Math.random() * 1000 + 1))) +
+            '.' + file.mimetype.split('/')[1];
         cb(null, uniqueSuffix)
     }
 });
@@ -328,13 +331,14 @@ class AccountingDocumentsController extends Controllers {
     static updateOne($id, $input) {
         return new Promise(async (resolve, reject) => {
             // check filter is valid ...
-            await this.calculateInvoice($input);
+
 
             // filter
             this.model.updateOne($id, {
                 dateTime        : $input.dateTime,
                 description     : $input.description,
-                accountsInvolved: $input.amount,
+                accountsInvolved: $input.accountsInvolved,
+                amount          : $input.amount,
             }).then(
                 (response) => {
                     // check the result ... and return
