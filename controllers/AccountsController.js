@@ -114,7 +114,7 @@ class AccountsController extends Controllers {
                 // tax savings
                 {
                     title      : {
-                        fa: 'دخیره مالیات',
+                        fa: 'ذخیره مالیات',
                         en: 'tax savings',
                     },
                     type       : 'system',
