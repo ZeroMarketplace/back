@@ -1,5 +1,6 @@
 const Controllers   = require('../core/Controllers');
 const AccountsModel = require("../models/AccountsModel");
+const {response} = require("express");
 
 class AccountsController extends Controllers {
     static model = new AccountsModel();
@@ -286,6 +287,49 @@ class AccountsController extends Controllers {
                 (response) => {
                     return reject(response);
                 });
+        });
+    }
+
+    // set default of account (type)
+    static setDefaultFor($id) {
+        return new Promise((resolve, reject) => {
+            // find the account
+            this.model.get($id, {
+                select: 'type'
+            }).then(
+                (account) => {
+
+                    // search for leaving default (type)
+                    this.model.item({defaultFor: account.type}).then(
+                        (responseFind) => {
+                            // update old default to null
+                            responseFind.defaultFor = undefined;
+                            responseFind.save();
+
+                            // update new default
+                            account.defaultFor = account.type;
+                            account.save();
+
+                            return resolve({
+                                code: 200
+                            });
+                        },
+                        (response) => {
+                            // update default
+                            account.defaultFor = account.type;
+                            account.save();
+
+                            return resolve({
+                                code: 200
+                            });
+                        }
+                    );
+
+                },
+                (response) => {
+                    return reject(response);
+                }
+            );
         });
     }
 

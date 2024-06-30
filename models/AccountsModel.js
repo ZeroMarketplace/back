@@ -12,6 +12,7 @@ class AccountsModel extends Models {
             type       : {type: String, enum: ['cash', 'bank', 'expense', 'income', 'system']},
             balance    : Number,
             description: String,
+            defaultFor : {type: String, enum: ['cash', 'bank', 'expense', 'income'], isNullable : true},
             status     : {type: String, enum: ['active', 'inactive']},
             _user      : {type: Schema.Types.ObjectId, ref: 'users'}
         },
