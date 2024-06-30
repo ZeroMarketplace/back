@@ -3,41 +3,9 @@ const AccountingDocumentsModel = require("../models/AccountingDocumentsModel");
 const CountersController       = require("../controllers/CountersController");
 const AddAndSubtractController = require("./AddAndSubtractController");
 const persianDate              = require('persian-date');
-const md5                      = require('md5');
 
-// config upload service
-const filesPath            = 'storage/files/accounting-documents/';
-const multer               = require('multer');
-const Logger               = require("../core/Logger");
-const fs                   = require("fs");
-const path                 = require("path");
-const {ObjectId}           = require("mongodb");
-const fileStorage          = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, filesPath)
-    },
-    filename   : function (req, file, cb) {
-        const uniqueSuffix = md5(
-                'ADF' + (new Date().getTime() + Math.floor(Math.random() * 1000 + 1))) +
-            '.' + file.mimetype.split('/')[1];
-        cb(null, uniqueSuffix)
-    }
-});
-const fileFilter           = (req, file, cb) => {
-
-    // check allowed type
-    let allowedTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
-    cb(null, allowedTypes.includes(file.mimetype));
-
-};
-const uploadDocumentsFiles = multer({
-    storage   : fileStorage,
-    fileFilter: fileFilter,
-    limits    : {fileSize: 5000000}
-}).array('files');
-
-class AccountingDocumentsController extends Controllers {
-    static model = new AccountingDocumentsModel();
+class SettlementsController extends Controllers {
+    static model = new SettlementsModel();
 
     constructor() {
         super();
@@ -371,4 +339,4 @@ class AccountingDocumentsController extends Controllers {
 
 }
 
-module.exports = AccountingDocumentsController;
+module.exports = SettlementsControllert;
