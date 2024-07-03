@@ -35,7 +35,7 @@ class PurchaseInvoicesController extends Controllers {
 
         // sort
         if ($input.sortColumn && $input.sortDirection) {
-            $input.sort = {};
+            $input.sort                    = {};
             $input.sort[$input.sortColumn] = Number($input.sortDirection);
         } else {
             $input.sort = {createdAt: -1};
@@ -86,7 +86,7 @@ class PurchaseInvoicesController extends Controllers {
                 }
             }
 
-            addAndSub.sum = operationSum;
+            addAndSub.amount = operationSum;
         }
     }
 
@@ -106,6 +106,7 @@ class PurchaseInvoicesController extends Controllers {
                 products   : $input.products,
                 AddAndSub  : $input.AddAndSub,
                 total      : $input.total,
+                sum        : $input.sum,
                 status     : 'active',
                 _user      : $input.user.data.id
             }).then(
@@ -122,12 +123,12 @@ class PurchaseInvoicesController extends Controllers {
         });
     }
 
-    static get($id) {
+    static get($id, $options) {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
             // filter
-            this.model.get($id).then(
+            this.model.get($id, $options).then(
                 (response) => {
                     // check the result ... and return
                     return resolve({
@@ -201,6 +202,20 @@ class PurchaseInvoicesController extends Controllers {
                     return reject({
                         code: 500
                     });
+                });
+        });
+    }
+
+    static update($id, $input) {
+        return new Promise(async (resolve, reject) => {
+            // filter
+            this.model.updateOne($id, $input).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve(response);
+                },
+                (response) => {
+                    return reject(response);
                 });
         });
     }

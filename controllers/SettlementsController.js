@@ -1,14 +1,114 @@
-const Controllers              = require('../core/Controllers');
-const AccountingDocumentsModel = require("../models/AccountingDocumentsModel");
-const CountersController       = require("../controllers/CountersController");
-const AddAndSubtractController = require("./AddAndSubtractController");
-const persianDate              = require('persian-date');
+const Controllers                   = require('../core/Controllers');
+const SettlementsModel              = require("../models/SettlementsModel");
+const AccountsController            = require("./AccountsController");
+const AccountingDocumentsController = require("./AccountingDocumentsController");
+const PurchaseInvoicesController    = require("./PurchaseInvoicesController");
+const persianDate                   = require('persian-date');
 
 class SettlementsController extends Controllers {
     static model = new SettlementsModel();
 
     constructor() {
         super();
+    }
+
+    static async createAccountingDocument($input) {
+        // create accounting document
+        let accountingDocument              = {};
+        accountingDocument.user             = $input.user;
+        accountingDocument.dateTime         = new Date();
+        accountingDocument.accountsInvolved = [];
+
+        // add accounts involved and total
+        switch ($input.type) {
+            case 'purchase-invoices':
+                // get purchase-invoice record
+                let purchaseInvoice           = await PurchaseInvoicesController.get($input._id, {
+                    populate: 'AddAndSub._reason'
+                });
+                accountingDocument.amount     = purchaseInvoice.data.total;
+                accountingDocument._reference = $input.settlementId;
+                accountingDocument.type       = 'purchase-invoice-settlement';
+
+                // add purchase account to accounting document as debit
+                let purchaseAccount = await AccountsController.getGlobalAccount('cash purchase');
+                accountingDocument.accountsInvolved.push({
+                    _account   : purchaseAccount.data._id,
+                    description: '',
+                    debit      : purchaseInvoice.data.sum,
+                    credit     : 0
+                });
+
+                // read bank accounts and add to accounting document as credit
+                $input.payment.bankAccounts.forEach((bankAccount) => {
+                    if (bankAccount.amount) {
+                        accountingDocument.accountsInvolved.push({
+                            _account   : bankAccount._account,
+                            description: '',
+                            debit      : 0,
+                            credit     : bankAccount.amount
+                        });
+                    }
+                });
+
+                // read cash accounts and add to accounting document as credit
+                $input.payment.cashAccounts.forEach((cashAccount) => {
+                    if (cashAccount.amount) {
+                        accountingDocument.accountsInvolved.push({
+                            _account   : cashAccount._account,
+                            description: '',
+                            debit      : 0,
+                            credit     : cashAccount.amount
+                        });
+                    }
+                });
+
+                // add credit amount (account)
+                if ($input.payment.credit) {
+                    // debit the credit purchase account
+                    let creditPurchaseAccount = await AccountsController.getGlobalAccount('credit purchase');
+                    accountingDocument.accountsInvolved.push({
+                        _account   : creditPurchaseAccount.data._id,
+                        description: '',
+                        debit      : $input.payment.credit,
+                        credit     : 0
+                    });
+
+                    // credit the user account in purchase-invoice
+                    let customerAccount = await AccountsController.getUserAccount(purchaseInvoice.data._customer);
+                    accountingDocument.accountsInvolved.push({
+                        _account   : customerAccount.data._id,
+                        description: '',
+                        debit      : 0,
+                        credit     : $input.payment.credit
+                    });
+                }
+
+                // add addAndSub accounts (subtract Operation)
+                purchaseInvoice.data.AddAndSub.forEach((addAndSub) => {
+                    if (addAndSub._reason.operation === 'add') {
+                        accountingDocument.accountsInvolved.push({
+                            _account   : addAndSub._reason._account,
+                            description: '',
+                            debit      : addAndSub.amount,
+                            credit     : 0
+                        })
+                    } else if (addAndSub._reason.operation === 'subtract') {
+                        accountingDocument.accountsInvolved.push({
+                            _account   : addAndSub._reason._account,
+                            description: '',
+                            debit      : 0,
+                            credit     : addAndSub.amount
+                        })
+                    }
+                });
+
+                break;
+        }
+
+        return accountingDocument;
+
+
     }
 
     static outputBuilder($row) {
@@ -191,25 +291,42 @@ class SettlementsController extends Controllers {
 
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
-            let code = await CountersController.increment('accounting-documents');
 
+            // create settlement record
             // filter
             this.model.insertOne({
-                code            : code,
-                dateTime        : $input.dateTime,
-                description     : $input.description,
-                accountsInvolved: $input.accountsInvolved,
-                amount          : $input.amount,
-                status          : 'active',
-                _user           : $input.user.data.id
+                type      : $input.type,
+                _reference: $input._id,
+                payment   : $input.payment,
+                _user     : $input.user.data.id
             }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
+                async (responseInsertSettlement) => {
+                    // match settlement Id with accounting document
+                    $input.settlementId = responseInsertSettlement._id;
+
+                    // create accounting document of settlement
+                    let accountingDocument = await this.createAccountingDocument($input);
+                    AccountingDocumentsController.insertOne(accountingDocument).then(
+                        (response) => {
+                            // add accounting document to settlement
+                            responseInsertSettlement._accountingDocument = response.data._id;
+                            responseInsertSettlement.save();
+
+                            // update purchase-invoices record and add settlement
+                            PurchaseInvoicesController.update($input._id, {
+                                _settlement: responseInsertSettlement._id
+                            });
+
+                            return resolve({
+                                code: 200,
+                                data: responseInsertSettlement.data
+                            });
+                        },
+                        (response) => {
+                            return reject(response);
+                        },
+                    );
+
                 },
                 (response) => {
                     return reject(response);
@@ -339,4 +456,4 @@ class SettlementsController extends Controllers {
 
 }
 
-module.exports = SettlementsControllert;
+module.exports = SettlementsController;

@@ -233,6 +233,8 @@ class AccountingDocumentsController extends Controllers {
                 description     : $input.description,
                 accountsInvolved: $input.accountsInvolved,
                 amount          : $input.amount,
+                _reference      : $input._reference,
+                type            : $input.type,
                 status          : 'active',
                 _user           : $input.user.data.id
             }).then(

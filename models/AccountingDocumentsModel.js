@@ -17,10 +17,8 @@ class AccountingDocumentsModel extends Models {
                 }
             ],
             amount          : Number,
-            reference       : {
-                type: {type: String, enum: ['purchase-invoice']},
-                _id : Schema.Types.ObjectId
-            },
+            _reference      : {type: Schema.Types.ObjectId, isNullable: true},
+            type            : {type: String, enum: ['purchase-invoice-settlement'], isNullable: true},
             files           : [String],
             status          : {type: String, enum: ['active', 'inactive']},
             _user           : {type: Schema.Types.ObjectId, ref: 'users'}

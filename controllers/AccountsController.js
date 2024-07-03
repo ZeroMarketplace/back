@@ -1,6 +1,6 @@
 const Controllers   = require('../core/Controllers');
 const AccountsModel = require("../models/AccountsModel");
-const {response} = require("express");
+const {response}    = require("express");
 
 class AccountsController extends Controllers {
     static model = new AccountsModel();
@@ -145,6 +145,63 @@ class AccountsController extends Controllers {
             ]);
 
         });
+    }
+
+    static getGlobalAccount($description) {
+        return new Promise((resolve, reject) => {
+            this.model.item({
+                type       : 'system',
+                description: $description
+            }).then(
+                (response) => {
+                    return resolve({
+                        code: 200,
+                        data: response
+                    })
+                },
+                (response) => {
+                    return reject(response);
+                }
+            );
+        })
+    }
+
+    static getUserAccount($userId) {
+        return new Promise((resolve, reject) => {
+            this.model.item({
+                type      : 'user',
+                _reference: $userId
+            }).then(
+                (response) => {
+                    return resolve({
+                        code: 200,
+                        data: response
+                    })
+                },
+                (response) => {
+                    // create user if not exists
+                    if (response.code && response.code === 404) {
+                        this.model.insertOne({
+                            type      : 'user',
+                            balance   : 0,
+                            _reference: $userId
+                        }).then(
+                            (response) => {
+                                return resolve({
+                                    code: 200,
+                                    data: response.toObject()
+                                });
+                            },
+                            (response) => {
+                                return reject(response);
+                            },
+                        );
+                    } else {
+                        return reject(response);
+                    }
+                }
+            );
+        })
     }
 
     static insertOne($input) {

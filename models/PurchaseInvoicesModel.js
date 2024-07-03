@@ -24,11 +24,14 @@ class PurchaseInvoicesModel extends Models {
             AddAndSub  : [
                 {
                     _reason: {type: Schema.Types.ObjectId, ref: 'add-and-subtract'},
+                    amount : Number,
                     value  : Number,
                 }
             ],
             status     : {type: String, enum: ['active', 'inactive']},
             total      : Number,
+            sum        : Number,
+            _settlement: {type: Schema.Types.ObjectId, ref: 'settlements'},
             _user      : {type: Schema.Types.ObjectId, ref: 'users'}
         },
         {timestamps: true});
