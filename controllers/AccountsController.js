@@ -189,7 +189,7 @@ class AccountsController extends Controllers {
                             (response) => {
                                 return resolve({
                                     code: 200,
-                                    data: response.toObject()
+                                    data: response
                                 });
                             },
                             (response) => {

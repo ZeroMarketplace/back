@@ -2,6 +2,7 @@ const Controllers              = require('../core/Controllers');
 const PurchaseInvoicesModel    = require("../models/PurchaseInvoicesModel");
 const CountersController       = require("../controllers/CountersController");
 const AddAndSubtractController = require("./AddAndSubtractController");
+const SettlementsController = require("./SettlementsController");
 const validator                = require("validator");
 const persianDate              = require('persian-date');
 
@@ -61,22 +62,20 @@ class PurchaseInvoicesController extends Controllers {
         });
 
         // calc add and subtract
-        let operationSum = 0;
-        $input.total     = $input.sum;
+        let operationSum     = 0;
+        $input.total         = $input.sum;
+        let addAndSubDetails = {};
+
+        // calc subtracts in addAndSub
         for (const addAndSub of $input.AddAndSub) {
             // get add and subtract
             let detailAddAndSubtract = await AddAndSubtractController.get(addAndSub._reason);
             detailAddAndSubtract     = detailAddAndSubtract.data;
 
-            if (detailAddAndSubtract.operation === 'add') {
-                if (addAndSub.value <= 100) {
-                    operationSum = ($input.sum * addAndSub.value / 100)
-                    $input.total += operationSum;
-                } else {
-                    operationSum = Number(addAndSub.value);
-                    $input.total += addAndSub.value;
-                }
-            } else {
+            // save detail for using in add operations
+            addAndSubDetails[addAndSub._reason] = detailAddAndSubtract;
+
+            if (detailAddAndSubtract.operation === 'subtract') {
                 if (addAndSub.value <= 100) {
                     operationSum = ($input.sum * addAndSub.value / 100)
                     $input.total -= operationSum;
@@ -84,9 +83,25 @@ class PurchaseInvoicesController extends Controllers {
                     operationSum = Number(addAndSub.value);
                     $input.total -= addAndSub.value;
                 }
-            }
 
-            addAndSub.amount = operationSum;
+                addAndSub.amount = operationSum;
+            }
+        }
+
+        // calc add in addAndSubtract
+        for (const addAndSub of $input.AddAndSub) {
+            // get detail of addAndSubtract
+            let detailAddAndSubtract = addAndSubDetails[addAndSub._reason];
+            if (detailAddAndSubtract.operation === 'add') {
+                if (addAndSub.value <= 100) {
+                    operationSum = ($input.total * addAndSub.value / 100)
+                    $input.total += operationSum;
+                } else {
+                    operationSum = Number(addAndSub.value);
+                    $input.total += addAndSub.value;
+                }
+                addAndSub.amount = operationSum;
+            }
         }
     }
 
@@ -247,19 +262,33 @@ class PurchaseInvoicesController extends Controllers {
 
     static deleteOne($id) {
         return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.deleteOne($id).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
+            // get info
+            this.model.get($id).then(
+                (purchaseInvoice) => {
+                    // check has settlement
+                    if(purchaseInvoice._settlement) {
+                        // delete settlement
+                        SettlementsController.deleteOne(purchaseInvoice._settlement).then(
+                            (responseDeleteSettlement) => {
+                                // delete the purchaseInvoice
+                                purchaseInvoice.deleteOne().then(
+                                    (responseDeletePurchaseInvoice) => {
+                                        return resolve({
+                                            code: 200
+                                        });
+                                    }
+                                );
+                            },
+                            (response) => {
+                                return reject(response);
+                            }
+                        );
+                    }
                 },
                 (response) => {
                     return reject(response);
-                });
+                }
+            );
         });
     }
 

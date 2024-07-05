@@ -319,7 +319,7 @@ class SettlementsController extends Controllers {
 
                             return resolve({
                                 code: 200,
-                                data: responseInsertSettlement.data
+                                data: responseInsertSettlement
                             });
                         },
                         (response) => {
@@ -417,39 +417,74 @@ class SettlementsController extends Controllers {
         return new Promise(async (resolve, reject) => {
             // check filter is valid ...
 
-
             // filter
-            this.model.updateOne($id, {
-                dateTime        : $input.dateTime,
-                description     : $input.description,
-                accountsInvolved: $input.accountsInvolved,
-                amount          : $input.amount,
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
+            this.model.get($id).then(
+                async (settlement) => {
+                    // update settlement
+                    settlement.type       = $input.type;
+                    settlement._reference = $input._id;
+                    settlement.payment    = $input.payment;
+                    await settlement.save();
+
+                    // create accounting document
+                    // match settlement Id with accounting document
+                    $input.settlementId    = $id;
+                    let accountingDocument = await this.createAccountingDocument($input);
+
+                    // find and update accounting document
+                    AccountingDocumentsController.updateOne(settlement._accountingDocument, {
+                        dateTime        : accountingDocument.dateTime,
+                        description     : accountingDocument.description,
+                        accountsInvolved: accountingDocument.accountsInvolved,
+                        amount          : accountingDocument.amount
+                    }).then(
+                        (response) => {
+                            return resolve({
+                                code: 200,
+                                data: settlement.toObject()
+                            });
+                        },
+                        (response) => {
+                            return reject(response);
+                        }
+                    );
                 },
                 (response) => {
                     return reject(response);
-                });
+                }
+            );
         });
     }
 
     static deleteOne($id) {
         return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.deleteOne($id).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
+            // get info
+            this.model.get($id).then(
+                (settlement) => {
+                    // check has accounting document
+                    if(settlement._accountingDocument) {
+                        // delete accounting document
+                        AccountingDocumentsController.deleteOne(settlement._accountingDocument).then(
+                            (responseDeleteAccountingDocument) => {
+                                // delete the settlement
+                                settlement.deleteOne().then(
+                                    (responseDeleteSettlement) => {
+                                        return resolve({
+                                            code: 200
+                                        });
+                                    }
+                                );
+                            },
+                            (response) => {
+                                return reject(response);
+                            }
+                        );
+                    }
                 },
                 (response) => {
                     return reject(response);
-                });
+                }
+            );
         });
     }
 
