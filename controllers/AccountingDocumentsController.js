@@ -1,7 +1,7 @@
 const Controllers              = require('../core/Controllers');
 const AccountingDocumentsModel = require("../models/AccountingDocumentsModel");
 const CountersController       = require("../controllers/CountersController");
-const AddAndSubtractController = require("./AddAndSubtractController");
+const AccountsController       = require("../controllers/AccountsController");
 const persianDate              = require('persian-date');
 const md5                      = require('md5');
 
@@ -12,6 +12,7 @@ const Logger               = require("../core/Logger");
 const fs                   = require("fs");
 const path                 = require("path");
 const {ObjectId}           = require("mongodb");
+const {response}           = require("express");
 const fileStorage          = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, filesPath)
@@ -238,8 +239,45 @@ class AccountingDocumentsController extends Controllers {
                 status          : 'active',
                 _user           : $input.user.data.id
             }).then(
-                (response) => {
-                    // check the result ... and return
+                async (response) => {
+                    let accountsInvolved = response.accountsInvolved;
+                    // update balance of accounts
+                    for (const account of accountsInvolved) {
+                        if (!account.checked) {
+                            // sum account debit and credit
+                            let sum = 0;
+                            accountsInvolved.filter(i => i._account === account._account)
+                                .forEach((sameAccount) => {
+                                    // debit has plus balance
+                                    if (account.debit > 0 && account.credit === 0) {
+                                        sum += account.debit;
+
+                                        // credit has minus balance
+                                    } else if (account.credit > 0 && account.debit === 0) {
+                                        sum -= account.credit;
+                                    }
+                                    sameAccount.checked = true;
+                                });
+                            // check is debit or credit
+                            if (sum > 0) {
+                                account.debit  = sum;
+                                account.credit = 0;
+                            } else {
+                                account.debit  = 0;
+                                account.credit = Math.abs(sum);
+                            }
+
+                            // debit has plus balance
+                            if (account.debit > 0 && account.credit === 0) {
+                                // update account balance
+                                await AccountsController.updateAccountBalance(account._account, +account.debit);
+                                // credit has minus balance
+                            } else if (account.credit > 0 && account.debit === 0) {
+                                await AccountsController.updateAccountBalance(account._account, -account.credit);
+                            }
+                        }
+                    }
+
                     return resolve({
                         code: 200,
                         data: response.toObject()
@@ -334,31 +372,161 @@ class AccountingDocumentsController extends Controllers {
         return new Promise(async (resolve, reject) => {
             // check filter is valid ...
 
+            this.model.get($id).then(
+                async (accountingDocument) => {
+                    // update last accounts balance (reverse)
+                    let lastAccountsInvolved = accountingDocument.accountsInvolved;
+                    // update balance of accounts
+                    for (const account of lastAccountsInvolved) {
+                        if (!account.checked) {
+                            // sum account debit and credit
+                            let sum = 0;
+                            lastAccountsInvolved.filter(i => i._account === account._account)
+                                .forEach((sameAccount) => {
+                                    // debit has plus balance
+                                    if (account.debit > 0 && account.credit === 0) {
+                                        sum += account.debit;
 
-            // filter
-            this.model.updateOne($id, {
-                dateTime        : $input.dateTime,
-                description     : $input.description,
-                accountsInvolved: $input.accountsInvolved,
-                amount          : $input.amount,
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
+                                        // credit has minus balance
+                                    } else if (account.credit > 0 && account.debit === 0) {
+                                        sum -= account.credit;
+                                    }
+                                    sameAccount.checked = true;
+                                });
+                            // check is debit or credit
+                            if (sum > 0) {
+                                account.debit  = sum;
+                                account.credit = 0;
+                            } else {
+                                account.debit  = 0;
+                                account.credit = Math.abs(sum);
+                            }
+
+                            // debit has plus balance
+                            if (account.debit > 0 && account.credit === 0) {
+                                // update account balance
+                                await AccountsController.updateAccountBalance(account._account, -account.debit);
+                                // credit has minus balance
+                            } else if (account.credit > 0 && account.debit === 0) {
+                                await AccountsController.updateAccountBalance(account._account, +account.credit);
+                            }
+                        }
+                    }
+
+
+                    // update accounting document
+                    accountingDocument.dateTime         = $input.dateTime;
+                    accountingDocument.description      = $input.description;
+                    accountingDocument.accountsInvolved = $input.accountsInvolved;
+                    accountingDocument.amount           = $input.amount;
+                    accountingDocument.save().then(
+                        async (responseSave) => {
+
+                            let accountsInvolved = responseSave.accountsInvolved;
+
+                            // update balance of accounts
+                            for (const account of accountsInvolved) {
+                                if (!account.checked) {
+                                    // sum account debit and credit
+                                    let sum = 0;
+                                    accountsInvolved.filter(i => i._account === account._account)
+                                        .forEach((sameAccount) => {
+                                            // debit has plus balance
+                                            if (account.debit > 0 && account.credit === 0) {
+                                                sum += account.debit;
+
+                                                // credit has minus balance
+                                            } else if (account.credit > 0 && account.debit === 0) {
+                                                sum -= account.credit;
+                                            }
+                                            sameAccount.checked = true;
+                                        });
+                                    // check is debit or credit
+                                    if (sum > 0) {
+                                        account.debit  = sum;
+                                        account.credit = 0;
+                                    } else {
+                                        account.debit  = 0;
+                                        account.credit = Math.abs(sum);
+                                    }
+
+                                    // debit has plus balance
+                                    if (account.debit > 0 && account.credit === 0) {
+                                        // update account balance
+                                        await AccountsController.updateAccountBalance(account._account, +account.debit);
+                                        // credit has minus balance
+                                    } else if (account.credit > 0 && account.debit === 0) {
+                                        await AccountsController.updateAccountBalance(account._account, -account.credit);
+                                    }
+                                }
+                            }
+
+                            return resolve({
+                                code: 200,
+                                data: accountingDocument
+                            });
+
+
+                        },
+                        (response) => {
+                            return reject(response)
+                        }
+                    );
+
                 },
                 (response) => {
                     return reject(response);
-                });
+                }
+            );
         });
     }
 
     static deleteOne($id) {
         return new Promise((resolve, reject) => {
-            // check filter is valid ...
+            // get the accounting document
+            this.model.get($id).then(
+                async (accountingDocument) => {
+                    // update last accounts balance (reverse)
+                    let accountsInvolved = accountingDocument.accountsInvolved;
+                    // update balance of accounts
+                    for (const account of accountsInvolved) {
+                        if (!account.checked) {
+                            // sum account debit and credit
+                            let sum = 0;
+                            accountsInvolved.filter(i => i._account === account._account)
+                                .forEach((sameAccount) => {
+                                    // debit has plus balance
+                                    if (account.debit > 0 && account.credit === 0) {
+                                        sum += account.debit;
 
-            // filter
-            this.model.deleteOne($id).then(
-                (response) => {
+                                        // credit has minus balance
+                                    } else if (account.credit > 0 && account.debit === 0) {
+                                        sum -= account.credit;
+                                    }
+                                    sameAccount.checked = true;
+                                });
+                            // check is debit or credit
+                            if (sum > 0) {
+                                account.debit  = sum;
+                                account.credit = 0;
+                            } else {
+                                account.debit  = 0;
+                                account.credit = Math.abs(sum);
+                            }
+
+                            // debit has plus balance
+                            if (account.debit > 0 && account.credit === 0) {
+                                // update account balance
+                                await AccountsController.updateAccountBalance(account._account, -account.debit);
+                                // credit has minus balance
+                            } else if (account.credit > 0 && account.debit === 0) {
+                                await AccountsController.updateAccountBalance(account._account, +account.credit);
+                            }
+                        }
+                    }
+
+                    await accountingDocument.deleteOne();
+
                     // check the result ... and return
                     return resolve({
                         code: 200

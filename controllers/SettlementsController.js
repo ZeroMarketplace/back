@@ -35,7 +35,7 @@ class SettlementsController extends Controllers {
                 accountingDocument.accountsInvolved.push({
                     _account   : purchaseAccount.data._id,
                     description: '',
-                    debit      : purchaseInvoice.data.sum,
+                    debit      : (purchaseInvoice.data.sum - $input.payment.credit),
                     credit     : 0
                 });
 
@@ -462,7 +462,7 @@ class SettlementsController extends Controllers {
             this.model.get($id).then(
                 (settlement) => {
                     // check has accounting document
-                    if(settlement._accountingDocument) {
+                    if (settlement._accountingDocument) {
                         // delete accounting document
                         AccountingDocumentsController.deleteOne(settlement._accountingDocument).then(
                             (responseDeleteAccountingDocument) => {

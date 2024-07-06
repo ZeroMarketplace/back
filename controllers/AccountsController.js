@@ -204,6 +204,22 @@ class AccountsController extends Controllers {
         })
     }
 
+    static updateAccountBalance($id, $value) {
+        return new Promise((resolve, reject) => {
+            // update account balance
+            this.model.updateAccountBalance($id, $value).then(
+                (response) => {
+                    return resolve({
+                        code: 200
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                },
+            );
+        })
+    }
+
     static insertOne($input) {
         return new Promise((resolve, reject) => {
             // check filter is valid ...

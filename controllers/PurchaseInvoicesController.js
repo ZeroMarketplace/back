@@ -2,7 +2,6 @@ const Controllers              = require('../core/Controllers');
 const PurchaseInvoicesModel    = require("../models/PurchaseInvoicesModel");
 const CountersController       = require("../controllers/CountersController");
 const AddAndSubtractController = require("./AddAndSubtractController");
-const SettlementsController = require("./SettlementsController");
 const validator                = require("validator");
 const persianDate              = require('persian-date');
 
@@ -267,6 +266,8 @@ class PurchaseInvoicesController extends Controllers {
                 (purchaseInvoice) => {
                     // check has settlement
                     if(purchaseInvoice._settlement) {
+                        // exception import Settlement Controller to use deleteOne method
+                        const SettlementsController = require("./SettlementsController");
                         // delete settlement
                         SettlementsController.deleteOne(purchaseInvoice._settlement).then(
                             (responseDeleteSettlement) => {
@@ -284,6 +285,15 @@ class PurchaseInvoicesController extends Controllers {
                             }
                         );
                     }
+
+                    // delete the purchaseInvoice
+                    purchaseInvoice.deleteOne().then(
+                        (responseDeletePurchaseInvoice) => {
+                            return resolve({
+                                code: 200
+                            });
+                        }
+                    );
                 },
                 (response) => {
                     return reject(response);

@@ -1,5 +1,6 @@
 const Models   = require("../core/Models");
 const {Schema} = require("mongoose");
+const {response} = require("express");
 
 class AccountsModel extends Models {
 
@@ -21,6 +22,25 @@ class AccountsModel extends Models {
 
     constructor() {
         super('accounts', AccountsModel.schema);
+    }
+
+    updateAccountBalance($id, $value) {
+        return new Promise((resolve, reject) => {
+            this.collectionModel.findByIdAndUpdate($id,
+                {$inc: {balance: $value}},
+                {new: true}
+            ).then(
+                (response) => {
+                    return resolve({
+                        code: 200,
+                        data: response
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                }
+            );
+        });
     }
 
 }
