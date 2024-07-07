@@ -12,6 +12,7 @@ class PurchaseInvoicesModel extends Models {
             description: String,
             products   : [
                 {
+                    _id: {type: Schema.Types.ObjectId, ref: 'products'},
                     count: Number,
                     price: {
                         purchase: Number,

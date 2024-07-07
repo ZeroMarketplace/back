@@ -142,9 +142,43 @@ class Models {
         });
     }
 
+    update($filter, $set) {
+        return new Promise((resolve, reject) => {
+            this.collectionModel.updateOne($filter, $set).then(
+                (response) => {
+                    return resolve({
+                        code: 200
+                    });
+                },
+                (error) => {
+                    Logger.systemError('DB-Update', error);
+                    return reject({
+                        code: 500
+                    });
+                }
+            );
+        });
+    }
+
     deleteOne($id) {
         return new Promise((resolve, reject) => {
             this.collectionModel.deleteOne({_id: new ObjectId($id)}).then(
+                (response) => {
+                    return resolve(response);
+                },
+                (error) => {
+                    Logger.systemError('DB-Delete', error);
+                    return reject({
+                        code: 500
+                    });
+                }
+            );
+        });
+    }
+
+    delete($input) {
+        return new Promise((resolve, reject) => {
+            this.collectionModel.deleteMany($input).then(
                 (response) => {
                     return resolve(response);
                 },

@@ -4,6 +4,8 @@ const CountersController       = require("../controllers/CountersController");
 const AddAndSubtractController = require("./AddAndSubtractController");
 const validator                = require("validator");
 const persianDate              = require('persian-date');
+const InventoriesController    = require("./InventoriesController");
+const {response}               = require("express");
 
 class PurchaseInvoicesController extends Controllers {
     static model = new PurchaseInvoicesModel();
@@ -125,7 +127,24 @@ class PurchaseInvoicesController extends Controllers {
                 _user      : $input.user.data.id
             }).then(
                 (response) => {
-                    // check the result ... and return
+
+                    // update inventories
+                    response.products.forEach(async (product) => {
+                        await InventoriesController.insertOne({
+                            dateTime        : new Date(),
+                            count           : product.count,
+                            _product        : product._id,
+                            _warehouse      : response._warehouse,
+                            _purchaseInvoice: response._id,
+                            price           : {
+                                purchase: product.price.purchase,
+                                consumer: product.price.consumer,
+                                store   : product.price.store
+                            },
+                            user            : $input.user
+                        });
+                    });
+
                     return resolve({
                         code: 200,
                         data: response.toObject()
@@ -239,23 +258,85 @@ class PurchaseInvoicesController extends Controllers {
             // check filter is valid ...
             await this.calculateInvoice($input);
 
-            // filter
-            this.model.updateOne($id, {
-                _customer  : $input.customer,
-                dateTime   : $input.dateTime,
-                _warehouse : $input.warehouse,
-                description: $input.description,
-                products   : $input.products,
-                AddAndSub  : $input.AddAndSub,
-                total      : $input.total,
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
+            this.model.get($id).then(
+                async (purchaseInvoice) => {
+                    let lastProducts            = purchaseInvoice.products;
+                    let newProducts             = $input.products;
+                    purchaseInvoice._customer   = $input.customer;
+                    purchaseInvoice.dateTime    = $input.dateTime;
+                    purchaseInvoice._warehouse  = $input.warehouse;
+                    purchaseInvoice.description = $input.description;
+                    purchaseInvoice.products    = $input.products;
+                    purchaseInvoice.AddAndSub   = $input.AddAndSub;
+                    purchaseInvoice.total       = $input.total;
+                    await purchaseInvoice.save();
+
+                    // update count of inventories
+                    for (const product of lastProducts) {
+                        let productUpdate = newProducts.find(i => i._id === product._id.toString());
+                        if (productUpdate) {
+                            // minus last product count
+                            await InventoriesController.updateCount({
+                                _product        : product._id,
+                                _purchaseInvoice: purchaseInvoice._id
+                            }, -product.count);
+
+                            // add new product count
+                            await InventoriesController.updateCount({
+                                _product        : product._id,
+                                _purchaseInvoice: purchaseInvoice._id
+                            }, +productUpdate.count);
+
+                            // delete updated product
+                            newProducts.splice(newProducts.indexOf(productUpdate), 1);
+                        } else {
+                            // delete the inventory
+                            await InventoriesController.delete({
+                                _product        : product._id,
+                                _purchaseInvoice: purchaseInvoice._id
+                            });
+                        }
+                    }
+
+                    // add inventory of new products
+                    for (const product of newProducts) {
+                        await InventoriesController.insertOne({
+                            dateTime        : new Date(),
+                            count           : product.count,
+                            _product        : product._id,
+                            _warehouse      : purchaseInvoice._warehouse,
+                            _purchaseInvoice: purchaseInvoice._id,
+                            price           : {
+                                purchase: product.price.purchase,
+                                consumer: product.price.consumer,
+                                store   : product.price.store
+                            },
+                            user            : $input.user
+                        });
+                    }
+
+                    // update price of inventory
+                    for (const product of purchaseInvoice.products) {
+                        await InventoriesController.update(
+                            {
+                                _product        : product._id,
+                                _purchaseInvoice: purchaseInvoice._id
+                            }, {
+                                price: product.price
+                            }
+                        );
+                    }
+
+                    return resolve({
+                        code: 200,
+                        data: purchaseInvoice.toObject()
+                    });
+
                 },
                 (response) => {
                     return reject(response);
-                });
+                },
+            );
         });
     }
 
@@ -263,28 +344,19 @@ class PurchaseInvoicesController extends Controllers {
         return new Promise((resolve, reject) => {
             // get info
             this.model.get($id).then(
-                (purchaseInvoice) => {
+                async (purchaseInvoice) => {
                     // check has settlement
-                    if(purchaseInvoice._settlement) {
+                    if (purchaseInvoice._settlement) {
                         // exception import Settlement Controller to use deleteOne method
                         const SettlementsController = require("./SettlementsController");
                         // delete settlement
-                        SettlementsController.deleteOne(purchaseInvoice._settlement).then(
-                            (responseDeleteSettlement) => {
-                                // delete the purchaseInvoice
-                                purchaseInvoice.deleteOne().then(
-                                    (responseDeletePurchaseInvoice) => {
-                                        return resolve({
-                                            code: 200
-                                        });
-                                    }
-                                );
-                            },
-                            (response) => {
-                                return reject(response);
-                            }
-                        );
+                        await SettlementsController.deleteOne(purchaseInvoice._settlement);
                     }
+
+                    // delete the inventory of purchase-invoice products
+                    await InventoriesController.delete({
+                        _purchaseInvoice: purchaseInvoice._id
+                    });
 
                     // delete the purchaseInvoice
                     purchaseInvoice.deleteOne().then(
