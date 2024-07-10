@@ -7,11 +7,11 @@ const fs                   = require("fs");
 const md5                  = require('md5');
 
 // config upload service
-const filesPath          = 'public/products/';
-const multer             = require('multer');
-const {ObjectId}         = require("mongodb");
-const persianDate        = require("persian-date");
-const fileStorage        = multer.diskStorage({
+const filesPath            = 'public/products/';
+const multer               = require('multer');
+const persianDate          = require("persian-date");
+const {response}           = require("express");
+const fileStorage          = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, filesPath)
     },
@@ -20,14 +20,14 @@ const fileStorage        = multer.diskStorage({
         cb(null, uniqueSuffix)
     }
 });
-const fileFilter         = (req, file, cb) => {
+const fileFilter           = (req, file, cb) => {
 
     // check allowed type
     let allowedTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
     cb(null, allowedTypes.includes(file.mimetype));
 
 };
-const uploadProductFiles = multer({
+const uploadProductFiles   = multer({
     storage   : fileStorage,
     fileFilter: fileFilter,
     limits    : {fileSize: 5000000}
@@ -40,27 +40,56 @@ class ProductsController extends Controllers {
         super();
     }
 
+    static setVariantsTitleBasedOnProperty($propertyId) {
+        return new Promise((resolve, reject) => {
+            // update every product has variant with this property
+            this.model.list({
+                'variants.properties._property': $propertyId
+            }, {
+                select: '_id variants title'
+            }).then(
+                async (listOfProducts) => {
+                    // update every
+                    for (const product of listOfProducts) {
+                        // create variant title
+                        for (const variant of product.variants) {
+                            // create variant title
+                            variant.title = this.createVariantTitle(product.title, variant);
+                        }
+
+                        // update product
+                        await this.model.updateOne(product._id, {
+                            variants: product.variants
+                        });
+                    }
+
+                    return resolve({
+                        code: 200
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                }
+            );
+        });
+    }
+
+    static async createVariantTitle($productName, $variant) {
+        const PropertiesController = require("./PropertiesController");
+        let title = $productName;
+        for (const property of $variant.properties) {
+            let propertyDetail = await PropertiesController.get(property._property);
+            propertyDetail     = propertyDetail.data;
+            let value          = propertyDetail.values.find(value => value.code === property.value);
+            title += ' ' + value.title
+        }
+        return title;
+    }
+
     static outputBuilder($row) {
         for (const [$index, $value] of Object.entries($row)) {
             switch ($index) {
-                case 'variants':
-                    $value.forEach((variant) => {
-                        variant.properties.forEach(property => {
-                            // remove unnecessary values from variant._property.values
-                            if (typeof property._property === 'object') {
-                                if (property._property.values.length > 1) {
-                                    let values = [];
-                                    property._property.values.forEach(value => {
-                                        if (value.code === property.value) {
-                                            values.push(value);
-                                        }
-                                    });
-                                    property._property.values = values;
-                                }
-                            }
-                        });
-                    })
-                    break;
+
             }
         }
     }
@@ -170,7 +199,9 @@ class ProductsController extends Controllers {
                         await CountersController.increment('Category No. ' + category.data.code + ' products')
                     );
 
-
+                    // create variant title
+                    // create variant title
+                    variant.title = await this.createVariantTitle($input.title, variant);
                 }
             }
 
@@ -250,18 +281,15 @@ class ProductsController extends Controllers {
         return $input;
     }
 
-    static list($input) {
+    static list($input, $options = {}) {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
             let query = this.queryBuilder($input);
 
+
             // filter
-            this.model.list(query, {
-                populate: [
-                    {path: 'variants.properties._property', select: 'values'}
-                ]
-            }).then(
+            this.model.list(query, $options).then(
                 (response) => {
                     // check the result ... and return
 
@@ -295,11 +323,7 @@ class ProductsController extends Controllers {
                     {_id: $id},
                     {'variants._id': $id}
                 ],
-            }, {
-                populate: [
-                    {path: 'variants.properties._property', select: 'values'}
-                ]
-            }).then(
+            }, {}).then(
                 (response) => {
                     // reformat row for output
                     this.outputBuilder(response._doc);
@@ -329,6 +353,8 @@ class ProductsController extends Controllers {
                             await CountersController.increment('Category No. ' + category.data.code + ' products')
                         );
 
+                    // create variant title
+                    variant.title = await this.createVariantTitle($input.title, variant);
                 }
             }
 

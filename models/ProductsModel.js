@@ -28,7 +28,8 @@ class ProductsModel extends Models {
                             _property: {type: Schema.Types.ObjectId, ref: 'properties'},
                             value    : Number
                         }
-                    ]
+                    ],
+                    title     : String
                 }
             ],
             dimensions : {
