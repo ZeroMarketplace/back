@@ -7,11 +7,11 @@ const fs                   = require("fs");
 const md5                  = require('md5');
 
 // config upload service
-const filesPath            = 'public/products/';
-const multer               = require('multer');
-const persianDate          = require("persian-date");
-const {response}           = require("express");
-const fileStorage          = multer.diskStorage({
+const filesPath          = 'public/products/';
+const multer             = require('multer');
+const persianDate        = require("persian-date");
+const {response}         = require("express");
+const fileStorage        = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, filesPath)
     },
@@ -20,14 +20,14 @@ const fileStorage          = multer.diskStorage({
         cb(null, uniqueSuffix)
     }
 });
-const fileFilter           = (req, file, cb) => {
+const fileFilter         = (req, file, cb) => {
 
     // check allowed type
     let allowedTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
     cb(null, allowedTypes.includes(file.mimetype));
 
 };
-const uploadProductFiles   = multer({
+const uploadProductFiles = multer({
     storage   : fileStorage,
     fileFilter: fileFilter,
     limits    : {fileSize: 5000000}
@@ -76,7 +76,7 @@ class ProductsController extends Controllers {
 
     static async createVariantTitle($productName, $variant) {
         const PropertiesController = require("./PropertiesController");
-        let title = $productName;
+        let title                  = $productName;
         for (const property of $variant.properties) {
             let propertyDetail = await PropertiesController.get(property._property);
             propertyDetail     = propertyDetail.data;
@@ -273,7 +273,11 @@ class ProductsController extends Controllers {
             // field [1] => value
             switch (field[0]) {
                 case 'title':
-                    $input[field[0]] = {$regex: '.*' + field[1] + '.*'};
+                    $input['$or'] = [
+                        {'title': {$regex: '.*' + field[1] + '.*'}},
+                        {'variants.title': {$regex: '.*' + field[1] + '.*'}}
+                    ];
+                    delete $input['title'];
                     break;
             }
         });
