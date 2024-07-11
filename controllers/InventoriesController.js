@@ -1,11 +1,51 @@
 const Controllers      = require('../core/Controllers');
 const InventoriesModel = require("../models/InventoriesModel");
+const {response}       = require("express");
 
 class InventoriesController extends Controllers {
     static model = new InventoriesModel();
 
     constructor() {
         super();
+    }
+
+    static getProductPrice($productId, $type = 'consumer') {
+        return new Promise(async (resolve, reject) => {
+            this.model.getOldestInventory({
+                _product: $productId
+            }).then(
+                (inventory) => {
+                    inventory = inventory.data;
+                    let price = 0;
+                    if ($type === 'consumer') {
+                        price = inventory.price.consumer;
+                    } else if ($type === 'store') {
+                        price = inventory.price.store;
+                    }
+
+                    return resolve({
+                        code: 200,
+                        data: {
+                            consumer: inventory.price.consumer,
+                            store   : inventory.price.store
+                        }
+                    });
+                },
+                (response) => {
+                    if (response.code === 404) {
+                        return resolve({
+                            code: 200,
+                            data: {
+                                consumer: undefined,
+                                store   : undefined
+                            }
+                        });
+                    } else {
+                        return reject(response);
+                    }
+                }
+            );
+        })
     }
 
     static insertOne($input) {
@@ -138,7 +178,7 @@ class InventoriesController extends Controllers {
         });
     }
 
-    static updateCount($filter,$value) {
+    static updateCount($filter, $value) {
         return new Promise((resolve, reject) => {
             // update account balance
             this.model.updateCount($filter, $value).then(

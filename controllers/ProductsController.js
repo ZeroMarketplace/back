@@ -1,10 +1,11 @@
-const Controllers          = require('../core/Controllers');
-const ProductsModel        = require("../models/ProductsModel");
-const CategoriesController = require("../controllers/CategoriesController");
-const CountersController   = require("../controllers/CountersController");
-const Logger               = require("../core/Logger");
-const fs                   = require("fs");
-const md5                  = require('md5');
+const Controllers           = require('../core/Controllers');
+const ProductsModel         = require("../models/ProductsModel");
+const CategoriesController  = require("../controllers/CategoriesController");
+const CountersController    = require("../controllers/CountersController");
+const InventoriesController = require("../controllers/InventoriesController");
+const Logger                = require("../core/Logger");
+const fs                    = require("fs");
+const md5                   = require('md5');
 
 // config upload service
 const filesPath          = 'public/products/';
@@ -86,10 +87,14 @@ class ProductsController extends Controllers {
         return title;
     }
 
-    static outputBuilder($row) {
+    static async outputBuilder($row) {
         for (const [$index, $value] of Object.entries($row)) {
             switch ($index) {
-
+                case "_id":
+                    // set price of product
+                    let priceOfProduct = await InventoriesController.getProductPrice($value);
+                    $row['price'] = priceOfProduct.data;
+                    break;
             }
         }
     }
@@ -294,13 +299,13 @@ class ProductsController extends Controllers {
 
             // filter
             this.model.list(query, $options).then(
-                (response) => {
+                async (response) => {
                     // check the result ... and return
 
                     // create output
-                    response.forEach((row) => {
-                        this.outputBuilder(row._doc);
-                    });
+                    for (const row of response) {
+                        await this.outputBuilder(row._doc);
+                    }
 
                     return resolve({
                         code: 200,

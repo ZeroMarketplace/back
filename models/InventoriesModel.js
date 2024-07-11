@@ -43,6 +43,28 @@ class InventoriesModel extends Models {
         });
     }
 
+    getOldestInventory($filter) {
+        return new Promise(async (resolve, reject) => {
+            let getOldestInventory = await this.collectionModel
+                .findOne($filter)
+                .sort({dateTime: 1})
+                .exec();
+
+            // first inventory
+            if (getOldestInventory) {
+                return resolve({
+                    code: 200,
+                    data: getOldestInventory
+                });
+            } else {
+                // there is no inventory about this query
+                return reject({
+                    code: 404
+                });
+            }
+        })
+    }
+
 }
 
 module.exports = InventoriesModel;
