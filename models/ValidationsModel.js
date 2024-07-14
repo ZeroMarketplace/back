@@ -26,7 +26,7 @@ class ValidationsModel extends Models {
                 validation.save().then(resultInsert => {
                     // setTime out to delete
                     setTimeout(() => {
-                        validation.remove();
+                        validation.deleteOne();
                     }, 300000);
 
                     return resolve(resultInsert);
