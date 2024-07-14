@@ -11,18 +11,12 @@ class InventoriesController extends Controllers {
 
     static getProductPrice($productId, $type = 'consumer') {
         return new Promise(async (resolve, reject) => {
-            this.model.getOldestInventory({
+            // get latest inventory (LIFO method)
+            this.model.getLatestInventory({
                 _product: $productId
             }).then(
                 (inventory) => {
                     inventory = inventory.data;
-                    let price = 0;
-                    if ($type === 'consumer') {
-                        price = inventory.price.consumer;
-                    } else if ($type === 'store') {
-                        price = inventory.price.store;
-                    }
-
                     return resolve({
                         code: 200,
                         data: {
