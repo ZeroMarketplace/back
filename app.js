@@ -34,5 +34,6 @@ app.use('/api/add-and-subtract', require('./routes/add-and-subtract'));
 app.use('/api/purchase-invoices', require('./routes/purchase-invoices'));
 app.use('/api/accounting-documents', require('./routes/accounting-documents'));
 app.use('/api/settlements', require('./routes/settlements'));
+app.use('/api/sales-invoices', require('./routes/sales-invoices'));
 
 module.exports = app;

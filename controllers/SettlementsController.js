@@ -4,6 +4,7 @@ const AccountsController            = require("./AccountsController");
 const AccountingDocumentsController = require("./AccountingDocumentsController");
 const PurchaseInvoicesController    = require("./PurchaseInvoicesController");
 const persianDate                   = require('persian-date');
+const SalesInvoicesController       = require("./SalesInvoicesController");
 
 class SettlementsController extends Controllers {
     static model = new SettlementsModel();
@@ -102,6 +103,91 @@ class SettlementsController extends Controllers {
                         })
                     }
                 });
+
+                break;
+            case 'sales-invoices':
+                // get purchase-invoice record
+                let salesInvoice              = await SalesInvoicesController.get($input._id, {
+                    populate: 'AddAndSub._reason'
+                });
+                accountingDocument.amount     = salesInvoice.data.total;
+                accountingDocument._reference = $input.settlementId;
+                accountingDocument.type       = 'sales-invoice-settlement';
+
+                // add sales account to accounting document as credit
+                let salesAccount = await AccountsController.getGlobalAccount('cash sales');
+                accountingDocument.accountsInvolved.push({
+                    _account   : salesAccount.data._id,
+                    description: '',
+                    debit      : 0,
+                    credit     : (salesInvoice.data.sum - $input.payment.credit)
+                });
+
+
+                // read bank accounts and add to accounting document as credit
+                $input.payment.bankAccounts.forEach((bankAccount) => {
+                    if (bankAccount.amount) {
+                        accountingDocument.accountsInvolved.push({
+                            _account   : bankAccount._account,
+                            description: '',
+                            debit      : bankAccount.amount,
+                            credit     : 0
+                        });
+                    }
+                });
+
+                // read cash accounts and add to accounting document as credit
+                $input.payment.cashAccounts.forEach((cashAccount) => {
+                    if (cashAccount.amount) {
+                        accountingDocument.accountsInvolved.push({
+                            _account   : cashAccount._account,
+                            description: '',
+                            debit      : cashAccount.amount,
+                            credit     : 0
+                        });
+                    }
+                });
+
+                // add credit amount (account)
+                if ($input.payment.credit) {
+                    // debit the credit purchase account
+                    let creditPurchaseAccount = await AccountsController.getGlobalAccount('credit purchase');
+                    accountingDocument.accountsInvolved.push({
+                        _account   : creditPurchaseAccount.data._id,
+                        description: '',
+                        debit      : 0,
+                        credit     : $input.payment.credit
+                    });
+
+                    // credit the user account in purchase-invoice
+                    let customerAccount = await AccountsController.getUserAccount(salesInvoice.data._customer);
+                    accountingDocument.accountsInvolved.push({
+                        _account   : customerAccount.data._id,
+                        description: '',
+                        debit      : $input.payment.credit,
+                        credit     : 0
+                    });
+                }
+
+                // add addAndSub accounts (subtract Operation)
+                salesInvoice.data.AddAndSub.forEach((addAndSub) => {
+                    if (addAndSub._reason.operation === 'add') {
+                        accountingDocument.accountsInvolved.push({
+                            _account   : addAndSub._reason._account,
+                            description: '',
+                            debit      : 0,
+                            credit     : addAndSub.amount
+                        })
+                    } else if (addAndSub._reason.operation === 'subtract') {
+                        accountingDocument.accountsInvolved.push({
+                            _account   : addAndSub._reason._account,
+                            description: '',
+                            debit      : addAndSub.amount,
+                            credit     : 0
+                        })
+                    }
+                });
+
 
                 break;
         }
@@ -312,10 +398,16 @@ class SettlementsController extends Controllers {
                             responseInsertSettlement._accountingDocument = response.data._id;
                             responseInsertSettlement.save();
 
-                            // update purchase-invoices record and add settlement
-                            PurchaseInvoicesController.update($input._id, {
-                                _settlement: responseInsertSettlement._id
-                            });
+                            // update purchase-invoices or sales-invoice record and add settlement
+                            if ($input.type === 'purchase-invoices') {
+                                PurchaseInvoicesController.update($input._id, {
+                                    _settlement: responseInsertSettlement._id
+                                });
+                            } else if ($input.type === 'sales-invoices') {
+                                SalesInvoicesController.update($input._id, {
+                                    _settlement: responseInsertSettlement._id
+                                });
+                            }
 
                             return resolve({
                                 code: 200,

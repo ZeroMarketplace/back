@@ -6,7 +6,7 @@ class AccountingDocumentsModel extends Models {
     // const Account = null;
     static schema = new Schema({
             description        : String,
-            type               : {type: String, enum: ['purchase-invoices']},
+            type               : {type: String, enum: ['purchase-invoices','sales-invoices']},
             _reference         : Schema.Types.ObjectId,
             _accountingDocument: {type: Schema.Types.ObjectId, ref: 'users'},
             payment            : {
