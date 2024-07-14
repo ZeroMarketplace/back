@@ -42,9 +42,21 @@ class ProductsModel extends Models {
             status     : {type: String, enum: ['active', 'inactive']},
             _user      : {type: Schema.Types.ObjectId, ref: 'users'}
         },
-        {timestamps: true});
+        {
+            timestamps: true,
+            // toJSON: { virtuals: true },
+            // toObject: { virtuals: true },
+        });
 
     constructor() {
+        // set virtual methods
+        // price
+        // ProductsModel.schema.virtual('price')
+        //     .get(() => {
+        //         return  this.code;
+        //     });
+
+
         super('products', ProductsModel.schema);
     }
 

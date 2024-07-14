@@ -90,13 +90,24 @@ class ProductsController extends Controllers {
     static async outputBuilder($row) {
         for (const [$index, $value] of Object.entries($row)) {
             switch ($index) {
-                case "_id":
+                case '_id':
                     // set price of product
                     let priceOfProduct = await InventoriesController.getProductPrice($value);
-                    $row['price'] = priceOfProduct.data;
+                    if (priceOfProduct.data.consumer)
+                        $row['price'] = priceOfProduct.data;
+                    break;
+                case 'variants':
+                    for (const variant of $value) {
+                        // set price of variant
+                        let priceOfVariant = await InventoriesController.getProductPrice(variant._id);
+                        if (priceOfVariant.data.consumer)
+                            variant.price = priceOfVariant.data;
+                    }
                     break;
             }
         }
+
+        return $row;
     }
 
     static uploadFile($id, $input) {
@@ -304,7 +315,8 @@ class ProductsController extends Controllers {
 
                     // create output
                     for (const row of response) {
-                        await this.outputBuilder(row._doc);
+                        const index     = response.indexOf(row);
+                        response[index] = await this.outputBuilder(row.toObject());
                     }
 
                     return resolve({
@@ -333,9 +345,9 @@ class ProductsController extends Controllers {
                     {'variants._id': $id}
                 ],
             }, {}).then(
-                (response) => {
+                async (response) => {
                     // reformat row for output
-                    this.outputBuilder(response._doc);
+                    response = await this.outputBuilder(response.toObject());
 
                     return resolve({
                         code: 200,
