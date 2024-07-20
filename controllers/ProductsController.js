@@ -8,11 +8,12 @@ const fs                    = require("fs");
 const md5                   = require('md5');
 
 // config upload service
-const filesPath          = 'public/products/';
-const multer             = require('multer');
-const persianDate        = require("persian-date");
-const {response}         = require("express");
-const fileStorage        = multer.diskStorage({
+const filesPath                  = 'public/products/';
+const multer                     = require('multer');
+const persianDate                = require("persian-date");
+const {response}                 = require("express");
+const PurchaseInvoicesController = require("./PurchaseInvoicesController");
+const fileStorage                = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, filesPath)
     },
@@ -21,14 +22,14 @@ const fileStorage        = multer.diskStorage({
         cb(null, uniqueSuffix)
     }
 });
-const fileFilter         = (req, file, cb) => {
+const fileFilter                 = (req, file, cb) => {
 
     // check allowed type
     let allowedTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
     cb(null, allowedTypes.includes(file.mimetype));
 
 };
-const uploadProductFiles = multer({
+const uploadProductFiles         = multer({
     storage   : fileStorage,
     fileFilter: fileFilter,
     limits    : {fileSize: 5000000}
@@ -112,9 +113,8 @@ class ProductsController extends Controllers {
 
     static uploadFile($id, $input) {
         return new Promise((resolve, reject) => {
-            this.get($id).then(
+            this.model.get($id).then(
                 (product) => {
-                    product = product.data;
 
                     // upload files with multer
                     uploadProductFiles($input.req, $input.res, (err) => {
@@ -161,9 +161,8 @@ class ProductsController extends Controllers {
 
     static deleteFile($id, $input) {
         return new Promise((resolve, reject) => {
-            this.get($id).then(
+            this.model.get($id).then(
                 (product) => {
-                    product = product.data;
                     // check file is exiting
                     if (product.files.length && product.files.includes($input.fileName)) {
                         // delete File
@@ -188,6 +187,53 @@ class ProductsController extends Controllers {
                             code: 404
                         });
                     }
+                },
+                (error) => {
+                    return reject(error);
+                }
+            );
+        });
+    }
+
+    static deleteVariant($productId, $input) {
+        return new Promise((resolve, reject) => {
+            this.model.get($productId).then(
+                (product) => {
+                    // find purchase-invoices with this product
+                    PurchaseInvoicesController.item({
+                        'products._id': $input.variantId
+                    }, {select: '_id'}).then(
+                        (purchaseInvoices) => {
+                            return reject({
+                                code: 400,
+                                message: 'It is not possible to remove the product variant.' +
+                                    ' Because it is used in the purchase invoice',
+                            });
+                        },
+                        (response) => {
+                            if(response.code === 404) {
+                                // delete variant from product
+                                product.variants.splice(
+                                    product.variants.indexOf(
+                                        product.variants.find(variant => variant._id === $input.variantId)
+                                    ), 1);
+                                // save product
+                                product.save().then(
+                                    (responseSave) => {
+                                        // return response
+                                        return resolve({
+                                            code: 200
+                                        })
+                                    }
+                                );
+
+                            } else {
+                                return reject ({
+                                    code: 500
+                                });
+                            }
+                        }
+                    );
                 },
                 (error) => {
                     return reject(error);

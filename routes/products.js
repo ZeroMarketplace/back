@@ -154,4 +154,23 @@ router.delete(
     }
 );
 
+router.delete(
+    '/:id/variants/:variantId',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res) {
+        // get id from params and put into Input
+        let $params = InputsController.clearInput(req.params);
+
+        ProductsController.deleteVariant($params.id, $params).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
 module.exports = router;
