@@ -1,7 +1,6 @@
-const Controllers        = require('../core/Controllers');
-const CategoriesModel    = require("../models/CategoriesModel");
-const CountersController = require("../controllers/CountersController");
-const {ObjectId}         = require("mongodb");
+import Controllers        from '../core/Controllers.js';
+import CategoriesModel    from '../models/CategoriesModel.js';
+import CountersController from '../controllers/CountersController.js';
 
 class CategoriesController extends Controllers {
     static model = new CategoriesModel();
@@ -219,4 +218,4 @@ class CategoriesController extends Controllers {
     }
 }
 
-module.exports = CategoriesController;
+export default CategoriesController;

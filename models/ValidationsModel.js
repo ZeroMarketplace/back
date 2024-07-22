@@ -1,6 +1,6 @@
-const Models             = require("../core/Models");
-const {Schema} = require("mongoose");
-const Logger             = require("../core/Logger");
+import Models   from '../core/Models.js';
+import {Schema} from 'mongoose';
+import Logger   from '../core/Logger.js';
 
 class ValidationsModel extends Models {
 
@@ -42,4 +42,4 @@ class ValidationsModel extends Models {
 
 }
 
-module.exports = ValidationsModel;
+export default ValidationsModel;

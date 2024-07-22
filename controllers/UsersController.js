@@ -1,8 +1,7 @@
-const Controllers           = require('../core/Controllers');
-const PermissionsController = require('./PermissionsController');
-const UsersModel            = require('../models/UsersModel');
-const {response}            = require("express");
-const Logger                = require("../core/Logger");
+import Controllers           from '../core/Controllers.js';
+import PermissionsController from './PermissionsController.js';
+import UsersModel            from '../models/UsersModel.js';
+import Logger                from '../core/Logger.js';
 
 class UsersController extends Controllers {
     static model = new UsersModel();
@@ -125,4 +124,4 @@ class UsersController extends Controllers {
 
 }
 
-module.exports = UsersController;
+export default UsersController;

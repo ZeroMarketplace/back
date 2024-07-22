@@ -1,8 +1,8 @@
-const jwt                   = require("jsonwebtoken");
-const Controllers           = require("../core/Controllers");
-const PermissionsController = require("./PermissionsController");
-const LoginByPhone          = require('../core/Auth/LoginByPhone');
-const Logger                = require('../core/Logger');
+import jwt                   from 'jsonwebtoken';
+import Controllers           from '../core/Controllers.js';
+import PermissionsController from './PermissionsController.js';
+import LoginByPhone          from '../core/Auth/LoginByPhone.js';
+import Logger                from '../core/Logger.js';
 
 
 class AuthController extends Controllers {
@@ -100,4 +100,4 @@ class AuthController extends Controllers {
 
 }
 
-module.exports = AuthController;
+export default AuthController;

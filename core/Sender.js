@@ -33,4 +33,4 @@ class Sender {
     }
 }
 
-module.exports = Sender;
+export default Sender;

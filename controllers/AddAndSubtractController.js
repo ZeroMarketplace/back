@@ -1,5 +1,5 @@
-const Controllers         = require('../core/Controllers');
-const AddAndSubtractModel = require("../models/AddAndSubtractModel");
+import Controllers         from '../core/Controllers.js';
+import AddAndSubtractModel from '../models/AddAndSubtractModel.js';
 
 class AddAndSubtractController extends Controllers {
     static model = new AddAndSubtractModel();
@@ -142,4 +142,4 @@ class AddAndSubtractController extends Controllers {
 
 }
 
-module.exports = AddAndSubtractController;
+export default AddAndSubtractController;

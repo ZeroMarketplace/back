@@ -1,18 +1,17 @@
-const Controllers           = require('../core/Controllers');
-const ProductsModel         = require("../models/ProductsModel");
-const CategoriesController  = require("../controllers/CategoriesController");
-const CountersController    = require("../controllers/CountersController");
-const InventoriesController = require("../controllers/InventoriesController");
-const Logger                = require("../core/Logger");
-const fs                    = require("fs");
-const md5                   = require('md5');
+import Controllers          from '../core/Controllers.js';
+import ProductsModel        from '../models/ProductsModel.js';
+import CategoriesController from '../controllers/CategoriesController.js';
+import CountersController   from '../controllers/CountersController.js';
+import InventoriesController from '../controllers/InventoriesController.js';
+import Logger from '../core/Logger.js';
+import fs     from 'fs';
+import multer                     from 'multer';
+import md5    from 'md5';
+import persianDate                from 'persian-date';
+import  PurchaseInvoicesController from './PurchaseInvoicesController.js';
 
 // config upload service
 const filesPath                  = 'public/products/';
-const multer                     = require('multer');
-const persianDate                = require("persian-date");
-const {response}                 = require("express");
-const PurchaseInvoicesController = require("./PurchaseInvoicesController");
 const fileStorage                = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, filesPath)
@@ -205,13 +204,13 @@ class ProductsController extends Controllers {
                     }, {select: '_id'}).then(
                         (purchaseInvoices) => {
                             return reject({
-                                code: 400,
+                                code   : 400,
                                 message: 'It is not possible to remove the product variant.' +
                                     ' Because it is used in the purchase invoice',
                             });
                         },
                         (response) => {
-                            if(response.code === 404) {
+                            if (response.code === 404) {
                                 // delete variant from product
                                 product.variants.splice(
                                     product.variants.indexOf(
@@ -228,7 +227,7 @@ class ProductsController extends Controllers {
                                 );
 
                             } else {
-                                return reject ({
+                                return reject({
                                     code: 500
                                 });
                             }
@@ -310,12 +309,12 @@ class ProductsController extends Controllers {
         });
     }
 
-    static item($input) {
+    static item($input, $options) {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
             // filter
-            this.model.item($input).then(
+            this.model.item($input, $options).then(
                 (response) => {
                     // check the result ... and return
                     return resolve({
@@ -498,4 +497,4 @@ class ProductsController extends Controllers {
 
 }
 
-module.exports = ProductsController;
+export default ProductsController;

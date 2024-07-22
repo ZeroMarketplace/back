@@ -1,7 +1,7 @@
-const Models     = require("../core/Models");
-const {Schema}   = require("mongoose");
-const Logger     = require("../core/Logger");
-const {ObjectId} = require("mongodb");
+import Models     from '../core/Models.js';
+import {Schema}   from 'mongoose';
+import Logger     from '../core/Logger.js';
+import {ObjectId} from 'mongodb';
 
 class CategoriesModel extends Models {
 
@@ -133,4 +133,4 @@ class CategoriesModel extends Models {
 
 }
 
-module.exports = CategoriesModel;
+export default CategoriesModel;

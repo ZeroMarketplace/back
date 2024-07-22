@@ -1,5 +1,5 @@
-const Models             = require("../core/Models");
-const {Schema} = require("mongoose");
+import Models   from '../core/Models.js';
+import {Schema} from 'mongoose';
 
 class PermissionsModel extends Models {
 
@@ -18,4 +18,4 @@ class PermissionsModel extends Models {
 
 }
 
-module.exports = PermissionsModel;
+export default PermissionsModel;

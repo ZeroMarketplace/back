@@ -1,6 +1,5 @@
-const Controllers   = require('../core/Controllers');
-const CountersModel = require("../models/CountersModel");
-const Logger        = require("../core/Logger");
+import Controllers        from '../core/Controllers.js';
+import CountersModel from '../models/CountersModel.js';
 
 class CountersController extends Controllers {
     static model = new CountersModel();
@@ -148,4 +147,4 @@ class CountersController extends Controllers {
 
 }
 
-module.exports = CountersController;
+export default CountersController;

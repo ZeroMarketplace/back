@@ -1,5 +1,5 @@
-const Controllers = require('../core/Controllers');
-const validator   = require('validator');
+import Controllers from '../core/Controllers.js';
+import validator from 'validator';
 
 class InputsController extends Controllers {
     static clearInput($input) {
@@ -52,4 +52,4 @@ class InputsController extends Controllers {
     }
 }
 
-module.exports = InputsController;
+export default InputsController;

@@ -1,5 +1,5 @@
-const Controllers     = require('../core/Controllers');
-const WarehousesModel = require("../models/WarehousesModel");
+import Controllers     from '../core/Controllers.js';
+import WarehousesModel from '../models/WarehousesModel.js';
 
 class WarehousesController extends Controllers {
     static model = new WarehousesModel();
@@ -121,4 +121,4 @@ class WarehousesController extends Controllers {
 
 }
 
-module.exports = WarehousesController;
+export default WarehousesController;

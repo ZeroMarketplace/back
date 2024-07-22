@@ -1,13 +1,13 @@
-const DataBaseConnection = require("./DataBaseConnection");
-const Logger             = require('./Logger');
-const {ObjectId}         = require("mongodb");
+import Logger             from '../core/Logger.js';
+import {ObjectId}         from 'mongodb';
+import mongoose from "mongoose";
 
 class Models {
     collectionModel = null;
     schema          = null;
 
     constructor($collectionName, $schema, $options = {}) {
-        this.collectionModel = DataBaseConnection.mongoose.model($collectionName, $schema, $collectionName, $options);
+        this.collectionModel = mongoose.model($collectionName, $schema, $collectionName, $options);
         this.schema          = $schema;
     }
 
@@ -194,4 +194,4 @@ class Models {
 
 }
 
-module.exports = Models;
+export default Models;

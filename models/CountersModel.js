@@ -1,6 +1,6 @@
-const Models                  = require("../core/Models");
-const {Schema} = require("mongoose");
-const Logger                  = require("../core/Logger");
+import Models     from '../core/Models.js';
+import {Schema}   from 'mongoose';
+import Logger     from '../core/Logger.js';
 
 class CountersModel extends Models {
 
@@ -55,4 +55,4 @@ class CountersModel extends Models {
 
 }
 
-module.exports = CountersModel;
+export default CountersModel;

@@ -1,10 +1,10 @@
-const ValidationsController = require('../../controllers/ValidationsController');
-const LoginStrategies       = require("./LoginStrategies");
-const Sender                = require("../Sender");
-const UserController        = require('../../controllers/UsersController');
-const md5                   = require('md5');
-const jwt                   = require("jsonwebtoken");
-const {ObjectId}            = require("mongodb");
+import ValidationsController from '../../controllers/ValidationsController.js';
+import LoginStrategies       from './LoginStrategies.js';
+import Sender                from '../Sender.js';
+import UserController        from '../../controllers/UsersController.js';
+import md5                   from 'md5';
+import jwt                   from 'jsonwebtoken';
+import {ObjectId}            from 'mongodb';
 
 
 class LoginByPhone extends LoginStrategies {
@@ -198,4 +198,4 @@ class LoginByPhone extends LoginStrategies {
     }
 }
 
-module.exports = LoginByPhone;
+export default LoginByPhone;

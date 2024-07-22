@@ -1,5 +1,5 @@
-const Models   = require("../core/Models");
-const {Schema} = require("mongoose");
+import Models   from '../core/Models.js';
+import {Schema} from 'mongoose';
 
 class AddAndSubtractModel extends Models {
 
@@ -23,4 +23,4 @@ class AddAndSubtractModel extends Models {
 
 }
 
-module.exports = AddAndSubtractModel;
+export default AddAndSubtractModel;

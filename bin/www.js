@@ -1,18 +1,20 @@
 #!/usr/bin/env node
+import dotenv from 'dotenv';
+import createDebug from 'debug';
+import DataBaseConnection from '../core/DataBaseConnection.js';
+import http from 'http';
+import app from '../app.js';
 
 // config environments
-require('dotenv').config()
+dotenv.config();
 
 // init app and requirement
 let server;
-let debug = require('debug')('exoroya-backend:server');
-let http  = require('http');
-let db    = require('../core/DataBaseConnection');
+let debug = createDebug('exoroya-backend:server');
 let port  = normalizePort(process.env.PORT || '5000');
 
 // connect to db
-db.connect().then(r => {
-    let app   = require('../app');
+DataBaseConnection.connect().then(r => {
 
     // set port
     app.set('port', port);

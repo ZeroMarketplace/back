@@ -1,8 +1,9 @@
-let express            = require('express');
-let router             = express.Router();
-const InputsController = require("../controllers/InputsController");
-const UsersController  = require("../controllers/UsersController");
-const AuthController   = require("../controllers/AuthController");
+import express          from "express";
+import InputsController from '../controllers/InputsController.js';
+import UsersController  from '../controllers/UsersController.js';
+import AuthController   from '../controllers/AuthController.js';
+
+let router = express.Router();
 
 router.post(
     '/',
@@ -92,4 +93,4 @@ router.delete(
     }
 );
 
-module.exports = router;
+export default router;

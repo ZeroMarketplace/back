@@ -1,5 +1,5 @@
-const Controllers      = require("../core/Controllers");
-const PermissionsModel = require("../models/PermissionsModel");
+import Controllers      from '../core/Controllers.js';
+import PermissionsModel from '../models/PermissionsModel.js';
 
 class PermissionsController extends Controllers {
     static model = new PermissionsModel();
@@ -11,94 +11,94 @@ class PermissionsController extends Controllers {
     static initDefaultPermissions() {
         let admin = {
             "title": "usersDefaultPermissions",
-            "type": "collective",
+            "type" : "collective",
             "label": "admins",
-            "urls": {
-                "/api/units": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+            "urls" : {
+                "/api/units"               : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
-                "/api/brands": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                "/api/brands"              : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
-                "/api/properties": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                "/api/properties"          : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
-                "/api/categories": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                "/api/categories"          : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
-                "/api/products": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                "/api/products"            : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
-                "/api/warehouses": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                "/api/warehouses"          : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
-                "/api/accounts": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                "/api/accounts"            : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
-                "/api/users": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                "/api/users"               : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
-                "/api/add-and-subtract": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                "/api/add-and-subtract"    : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
-                "/api/purchase-invoices": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                "/api/purchase-invoices"   : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
                 "/api/accounting-documents": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
-                "/api/settlements": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                "/api/settlements"         : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
-                "/api/sales-invoices": {
-                    "POST": true,
-                    "GET": true,
-                    "PUT": true,
+                "/api/sales-invoices"      : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
                     "DELETE": true
                 },
             }
         };
-        let user = {
+        let user  = {
             "title": "usersDefaultPermissions",
-            "type": "collective",
+            "type" : "collective",
             "label": "users",
-            "urls": {},
+            "urls" : {},
         };
         this.model.insertOne(admin);
         this.model.insertOne(user);
@@ -284,4 +284,4 @@ class PermissionsController extends Controllers {
     }
 }
 
-module.exports = PermissionsController;
+export default PermissionsController;

@@ -3,4 +3,4 @@ class Controllers {
     }
 }
 
-module.exports = Controllers;
+export default Controllers;

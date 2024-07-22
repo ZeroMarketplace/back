@@ -9,6 +9,6 @@ class LoginStrategies {
 
 }
 
-module.exports = LoginStrategies;
+export default LoginStrategies;
 
 

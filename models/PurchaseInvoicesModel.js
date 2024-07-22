@@ -1,5 +1,5 @@
-const Models   = require("../core/Models");
-const {Schema} = require("mongoose");
+import Models     from '../core/Models.js';
+import {Schema}   from 'mongoose';
 
 class PurchaseInvoicesModel extends Models {
 
@@ -43,4 +43,4 @@ class PurchaseInvoicesModel extends Models {
 
 }
 
-module.exports = PurchaseInvoicesModel;
+export default PurchaseInvoicesModel;

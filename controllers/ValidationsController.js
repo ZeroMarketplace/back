@@ -1,5 +1,5 @@
-const Controllers      = require('../core/Controllers');
-const ValidationsModel = require("../models/ValidationsModel");
+import Controllers           from '../core/Controllers.js';
+import  ValidationsModel from '../models/ValidationsModel.js';
 
 class ValidationsController extends Controllers {
     static model = new ValidationsModel();
@@ -67,4 +67,4 @@ class ValidationsController extends Controllers {
     }
 }
 
-module.exports = ValidationsController;
+export default ValidationsController;
