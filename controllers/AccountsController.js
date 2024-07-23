@@ -1,6 +1,5 @@
-const Controllers   = require('../core/Controllers');
-const AccountsModel = require("../models/AccountsModel");
-const {response}    = require("express");
+import Controllers   from '../core/Controllers.js';
+import AccountsModel from '../models/AccountsModel.js';
 
 class AccountsController extends Controllers {
     static model = new AccountsModel();
@@ -408,4 +407,4 @@ class AccountsController extends Controllers {
 
 }
 
-module.exports = AccountsController;
+export default AccountsController;

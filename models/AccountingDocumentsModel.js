@@ -1,5 +1,5 @@
-const Models   = require("../core/Models");
-const {Schema} = require("mongoose");
+import Models   from '../core/Models.js';
+import {Schema} from 'mongoose';
 
 class AccountingDocumentsModel extends Models {
 
@@ -18,7 +18,9 @@ class AccountingDocumentsModel extends Models {
             ],
             amount          : Number,
             _reference      : {type: Schema.Types.ObjectId, isNullable: true},
-            type            : {type: String, enum: ['purchase-invoice-settlement','sales-invoice-settlement'], isNullable: true},
+            type            : {
+                type: String, enum: ['purchase-invoice-settlement', 'sales-invoice-settlement'], isNullable: true
+            },
             files           : [String],
             status          : {type: String, enum: ['active', 'inactive']},
             _user           : {type: Schema.Types.ObjectId, ref: 'users'}
@@ -31,4 +33,4 @@ class AccountingDocumentsModel extends Models {
 
 }
 
-module.exports = AccountingDocumentsModel;
+export default AccountingDocumentsModel;

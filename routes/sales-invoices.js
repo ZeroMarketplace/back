@@ -1,8 +1,9 @@
-let express            = require('express');
-let router             = express.Router();
-const InputsController = require("../controllers/InputsController");
-const SalesInvoicesController  = require("../controllers/SalesInvoicesController");
-const AuthController   = require("../controllers/AuthController");
+import express                 from "express";
+import InputsController        from '../controllers/InputsController.js';
+import SalesInvoicesController from '../controllers/SalesInvoicesController.js';
+import AuthController          from '../controllers/AuthController.js';
+
+let router = express.Router();
 
 router.post(
     '/',
@@ -109,4 +110,4 @@ router.delete(
     }
 );
 
-module.exports = router;
+export default router;

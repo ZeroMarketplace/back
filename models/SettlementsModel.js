@@ -1,12 +1,12 @@
-const Models   = require("../core/Models");
-const {Schema} = require("mongoose");
+import Models   from '../core/Models.js';
+import {Schema} from 'mongoose';
 
 class AccountingDocumentsModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
             description        : String,
-            type               : {type: String, enum: ['purchase-invoices','sales-invoices']},
+            type               : {type: String, enum: ['purchase-invoices', 'sales-invoices']},
             _reference         : Schema.Types.ObjectId,
             _accountingDocument: {type: Schema.Types.ObjectId, ref: 'users'},
             payment            : {
@@ -40,4 +40,4 @@ class AccountingDocumentsModel extends Models {
 
 }
 
-module.exports = AccountingDocumentsModel;
+export default AccountingDocumentsModel;

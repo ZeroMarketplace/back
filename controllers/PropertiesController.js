@@ -1,7 +1,7 @@
-const Controllers        = require('../core/Controllers');
-const PropertiesModel    = require("../models/PropertiesModel");
-const CountersController = require("../controllers/CountersController");
-const ProductsController = require("./ProductsController");
+import Controllers        from '../core/Controllers.js';
+import PropertiesModel    from '../models/PropertiesModel.js';
+import CountersController from './CountersController.js';
+import ProductsController from './ProductsController.js';
 
 class PropertiesController extends Controllers {
     static model = new PropertiesModel();
@@ -159,4 +159,4 @@ class PropertiesController extends Controllers {
 
 }
 
-module.exports = PropertiesController;
+export default PropertiesController;

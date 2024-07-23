@@ -1,9 +1,10 @@
-const Controllers              = require('../core/Controllers');
-const SalesInvoicesModel       = require("../models/SalesInvoicesModel");
-const CountersController       = require("../controllers/CountersController");
-const AddAndSubtractController = require("./AddAndSubtractController");
-const persianDate              = require('persian-date');
-const InventoriesController    = require("./InventoriesController");
+import Controllers              from '../core/Controllers.js';
+import SalesInvoicesModel       from '../models/SalesInvoicesModel.js';
+import CountersController       from '../controllers/CountersController.js';
+import AddAndSubtractController from './AddAndSubtractController.js';
+import persianDate              from 'persian-date';
+import InventoriesController    from '../controllers/InventoriesController.js';
+import SettlementsController    from './SettlementsController.js';
 
 class SalesInvoicesController extends Controllers {
     static model = new SalesInvoicesModel();
@@ -326,8 +327,6 @@ class SalesInvoicesController extends Controllers {
                 async (salesInvoice) => {
                     // check has settlement
                     if (salesInvoice._settlement) {
-                        // exception import Settlement Controller to use deleteOne method
-                        const SettlementsController = require("./SettlementsController");
                         // delete settlement
                         await SettlementsController.deleteOne(salesInvoice._settlement);
                     }
@@ -351,4 +350,4 @@ class SalesInvoicesController extends Controllers {
 
 }
 
-module.exports = SalesInvoicesController;
+export default SalesInvoicesController;

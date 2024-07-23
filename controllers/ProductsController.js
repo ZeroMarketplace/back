@@ -1,18 +1,19 @@
-import Controllers          from '../core/Controllers.js';
-import ProductsModel        from '../models/ProductsModel.js';
-import CategoriesController from '../controllers/CategoriesController.js';
-import CountersController   from '../controllers/CountersController.js';
-import InventoriesController from '../controllers/InventoriesController.js';
-import Logger from '../core/Logger.js';
-import fs     from 'fs';
+import Controllers                from '../core/Controllers.js';
+import ProductsModel              from '../models/ProductsModel.js';
+import CategoriesController       from '../controllers/CategoriesController.js';
+import CountersController         from '../controllers/CountersController.js';
+import InventoriesController      from '../controllers/InventoriesController.js';
+import Logger                     from '../core/Logger.js';
+import fs                         from 'fs';
 import multer                     from 'multer';
-import md5    from 'md5';
+import md5                        from 'md5';
 import persianDate                from 'persian-date';
-import  PurchaseInvoicesController from './PurchaseInvoicesController.js';
+import PurchaseInvoicesController from './PurchaseInvoicesController.js';
+import PropertiesController       from './PropertiesController.js';
 
 // config upload service
-const filesPath                  = 'public/products/';
-const fileStorage                = multer.diskStorage({
+const filesPath          = 'public/products/';
+const fileStorage        = multer.diskStorage({
     destination: function (req, file, cb) {
         cb(null, filesPath)
     },
@@ -21,14 +22,14 @@ const fileStorage                = multer.diskStorage({
         cb(null, uniqueSuffix)
     }
 });
-const fileFilter                 = (req, file, cb) => {
+const fileFilter         = (req, file, cb) => {
 
     // check allowed type
     let allowedTypes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
     cb(null, allowedTypes.includes(file.mimetype));
 
 };
-const uploadProductFiles         = multer({
+const uploadProductFiles = multer({
     storage   : fileStorage,
     fileFilter: fileFilter,
     limits    : {fileSize: 5000000}
@@ -76,8 +77,7 @@ class ProductsController extends Controllers {
     }
 
     static async createVariantTitle($productName, $variant) {
-        const PropertiesController = require("./PropertiesController");
-        let title                  = $productName;
+        let title = $productName;
         for (const property of $variant.properties) {
             let propertyDetail = await PropertiesController.get(property._property);
             propertyDetail     = propertyDetail.data;

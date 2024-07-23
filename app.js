@@ -1,16 +1,15 @@
 // init app and plugins
-import express from 'express';
-import path from 'path';
-import cookieParser from 'cookie-parser';
-import helmet from 'helmet';
-import cors from 'cors';
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import express         from 'express';
+import path            from 'path';
+import cookieParser    from 'cookie-parser';
+import helmet          from 'helmet';
+import cors            from 'cors';
+import {dirname}       from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 // get __dirname
-let __dirname = fileURLToPath(import.meta.url).split('/');
-__dirname.splice(__dirname.length - 1, 1);
-__dirname = __dirname.join('/');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 
 let app = express();
@@ -21,30 +20,42 @@ app.use(helmet({crossOriginResourcePolicy: false}));
 app.use(express.json({limit: '5mb'}));
 app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
-// app.use(process.env.STATICS_URL, express.static(__dirname + 'public'));
+app.use(process.env.STATICS_URL, express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
 process.env.TZ = "Asia/Tehran";
 
-import usersRouter from './routes/users.js';
-import inventoriesRouter from './routes/inventories.js';
-import warehousesRouter from './routes/warehouses.js';
+import usersRouter               from './routes/users.js';
+import authRouter                from './routes/auth.js';
+import categoriesRouter          from './routes/categories.js';
+import brandsRouter              from './routes/brands.js';
+import unitsRouter               from './routes/units.js';
+import propertiesRouter          from './routes/properties.js';
+import productsRouter            from './routes/products.js';
+import warehousesRouter          from './routes/warehouses.js';
+import accountsRouter            from './routes/accounts.js';
+import addAndSubtractRouter      from './routes/add-and-subtract.js';
+import purchaseInvoicesRouter    from './routes/purchase-invoices.js';
+import accountingDocumentsRouter from './routes/accounting-documents.js';
+import settlementsRouter         from './routes/settlements.js';
+import salesInvoicesRouter       from './routes/sales-invoices.js';
+import inventoriesRouter         from './routes/inventories.js';
 
 // add routes
 app.use('/api/users', usersRouter);
-// app.use('/api/auth', require('./routes/auth'));
-// app.use('/api/categories', require('./routes/categories'));
-// app.use('/api/brands', require('./routes/brands'));
-// app.use('/api/units', require('./routes/units'));
-// app.use('/api/properties', require('./routes/properties'));
-// app.use('/api/products', require('./routes/products'));
+app.use('/api/auth', authRouter);
+app.use('/api/categories', categoriesRouter);
+app.use('/api/brands', brandsRouter);
+app.use('/api/units', unitsRouter);
+app.use('/api/properties', propertiesRouter);
+app.use('/api/products', productsRouter);
 app.use('/api/warehouses', warehousesRouter);
-// app.use('/api/accounts', require('./routes/accounts'));
-// app.use('/api/add-and-subtract', require('./routes/add-and-subtract'));
-// app.use('/api/purchase-invoices', require('./routes/purchase-invoices'));
-// app.use('/api/accounting-documents', require('./routes/accounting-documents'));
-// app.use('/api/settlements', require('./routes/settlements'));
-// app.use('/api/sales-invoices', require('./routes/sales-invoices'));
+app.use('/api/accounts', accountsRouter);
+app.use('/api/add-and-subtract', addAndSubtractRouter);
+app.use('/api/purchase-invoices', purchaseInvoicesRouter);
+app.use('/api/accounting-documents', accountingDocumentsRouter);
+app.use('/api/settlements', settlementsRouter);
+app.use('/api/sales-invoices', salesInvoicesRouter);
 app.use('/api/inventories', inventoriesRouter);
 
 export default app;

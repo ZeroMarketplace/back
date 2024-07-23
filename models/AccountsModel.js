@@ -1,6 +1,5 @@
-const Models   = require("../core/Models");
-const {Schema} = require("mongoose");
-const {response} = require("express");
+import Models   from '../core/Models.js';
+import {Schema} from 'mongoose';
 
 class AccountsModel extends Models {
 
@@ -45,4 +44,4 @@ class AccountsModel extends Models {
 
 }
 
-module.exports = AccountsModel;
+export default AccountsModel;

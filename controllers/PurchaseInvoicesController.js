@@ -4,6 +4,7 @@ import CountersController       from '../controllers/CountersController.js';
 import AddAndSubtractController from './AddAndSubtractController.js';
 import persianDate              from 'persian-date';
 import InventoriesController    from '../controllers/InventoriesController.js';
+import SettlementsController    from './SettlementsController.js';
 
 class PurchaseInvoicesController extends Controllers {
     static model = new PurchaseInvoicesModel();
@@ -346,7 +347,6 @@ class PurchaseInvoicesController extends Controllers {
                     // check has settlement
                     if (purchaseInvoice._settlement) {
                         // exception import Settlement Controller to use deleteOne method
-                        const SettlementsController = require("./SettlementsController");
                         // delete settlement
                         await SettlementsController.deleteOne(purchaseInvoice._settlement);
                     }

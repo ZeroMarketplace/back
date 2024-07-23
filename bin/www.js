@@ -1,12 +1,9 @@
 #!/usr/bin/env node
-import dotenv from 'dotenv';
+import '../core/EnvironmentLoader.js'
 import createDebug from 'debug';
 import DataBaseConnection from '../core/DataBaseConnection.js';
 import http from 'http';
 import app from '../app.js';
-
-// config environments
-dotenv.config();
 
 // init app and requirement
 let server;

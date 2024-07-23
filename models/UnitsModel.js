@@ -1,5 +1,5 @@
-const Models     = require("../core/Models");
-const {Schema} = require("mongoose");
+import Models   from '../core/Models.js';
+import {Schema} from 'mongoose';
 
 class UnitsModel extends Models {
 
@@ -20,4 +20,4 @@ class UnitsModel extends Models {
 
 }
 
-module.exports = UnitsModel;
+export default UnitsModel;

@@ -1,5 +1,5 @@
-const Models   = require("../core/Models");
-const {Schema} = require("mongoose");
+import Models   from '../core/Models.js';
+import {Schema} from 'mongoose';
 
 class SalesInvoicesModel extends Models {
 
@@ -11,7 +11,7 @@ class SalesInvoicesModel extends Models {
             description: String,
             products   : [
                 {
-                    _id: {type: Schema.Types.ObjectId, ref: 'products'},
+                    _id  : {type: Schema.Types.ObjectId, ref: 'products'},
                     count: Number,
                     total: Number
                 }
@@ -37,4 +37,4 @@ class SalesInvoicesModel extends Models {
 
 }
 
-module.exports = SalesInvoicesModel;
+export default SalesInvoicesModel;

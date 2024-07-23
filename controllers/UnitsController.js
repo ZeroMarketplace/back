@@ -1,5 +1,5 @@
-const Controllers = require('../core/Controllers');
-const UnitsModel  = require("../models/UnitsModel");
+import Controllers from '../core/Controllers.js';
+import UnitsModel  from '../models/UnitsModel.js';
 
 class UnitsController extends Controllers {
     static model = new UnitsModel();
@@ -118,4 +118,4 @@ class UnitsController extends Controllers {
 
 }
 
-module.exports = UnitsController;
+export default UnitsController;

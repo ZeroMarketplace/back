@@ -1,10 +1,10 @@
-const Controllers                   = require('../core/Controllers');
-const SettlementsModel              = require("../models/SettlementsModel");
-const AccountsController            = require("./AccountsController");
-const AccountingDocumentsController = require("./AccountingDocumentsController");
-const PurchaseInvoicesController    = require("./PurchaseInvoicesController");
-const persianDate                   = require('persian-date');
-const SalesInvoicesController       = require("./SalesInvoicesController");
+import Controllers                   from '../core/Controllers.js';
+import SettlementsModel              from '../models/SettlementsModel.js';
+import AccountsController            from '../controllers/AccountsController.js';
+import AccountingDocumentsController from '../controllers/AccountingDocumentsController.js';
+import PurchaseInvoicesController    from '../controllers/PurchaseInvoicesController.js';
+import persianDate                   from 'persian-date';
+import SalesInvoicesController       from './SalesInvoicesController.js';
 
 class SettlementsController extends Controllers {
     static model = new SettlementsModel();
@@ -583,4 +583,4 @@ class SettlementsController extends Controllers {
 
 }
 
-module.exports = SettlementsController;
+export default SettlementsController;

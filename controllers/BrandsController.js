@@ -1,5 +1,5 @@
-const Controllers = require('../core/Controllers');
-const BrandsModel = require("../models/BrandsModel");
+import Controllers from '../core/Controllers.js';
+import BrandsModel from '../models/BrandsModel.js';
 
 class BrandsController extends Controllers {
     static model = new BrandsModel();
@@ -118,4 +118,4 @@ class BrandsController extends Controllers {
 
 }
 
-module.exports = BrandsController;
+export default BrandsController;
