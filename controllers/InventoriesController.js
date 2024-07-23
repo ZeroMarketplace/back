@@ -1,6 +1,7 @@
-const Controllers      = require('../core/Controllers');
-const InventoriesModel = require("../models/InventoriesModel");
-const {response}       = require("express");
+import Controllers        from '../core/Controllers.js';
+import InventoriesModel   from "../models/InventoriesModel.js";
+import persianDate        from 'persian-date';
+import ProductsController from './ProductsController.js';
 
 class InventoriesController extends Controllers {
     static model = new InventoriesModel();
@@ -40,6 +41,59 @@ class InventoriesController extends Controllers {
                 }
             );
         })
+    }
+
+    static async outputBuilder($row) {
+        for (const [$index, $value] of Object.entries($row)) {
+            switch ($index) {
+                case 'dateTime':
+                    let dateTimeJalali      = new persianDate($value);
+                    $row[$index + 'Jalali'] = dateTimeJalali.toLocale('fa').format();
+                    break;
+                case 'productDetails':
+                    // check if is variant of original product
+                    if ($row['product'].toString() !== $value._id.toString()) {
+                        let variant        = $value.variants.find(variant => variant._id.toString() === $row['product'].toString());
+                        $value.title = variant.title;
+                    }
+
+                    // delete variants from output
+                    $value['variants'] = undefined;
+
+                    break;
+            }
+        }
+
+        return $row;
+    }
+
+    static queryBuilder($input) {
+        let query = {};
+
+        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
+
+        // pagination
+        $input.perPage = Number($input.perPage) ?? 10;
+        $input.page    = $input.page ?? 1;
+        $input.offset  = ($input.page - 1) * $input.perPage;
+
+        // sort
+        if ($input.sortColumn && $input.sortDirection) {
+            $input.sort                    = {};
+            $input.sort[$input.sortColumn] = Number($input.sortDirection);
+        } else {
+            $input.sort = {createdAt: -1};
+        }
+
+        for (const [$index, $value] of Object.entries($input)) {
+            switch ($index) {
+                case '_warehouse':
+                    query._warehouse = $value;
+                    break;
+            }
+        }
+
+        return query;
     }
 
     static insertOne($input) {
@@ -93,22 +147,74 @@ class InventoriesController extends Controllers {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
-            // filter
-            this.model.list($input).then(
-                (response) => {
-                    // check the result ... and return
+            let query = this.queryBuilder($input);
+
+            this.model.listOfInventories(query, {
+                sort : $input.sort,
+                limit: $input.perPage,
+                skip : $input.offset,
+            }).then(
+                async (response) => {
+                    let total = response.data.total;
+                    response  = response.data.list;
+
+                    // create output
+                    for (const row of response) {
+                        const index     = response.indexOf(row);
+                        response[index] = await this.outputBuilder(row);
+                    }
+
+                    // return result
                     return resolve({
                         code: 200,
                         data: {
-                            list: response
+                            list : response,
+                            total: total
                         }
                     });
                 },
-                (error) => {
-                    return reject({
-                        code: 500
-                    });
-                });
+                (response) => {
+                    return reject(response);
+                },
+            );
+
+            // filter
+            // this.model.list(query, {
+            //     populate: [
+            //         {path: '_warehouse', select: 'title'}
+            //     ],
+            //     skip    : $input.offset,
+            //     limit   : $input.perPage,
+            //     sort    : $input.sort
+            // }).then(
+            //     (response) => {
+            //         // get count
+            //         this.model.count(query).then(async (count) => {
+            //
+            //             // create output
+            //             // create output
+            //             for (const row of response) {
+            //                 const index     = response.indexOf(row);
+            //                 response[index] = await this.outputBuilder(row.toObject());
+            //             }
+            //
+            //             // return result
+            //             return resolve({
+            //                 code: 200,
+            //                 data: {
+            //                     list : response,
+            //                     total: count
+            //                 }
+            //             });
+            //
+            //         });
+            //     },
+            //     (error) => {
+            //         console.log(error);
+            //         return reject({
+            //             code: 500
+            //         });
+            //     });
         });
     }
 
@@ -205,4 +311,4 @@ class InventoriesController extends Controllers {
 
 }
 
-module.exports = InventoriesController;
+export default InventoriesController;
