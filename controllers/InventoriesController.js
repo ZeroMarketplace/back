@@ -218,6 +218,24 @@ class InventoriesController extends Controllers {
         });
     }
 
+    static getInventoryByProductId($input) {
+        return new Promise((resolve, reject) => {
+
+            this.model.getInventoryByProductId($input.productId).then(
+                async (response) => {
+                    // return result
+                    return resolve({
+                        code: 200,
+                        data: response
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                },
+            );
+        });
+    }
+
     static updateOne($id, $input) {
         return new Promise((resolve, reject) => {
             // check filter is valid ...
@@ -307,7 +325,6 @@ class InventoriesController extends Controllers {
                 });
         });
     }
-
 
 }
 

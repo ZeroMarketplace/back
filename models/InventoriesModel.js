@@ -1,5 +1,6 @@
-import Models   from '../core/Models.js';
-import {Schema} from 'mongoose';
+import Models     from '../core/Models.js';
+import {Schema}   from 'mongoose';
+import {ObjectId} from "mongodb";
 
 class InventoriesModel extends Models {
 
@@ -113,20 +114,20 @@ class InventoriesModel extends Models {
                             },
                             {
                                 $group: {
-                                    _id: {
-                                        product: '$_product',
+                                    _id       : {
+                                        product  : '$_product',
                                         warehouse: '$_warehouse'
                                     },
-                                    totalCount: { $sum: '$count' }
+                                    totalCount: {$sum: '$count'}
                                 }
                             },
                             {
                                 $group: {
-                                    _id: '$_id.product',
-                                    total: { $sum: '$totalCount' },
+                                    _id       : '$_id.product',
+                                    total     : {$sum: '$totalCount'},
                                     warehouses: {
                                         $push: {
-                                            _id: '$_id.warehouse',
+                                            _id  : '$_id.warehouse',
                                             count: '$totalCount'
                                         }
                                     }
@@ -134,9 +135,9 @@ class InventoriesModel extends Models {
                             },
                             {
                                 $project: {
-                                    _id: 0,
-                                    product: '$_id',
-                                    total: 1,
+                                    _id       : 0,
+                                    product   : '$_id',
+                                    total     : 1,
                                     warehouses: 1
                                 }
                             },
@@ -151,31 +152,31 @@ class InventoriesModel extends Models {
                             },
                             {
                                 $lookup: {
-                                    from: 'products',
-                                    let: { productId: '$product' },
+                                    from    : 'products',
+                                    let     : {productId: '$product'},
                                     pipeline: [
                                         {
                                             $match: {
                                                 $expr: {
                                                     $or: [
-                                                        { $eq: ['$_id', '$$productId'] },
-                                                        { $in: ['$$productId', '$variants._id'] }
+                                                        {$eq: ['$_id', '$$productId']},
+                                                        {$in: ['$$productId', '$variants._id']}
                                                     ]
                                                 }
                                             }
                                         },
                                         {
                                             $project: {
-                                                _id: 1,
-                                                title: 1,
+                                                _id     : 1,
+                                                title   : 1,
                                                 variants: 1,
-                                                code: 1,
-                                                barcode: 1,
-                                                _unit: 1
+                                                code    : 1,
+                                                barcode : 1,
+                                                _unit   : 1
                                             }
                                         }
                                     ],
-                                    as: 'productDetails'
+                                    as      : 'productDetails'
                                 }
                             },
                             {
@@ -183,22 +184,22 @@ class InventoriesModel extends Models {
                             },
                             {
                                 $lookup: {
-                                    from: 'units',
-                                    localField: 'productDetails._unit',
+                                    from        : 'units',
+                                    localField  : 'productDetails._unit',
                                     foreignField: '_id',
-                                    as: 'productDetails._unitDetails'
+                                    as          : 'productDetails._unitDetails'
                                 }
                             },
                             {
                                 $unwind: {
-                                    path: '$productDetails._unitDetails',
+                                    path                      : '$productDetails._unitDetails',
                                     preserveNullAndEmptyArrays: true
                                 }
                             },
                             {
                                 $addFields: {
                                     'productDetails._unit': {
-                                        _id: '$productDetails._unitDetails._id',
+                                        _id  : '$productDetails._unitDetails._id',
                                         title: '$productDetails._unitDetails.title'
                                     }
                                 }
@@ -215,7 +216,7 @@ class InventoriesModel extends Models {
                                     return resolve({
                                         code: 200,
                                         data: {
-                                            list: result,
+                                            list : result,
                                             total: totalRecords
                                         }
                                     });
@@ -232,6 +233,100 @@ class InventoriesModel extends Models {
                         return reject(response);
                     },
                 );
+        });
+    }
+
+    getInventoryByProductId($productId, $options) {
+        return new Promise(async (resolve, reject) => {
+
+            const aggregationQuery = [
+                {
+                    $match: {
+                        _product: new ObjectId($productId)
+                    }
+                },
+                {
+                    $group: {
+                        _id       : {
+                            product  : '$_product',
+                            warehouse: '$_warehouse'
+                        },
+                        totalCount: {$sum: '$count'}
+                    }
+                },
+                {
+                    $group: {
+                        _id       : '$_id.product',
+                        total     : {$sum: '$totalCount'},
+                        warehouses: {
+                            $push: {
+                                warehouse: '$_id.warehouse',
+                                count    : '$totalCount'
+                            }
+                        }
+                    }
+                },
+                {
+                    $project: {
+                        _id       : 0,
+                        product   : '$_id',
+                        total     : 1,
+                        warehouses: 1
+                    }
+                },
+                {
+                    $unwind: '$warehouses'
+                },
+                {
+                    $lookup: {
+                        from        : 'warehouses',
+                        localField  : 'warehouses.warehouse',
+                        foreignField: '_id',
+                        as          : 'warehouses.warehouse'
+                    }
+                },
+                {
+                    $unwind: '$warehouses.warehouse'
+                },
+                {
+                    $group: {
+                        _id       : '$product',
+                        total         : {$first: '$total'},
+                        warehouses    : {
+                            $push: {
+                                _id  : '$warehouses.warehouse._id',
+                                title: '$warehouses.warehouse.title',
+                                count: '$warehouses.count'
+                            }
+                        }
+                    }
+                }
+            ];
+            this.collectionModel.aggregate(aggregationQuery)
+                .then(
+                    (result) => {
+                        if (result.length) {
+                            console.log(result[0]);
+                            return resolve({
+                                code: 200,
+                                data: result
+                            });
+                        } else {
+                            // there is no inventory for product
+                            // inventory 0
+                            return reject({
+                                code: 404
+                            });
+                        }
+                    },
+                    (response) => {
+                        console.log(response);
+                        return reject({
+                            code: 500
+                        });
+                    }
+                );
+
         });
     }
 

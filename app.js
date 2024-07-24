@@ -9,7 +9,7 @@ import {fileURLToPath} from 'node:url';
 
 // get __dirname
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname  = dirname(__filename);
 
 
 let app = express();
@@ -40,6 +40,7 @@ import accountingDocumentsRouter from './routes/accounting-documents.js';
 import settlementsRouter         from './routes/settlements.js';
 import salesInvoicesRouter       from './routes/sales-invoices.js';
 import inventoriesRouter         from './routes/inventories.js';
+import stockTransfersRouter      from './routes/stock-transfers.js';
 
 // add routes
 app.use('/api/users', usersRouter);
@@ -57,5 +58,6 @@ app.use('/api/accounting-documents', accountingDocumentsRouter);
 app.use('/api/settlements', settlementsRouter);
 app.use('/api/sales-invoices', salesInvoicesRouter);
 app.use('/api/inventories', inventoriesRouter);
+app.use('/api/stock-transfers', stockTransfersRouter);
 
 export default app;
