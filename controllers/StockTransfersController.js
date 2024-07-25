@@ -185,15 +185,29 @@ class StockTransfersController extends Controllers {
 
     static deleteOne($id) {
         return new Promise((resolve, reject) => {
-            // check filter is valid ...
 
             // filter
-            this.model.deleteOne($id).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
+            this.model.get($id).then(
+                (stockTransfer) => {
+                    // return inventory that was changed
+                    InventoriesController.stockReturn(stockTransfer).then(
+                        (response) => {
+                            // delete the stock transfer
+                            stockTransfer.deleteOne().then(
+                                (response) => {
+                                    return resolve({
+                                        code: 200
+                                    });
+                                },
+                                (response) => {
+                                    return reject(response);
+                                }
+                            );
+                        },
+                        (response) => {
+                            return reject(response);
+                        }
+                    );
                 },
                 (response) => {
                     return reject(response);

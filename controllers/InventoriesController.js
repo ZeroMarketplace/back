@@ -307,7 +307,9 @@ class InventoriesController extends Controllers {
                     });
                 },
                 (response) => {
-                    return reject(response);
+                    return reject({
+                        code: 500
+                    });
                 },
             );
         })
@@ -354,8 +356,7 @@ class InventoriesController extends Controllers {
                                 });
                             } else {
                                 // minus count of inventory
-                                inventory.count -= remainingCount;
-                                await inventory.save();
+                                await this.updateCount({_id: inventory._id}, -remainingCount)
 
                                 changes.push({
                                     operation : 'updateCount',
@@ -407,6 +408,41 @@ class InventoriesController extends Controllers {
                 }
             );
         })
+    }
+
+    static stockReturn($stockTransfer) {
+        return new Promise(async (resolve, reject) => {
+            for (const inventoryChange of $stockTransfer.inventoryChanges) {
+                // Get the inventory that was changed
+                let inventory = undefined;
+                // switch what happened to inventory
+                switch (inventoryChange.operation) {
+                    case 'updateWarehouse':
+                        inventory = await this.model.get(inventoryChange._inventory);
+                        ;
+                        // change the warehouse of saved inventory
+                        inventory._warehouse = $stockTransfer._sourceWarehouse;
+                        await inventory.save();
+                        break;
+                    case 'updateCount':
+                        inventory                 = await this.model.get(inventoryChange._inventory);
+                        // get the operation (insert new inventory) for get the count of changes
+                        let newInventoryOperation = $stockTransfer.inventoryChanges.find(
+                            change => change.operation === 'insertInventory'
+                        );
+                        // return every product count remaining from new inventory
+                        let newInventory          = await this.model.get(newInventoryOperation._inventory);
+                        await this.updateCount({_id: inventory._id}, newInventory.count);
+                        // delete the new inventory
+                        await newInventory.deleteOne();
+                        break;
+                }
+            }
+
+            return resolve({
+                code: 200
+            });
+        });
     }
 
 }
