@@ -92,6 +92,18 @@ class PermissionsController extends Controllers {
                     "PUT"   : true,
                     "DELETE": true
                 },
+                "/api/inventories"      : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
+                    "DELETE": true
+                },
+                "/api/stock-transfers"      : {
+                    "POST"  : true,
+                    "GET"   : true,
+                    "PUT"   : true,
+                    "DELETE": true
+                },
             }
         };
         let user  = {

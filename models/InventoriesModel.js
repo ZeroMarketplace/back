@@ -238,11 +238,10 @@ class InventoriesModel extends Models {
 
     getInventoryByProductId($productId, $options) {
         return new Promise(async (resolve, reject) => {
-
             const aggregationQuery = [
                 {
                     $match: {
-                        _product: new ObjectId($productId)
+                        _product: $productId
                     }
                 },
                 {
@@ -306,10 +305,9 @@ class InventoriesModel extends Models {
                 .then(
                     (result) => {
                         if (result.length) {
-                            console.log(result[0]);
                             return resolve({
                                 code: 200,
-                                data: result
+                                data: result[0]
                             });
                         } else {
                             // there is no inventory for product

@@ -1,7 +1,7 @@
-import Controllers        from '../core/Controllers.js';
-import InventoriesModel   from "../models/InventoriesModel.js";
-import persianDate        from 'persian-date';
-import ProductsController from './ProductsController.js';
+import Controllers      from '../core/Controllers.js';
+import InventoriesModel from "../models/InventoriesModel.js";
+import persianDate      from 'persian-date';
+import {ObjectId}       from 'mongodb';
 
 class InventoriesController extends Controllers {
     static model = new InventoriesModel();
@@ -53,7 +53,7 @@ class InventoriesController extends Controllers {
                 case 'productDetails':
                     // check if is variant of original product
                     if ($row['product'].toString() !== $value._id.toString()) {
-                        let variant        = $value.variants.find(variant => variant._id.toString() === $row['product'].toString());
+                        let variant  = $value.variants.find(variant => variant._id.toString() === $row['product'].toString());
                         $value.title = variant.title;
                     }
 
@@ -221,12 +221,13 @@ class InventoriesController extends Controllers {
     static getInventoryByProductId($input) {
         return new Promise((resolve, reject) => {
 
+            $input.productId = new ObjectId($input.productId);
             this.model.getInventoryByProductId($input.productId).then(
                 async (response) => {
                     // return result
                     return resolve({
                         code: 200,
-                        data: response
+                        data: response.data
                     });
                 },
                 (response) => {
@@ -324,6 +325,88 @@ class InventoriesController extends Controllers {
                     return reject(response);
                 });
         });
+    }
+
+    static stockTransfer($input) {
+        return new Promise((resolve, reject) => {
+            // get list of product in source warehouse
+            this.model.list({
+                _warehouse: $input._sourceWarehouse,
+                _product  : $input._product,
+            }, {
+                sort: {
+                    count: 1
+                }
+            }).then(
+                async (inventories) => {
+                    let remainingCount = $input.count;
+                    let changes        = [];
+                    // change or add new inventory
+                    for (const inventory of inventories) {
+                        if (remainingCount > 0) {
+                            if (remainingCount >= inventory.count) {
+                                inventory._warehouse = $input._destinationWarehouse;
+                                await inventory.save();
+                                remainingCount -= inventory.count;
+                                changes.push({
+                                    operation : 'updateWarehouse',
+                                    _inventory: inventory._id
+                                });
+                            } else {
+                                // minus count of inventory
+                                inventory.count -= remainingCount;
+                                await inventory.save();
+
+                                changes.push({
+                                    operation : 'updateCount',
+                                    count     : remainingCount,
+                                    _inventory: inventory._id
+                                });
+
+                                let lastInventoryOfProduct = await this.model.getLatestInventory({
+                                    _product: $input._product,
+                                });
+
+                                // add new inventory of remaining count
+                                let newInventory = await this.model.insertOne({
+                                    dateTime        : new Date(),
+                                    count           : remainingCount,
+                                    _product        : $input._product,
+                                    _warehouse      : $input._destinationWarehouse,
+                                    _purchaseInvoice: inventory._purchaseInvoice,
+                                    price           : {
+                                        purchase: inventory.price.purchase,
+                                        consumer: lastInventoryOfProduct.data.price.consumer,
+                                        store   : lastInventoryOfProduct.data.price.store,
+                                    },
+                                    status          : 'active',
+                                    _user           : $input.user.data.id
+                                });
+
+                                changes.push({
+                                    operation : 'insertInventory',
+                                    _inventory: newInventory._id
+                                });
+
+                                remainingCount = 0;
+                            }
+                        } else {
+                            break;
+                        }
+                    }
+
+                    return resolve({
+                        code: 200,
+                        data: {
+                            changes: changes
+                        }
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                }
+            );
+        })
     }
 
 }

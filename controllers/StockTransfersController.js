@@ -1,6 +1,7 @@
-import Controllers         from '../core/Controllers.js';
-import StockTransfersModel from '../models/StockTransfersModel.js';
-import persianDate         from "persian-date";
+import Controllers           from '../core/Controllers.js';
+import StockTransfersModel   from '../models/StockTransfersModel.js';
+import persianDate           from "persian-date";
+import InventoriesController from './InventoriesController.js';
 
 class StockTransfersController extends Controllers {
     static model = new StockTransfersModel();
@@ -12,9 +13,20 @@ class StockTransfersController extends Controllers {
     static outputBuilder($row) {
         for (const [$index, $value] of Object.entries($row)) {
             switch ($index) {
-                case 'dateTime':
+                case 'updatedAt':
                     let dateTimeJalali      = new persianDate($value);
                     $row[$index + 'Jalali'] = dateTimeJalali.toLocale('fa').format();
+                    break;
+                case 'productDetails':
+                    // check if is variant of original product
+                    if ($row['_product'].toString() !== $value._id.toString()) {
+                        let variant  = $value.variants.find(variant => variant._id.toString() === $row['_product'].toString());
+                        $value.title = variant.title;
+                    }
+
+                    // delete variants from output
+                    $value['variants'] = undefined;
+
                     break;
             }
         }
@@ -48,18 +60,32 @@ class StockTransfersController extends Controllers {
     }
 
     static insertOne($input) {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
 
-            // each
+            await InventoriesController.stockTransfer({
+                _sourceWarehouse     : $input._sourceWarehouse,
+                count                : $input.count,
+                _product             : $input._product,
+                _destinationWarehouse: $input._destinationWarehouse,
+                user                 : $input.user
+            }).then(
+                (response) => {
+                    $input.inventoryChanges = response.data.changes
+                },
+                (response) => {
+                    return reject(response);
+                }
+            );
 
             // filter
             this.model.insertOne({
-                title : {
-                    en: $input.title.en,
-                    fa: $input.title.fa
-                },
-                status: 'active',
-                _user : $input.user.data.id
+                _sourceWarehouse     : $input._sourceWarehouse,
+                _destinationWarehouse: $input._destinationWarehouse,
+                _product             : $input._product,
+                count                : $input.count,
+                inventoryChanges     : $input.inventoryChanges,
+                status               : 'active',
+                _user                : $input.user.data.id
             }).then(
                 (response) => {
                     // check the result ... and return
@@ -100,18 +126,20 @@ class StockTransfersController extends Controllers {
             let query = this.queryBuilder($input);
 
             // filter
-            this.model.list(query, {
+            this.model.listOfStockTransfers(query, {
                 skip    : $input.offset,
                 limit   : $input.perPage,
                 sort    : $input.sort
             }).then(
                 (response) => {
+                    response = response.data;
+
                     // get count
                     this.model.count(query).then((count) => {
 
                         // create output
                         response.forEach((row) => {
-                            this.outputBuilder(row._doc);
+                            this.outputBuilder(row);
                         });
 
                         // return result
