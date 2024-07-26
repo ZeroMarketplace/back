@@ -120,6 +120,40 @@ class WarehousesController extends Controllers {
         });
     }
 
+    // set default of account (type)
+    static setDefaultFor($typeOfSales, $id) {
+        return new Promise((resolve, reject) => {
+
+            // find last default for this $typeOfSales
+            this.model.item({defaultFor: $typeOfSales}).then(
+                async (responseFind) => {
+                    // update old default to null
+                    responseFind.defaultFor = undefined;
+                    await responseFind.save();
+
+                    // update new default
+                    await this.model.updateOne($id, {
+                        defaultFor: $typeOfSales
+                    });
+
+                    return resolve({
+                        code: 200
+                    });
+                },
+                async (response) => {
+                    // update default
+                    await this.model.updateOne($id, {
+                        defaultFor: $typeOfSales
+                    });
+
+                    return resolve({
+                        code: 200
+                    });
+                }
+            );
+
+        });
+    }
 
 }
 

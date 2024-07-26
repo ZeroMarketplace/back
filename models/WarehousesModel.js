@@ -11,6 +11,7 @@ class WarehousesModel extends Models {
             },
             onlineSales: Boolean,
             retail     : Boolean,
+            defaultFor : {type: String, enum: ['retail', 'onlineSales']},
             status     : {type: String, enum: ['active', 'inactive']},
             _user      : {type: Schema.Types.ObjectId, ref: 'users'}
         },
