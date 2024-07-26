@@ -5,13 +5,14 @@ class WarehousesModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
-            title     : {
+            title      : {
                 en: String,
                 fa: String
             },
-            sellOnline: Boolean,
-            status    : {type: String, enum: ['active', 'inactive']},
-            _user     : {type: Schema.Types.ObjectId, ref: 'users'}
+            onlineSales: Boolean,
+            retail     : Boolean,
+            status     : {type: String, enum: ['active', 'inactive']},
+            _user      : {type: Schema.Types.ObjectId, ref: 'users'}
         },
         {timestamps: true});
 

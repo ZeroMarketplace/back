@@ -32,13 +32,14 @@ class WarehousesController extends Controllers {
 
             // filter
             this.model.insertOne({
-                title     : {
+                title      : {
                     en: $input.title.en,
                     fa: $input.title.fa
                 },
-                sellOnline: $input.sellOnline,
-                status    : 'active',
-                _user     : $input.user.data.id
+                onlineSales: $input.onlineSales,
+                retail     : $input.retail,
+                status     : 'active',
+                _user      : $input.user.data.id
             }).then(
                 (response) => {
                     // check the result ... and return
@@ -59,11 +60,12 @@ class WarehousesController extends Controllers {
 
             // filter
             this.model.updateOne($id, {
-                title     : {
+                title      : {
                     en: $input.title.en,
                     fa: $input.title.fa
                 },
-                sellOnline: $input.sellOnline,
+                onlineSales: $input.onlineSales,
+                retail     : $input.retail
             }).then(
                 (response) => {
                     // check the result ... and return

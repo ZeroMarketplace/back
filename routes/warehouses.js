@@ -2,6 +2,7 @@ import express              from "express";
 import InputsController     from '../controllers/InputsController.js';
 import WarehousesController from '../controllers/WarehousesController.js';
 import AuthController       from '../controllers/AuthController.js';
+import AccountsController   from "../controllers/AccountsController.js";
 
 let router = express.Router();
 
