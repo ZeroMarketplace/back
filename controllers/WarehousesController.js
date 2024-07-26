@@ -132,9 +132,11 @@ class WarehousesController extends Controllers {
                     await responseFind.save();
 
                     // update new default
-                    await this.model.updateOne($id, {
+                    let update = {
                         defaultFor: $typeOfSales
-                    });
+                    };
+                    update[$typeOfSales] = true;
+                    await this.model.updateOne($id, update);
 
                     return resolve({
                         code: 200
@@ -142,9 +144,11 @@ class WarehousesController extends Controllers {
                 },
                 async (response) => {
                     // update default
-                    await this.model.updateOne($id, {
+                    let update = {
                         defaultFor: $typeOfSales
-                    });
+                    };
+                    update[$typeOfSales] = true;
+                    await this.model.updateOne($id, update);
 
                     return resolve({
                         code: 200
