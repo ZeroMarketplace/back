@@ -1,6 +1,5 @@
 import Models     from '../core/Models.js';
 import {Schema}   from 'mongoose';
-import {ObjectId} from "mongodb";
 
 class InventoriesModel extends Models {
 
@@ -236,14 +235,59 @@ class InventoriesModel extends Models {
         });
     }
 
-    getInventoryByProductId($productId, $options) {
+    getInventoryByProductId($productId, $typeOfSales ,$options) {
         return new Promise(async (resolve, reject) => {
-            const aggregationQuery = [
+            let aggregationQuery = [
                 {
                     $match: {
                         _product: $productId
                     }
                 },
+            ];
+
+            if($typeOfSales) {
+                // lookup for warehouses
+                aggregationQuery.push(
+                    {
+                        $lookup: {
+                            from: 'warehouses',
+                            localField: '_warehouse',
+                            foreignField: '_id',
+                            as: 'warehouseDetails'
+                        }
+                    },
+                );
+                // get warehouses ids
+                let warehousesIds = [];
+                switch($typeOfSales) {
+                    case 'retail':
+                        aggregationQuery.push(
+                            {
+                                $match: {
+                                    'warehouseDetails.retail': true
+                                }
+                            },
+                        );
+                        break;
+                    case 'onlineSales':
+                        aggregationQuery.push(
+                            {
+                                $match: {
+                                    'warehouseDetails.onlineSales': true
+                                }
+                            },
+                        );
+                        break;
+                }
+                aggregationQuery.push({
+                        $project: {
+                            warehouseDetails: 0
+                        }
+                    });
+            }
+
+            aggregationQuery = [
+                ...aggregationQuery,
                 {
                     $group: {
                         _id       : {
@@ -301,6 +345,7 @@ class InventoriesModel extends Models {
                     }
                 }
             ];
+
             this.collectionModel.aggregate(aggregationQuery)
                 .then(
                     (result) => {

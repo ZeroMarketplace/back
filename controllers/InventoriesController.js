@@ -218,11 +218,13 @@ class InventoriesController extends Controllers {
         });
     }
 
-    static getInventoryByProductId($input) {
+    static getInventoryByProductId($params, $query) {
         return new Promise((resolve, reject) => {
-
-            $input.productId = new ObjectId($input.productId);
-            this.model.getInventoryByProductId($input.productId).then(
+            // Type of sales
+            // - retail
+            // - onlineSales
+            $params.productId = new ObjectId($params.productId);
+            this.model.getInventoryByProductId($params.productId, $query.typeOfSales).then(
                 async (response) => {
                     // return result
                     return resolve({

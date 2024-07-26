@@ -30,9 +30,10 @@ router.get(
     AuthController.checkAccess,
     function (req, res) {
         // create clean input
-        let $input = InputsController.clearInput(req.params);
+        let $params = InputsController.clearInput(req.params);
+        let $query  = InputsController.clearInput(req.query);
 
-        InventoriesController.getInventoryByProductId($input).then(
+        InventoriesController.getInventoryByProductId($params, $query).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
