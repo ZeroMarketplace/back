@@ -352,6 +352,9 @@ class ProductsController extends Controllers {
 
             let query = this.queryBuilder($input);
 
+            $options.populate = [
+                {path: '_unit', select: '_id title'}
+            ];
 
             // filter
             this.model.list(query, $options).then(
