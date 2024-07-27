@@ -235,7 +235,7 @@ class InventoriesModel extends Models {
         });
     }
 
-    getInventoryByProductId($productId, $typeOfSales ,$options) {
+    getInventoryByProductId($productId, $typeOfSales, $options) {
         return new Promise(async (resolve, reject) => {
             let aggregationQuery = [
                 {
@@ -245,21 +245,21 @@ class InventoriesModel extends Models {
                 },
             ];
 
-            if($typeOfSales) {
+            if ($typeOfSales) {
                 // lookup for warehouses
                 aggregationQuery.push(
                     {
                         $lookup: {
-                            from: 'warehouses',
-                            localField: '_warehouse',
+                            from        : 'warehouses',
+                            localField  : '_warehouse',
                             foreignField: '_id',
-                            as: 'warehouseDetails'
+                            as          : 'warehouseDetails'
                         }
                     },
                 );
                 // get warehouses ids
                 let warehousesIds = [];
-                switch($typeOfSales) {
+                switch ($typeOfSales) {
                     case 'retail':
                         aggregationQuery.push(
                             {
@@ -280,10 +280,10 @@ class InventoriesModel extends Models {
                         break;
                 }
                 aggregationQuery.push({
-                        $project: {
-                            warehouseDetails: 0
-                        }
-                    });
+                    $project: {
+                        warehouseDetails: 0
+                    }
+                });
             }
 
             aggregationQuery = [
@@ -334,8 +334,8 @@ class InventoriesModel extends Models {
                 {
                     $group: {
                         _id       : '$product',
-                        total         : {$first: '$total'},
-                        warehouses    : {
+                        total     : {$first: '$total'},
+                        warehouses: {
                             $push: {
                                 _id  : '$warehouses.warehouse._id',
                                 title: '$warehouses.warehouse.title',
@@ -358,7 +358,11 @@ class InventoriesModel extends Models {
                             // there is no inventory for product
                             // inventory 0
                             return reject({
-                                code: 404
+                                code: 200,
+                                data: {
+                                    total     : 0,
+                                    warehouses: []
+                                }
                             });
                         }
                     },
