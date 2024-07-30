@@ -120,7 +120,7 @@ class WarehousesController extends Controllers {
         });
     }
 
-    // set default of account (type)
+    // set default of warehouse (type)
     static setDefaultFor($typeOfSales, $id) {
         return new Promise((resolve, reject) => {
 
@@ -132,7 +132,7 @@ class WarehousesController extends Controllers {
                     await responseFind.save();
 
                     // update new default
-                    let update = {
+                    let update           = {
                         defaultFor: $typeOfSales
                     };
                     update[$typeOfSales] = true;
@@ -144,7 +144,7 @@ class WarehousesController extends Controllers {
                 },
                 async (response) => {
                     // update default
-                    let update = {
+                    let update           = {
                         defaultFor: $typeOfSales
                     };
                     update[$typeOfSales] = true;
@@ -153,6 +153,26 @@ class WarehousesController extends Controllers {
                     return resolve({
                         code: 200
                     });
+                }
+            );
+
+        });
+    }
+
+    // get default of warehouse (type)
+    static getDefaultFor($typeOfSales) {
+        return new Promise((resolve, reject) => {
+
+            // find default for this $typeOfSales
+            this.model.item({defaultFor: $typeOfSales}).then(
+                async (responseFind) => {
+                    return resolve({
+                        code: 200,
+                        data: responseFind
+                    });
+                },
+                (response) => {
+                    return reject(response);
                 }
             );
 

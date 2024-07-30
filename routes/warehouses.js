@@ -92,6 +92,26 @@ router.put(
     }
 );
 
+router.get(
+    '/default/:typeOfSales',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res, next) {
+
+        // get id from params and put into Input
+        let $params = InputsController.clearInput(req.params);
+
+        WarehousesController.getDefaultFor($params.typeOfSales).then(
+            (response) => {
+                return res.status(response.code).json(response.data ?? {});
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
 router.delete(
     '/:id',
     AuthController.authorizeJWT,
