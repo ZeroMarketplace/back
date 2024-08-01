@@ -25,7 +25,7 @@ router.get(
 );
 
 router.get(
-    '/:productId',
+    '/:_product',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res) {

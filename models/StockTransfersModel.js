@@ -9,13 +9,7 @@ class StockTransfersModel extends Models {
             _destinationWarehouse: {type: Schema.Types.ObjectId, ref: 'warehouses'},
             _product             : {type: Schema.Types.ObjectId, ref: 'products'},
             count                : Number,
-            inventoryChanges     : [
-                {
-                    operation : {type: String, enum: ['updateWarehouse', 'updateCount', 'insertInventory']},
-                    count     : {type: Number, isNullable: true},
-                    _inventory: {type: Schema.Types.ObjectId, ref: 'inventories'},
-                }
-            ],
+            _inventoryChanges    : {type: Schema.Types.ObjectId, ref: 'inventory-changes'},
             status               : {type: String, enum: ['active', 'inactive']},
             _user                : {type: Schema.Types.ObjectId, ref: 'users'}
         },
@@ -32,6 +26,15 @@ class StockTransfersModel extends Models {
                     $match: $filter
                 },
                 {
+                    $sort: $options.sort
+                },
+                {
+                    $skip: $options.skip
+                },
+                {
+                    $limit: $options.limit
+                },
+                {
                     $project: {
                         _id                  : 1,
                         _sourceWarehouse     : 1,
@@ -40,15 +43,6 @@ class StockTransfersModel extends Models {
                         count                : 1,
                         updatedAt            : 1
                     }
-                },
-                {
-                    $sort: $options.sort
-                },
-                {
-                    $skip: $options.skip
-                },
-                {
-                    $limit: $options.limit
                 },
                 {
                     $lookup: {

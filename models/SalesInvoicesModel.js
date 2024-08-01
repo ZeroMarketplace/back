@@ -11,9 +11,11 @@ class SalesInvoicesModel extends Models {
             description: String,
             products   : [
                 {
-                    _id  : {type: Schema.Types.ObjectId, ref: 'products'},
-                    count: Number,
-                    total: Number
+                    _product         : {type: Schema.Types.ObjectId, ref: 'products'},
+                    count            : Number,
+                    price            : Number,
+                    total            : Number,
+                    _inventoryChanges: {type: Schema.Types.ObjectId, ref: 'inventory-changes'},
                 }
             ],
             AddAndSub  : [

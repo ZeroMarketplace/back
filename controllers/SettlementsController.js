@@ -5,6 +5,7 @@ import AccountingDocumentsController from '../controllers/AccountingDocumentsCon
 import PurchaseInvoicesController    from '../controllers/PurchaseInvoicesController.js';
 import persianDate                   from 'persian-date';
 import SalesInvoicesController       from './SalesInvoicesController.js';
+import InventoriesController         from "./InventoriesController.js";
 
 class SettlementsController extends Controllers {
     static model = new SettlementsModel();
@@ -106,7 +107,7 @@ class SettlementsController extends Controllers {
 
                 break;
             case 'sales-invoices':
-                // get purchase-invoice record
+                // get sales-invoice record
                 let salesInvoice              = await SalesInvoicesController.get($input._id, {
                     populate: 'AddAndSub._reason'
                 });
@@ -122,7 +123,6 @@ class SettlementsController extends Controllers {
                     debit      : 0,
                     credit     : (salesInvoice.data.sum - $input.payment.credit)
                 });
-
 
                 // read bank accounts and add to accounting document as credit
                 $input.payment.bankAccounts.forEach((bankAccount) => {
@@ -393,20 +393,41 @@ class SettlementsController extends Controllers {
                     // create accounting document of settlement
                     let accountingDocument = await this.createAccountingDocument($input);
                     AccountingDocumentsController.insertOne(accountingDocument).then(
-                        (response) => {
+                        async (response) => {
                             // add accounting document to settlement
                             responseInsertSettlement._accountingDocument = response.data._id;
                             responseInsertSettlement.save();
 
                             // update purchase-invoices or sales-invoice record and add settlement
                             if ($input.type === 'purchase-invoices') {
-                                PurchaseInvoicesController.update($input._id, {
+                                await PurchaseInvoicesController.update($input._id, {
                                     _settlement: responseInsertSettlement._id
                                 });
                             } else if ($input.type === 'sales-invoices') {
-                                SalesInvoicesController.update($input._id, {
+                                await SalesInvoicesController.update($input._id, {
                                     _settlement: responseInsertSettlement._id
                                 });
+
+                                // get sales-invoice record
+                                let salesInvoice = await SalesInvoicesController.get($input._id);
+                                salesInvoice     = salesInvoice.data;
+                                // change inventory counts
+                                for (const product of salesInvoice.products) {
+                                    await InventoriesController.stockSales({
+                                        _product   : product._product,
+                                        _warehouse : product._warehouse,
+                                        count      : product.count,
+                                        typeOfSales: 'retail'
+                                    }).then(
+                                        (response) => {
+                                            product._inventoryChanges = response.data._inventoryChanges;
+                                        },
+                                        (response) => {
+                                            return reject(response);
+                                        }
+                                    );
+                                }
+                                await salesInvoice.save();
                             }
 
                             return resolve({

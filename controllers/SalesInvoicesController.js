@@ -1,10 +1,11 @@
-import Controllers              from '../core/Controllers.js';
-import SalesInvoicesModel       from '../models/SalesInvoicesModel.js';
-import CountersController       from '../controllers/CountersController.js';
-import AddAndSubtractController from './AddAndSubtractController.js';
-import persianDate              from 'persian-date';
-import InventoriesController    from '../controllers/InventoriesController.js';
-import SettlementsController    from './SettlementsController.js';
+import Controllers                from '../core/Controllers.js';
+import SalesInvoicesModel         from '../models/SalesInvoicesModel.js';
+import CountersController         from '../controllers/CountersController.js';
+import AddAndSubtractController   from './AddAndSubtractController.js';
+import persianDate                from 'persian-date';
+import InventoriesController      from '../controllers/InventoriesController.js';
+import SettlementsController      from './SettlementsController.js';
+import InventoryChangesController from "./InventoryChangesController.js";
 
 class SalesInvoicesController extends Controllers {
     static model = new SalesInvoicesModel();
@@ -57,8 +58,7 @@ class SalesInvoicesController extends Controllers {
 
         // calc products price
         for (const product of $input.products) {
-            let productPrice = await InventoriesController.getProductPrice(product._id)
-            product.total    = product.count * productPrice.data.consumer;
+            product.total = product.count * product.price;
             $input.sum += product.total;
         }
 
@@ -108,11 +108,48 @@ class SalesInvoicesController extends Controllers {
 
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
+
+            // check inventory of products
+            for (const product of $input.products) {
+                // get inventory of product
+                let inventory = await InventoriesController.getInventoryByProductId(
+                    {_product: product._product},
+                    {typeOfSales: 'retail'}
+                );
+
+                // find inventory warehouse
+                let warehouse = inventory.data.warehouses.find(
+                    warehouse => warehouse._id.toString() === product._warehouse
+                );
+                if (warehouse) {
+                    // check required count of warehouse
+                    if (product.count > warehouse.count) {
+                        // set error for no inventory
+                        return reject({
+                            code: 400,
+                            data: {
+                                message   : 'Insufficient stock',
+                                _product  : product._id,
+                                _warehouse: product._warehouse
+                            }
+                        });
+                    }
+                } else {
+                    // there is no inventory for warehouse
+                    return reject({
+                        code: 400,
+                        data: {
+                            message   : 'Insufficient stock',
+                            _product  : product._id,
+                            _warehouse: product._warehouse
+                        }
+                    });
+                }
+            }
+
             let code = await CountersController.increment('sales-invoices');
             await this.calculateInvoice($input);
 
-            // filter
             this.model.insertOne({
                 code       : code,
                 _customer  : $input.customer,
@@ -329,6 +366,11 @@ class SalesInvoicesController extends Controllers {
                     if (salesInvoice._settlement) {
                         // delete settlement
                         await SettlementsController.deleteOne(salesInvoice._settlement);
+
+                        // restore the inventory counts
+                        for (const product of salesInvoice.products) {
+                            await InventoryChangesController.deleteOne(product._inventoryChanges);
+                        }
                     }
 
                     // delete the purchaseInvoice

@@ -32,7 +32,7 @@ router.get(
     '/',
     function (req, res) {
         // create clean input
-        let $input = InputsController.clearInput(req.params);
+        let $input = InputsController.clearInput(req.query);
 
         StockTransfersController.list($input).then(
             (response) => {

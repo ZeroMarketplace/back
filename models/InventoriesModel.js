@@ -357,7 +357,7 @@ class InventoriesModel extends Models {
                         } else {
                             // there is no inventory for product
                             // inventory 0
-                            return reject({
+                            return resolve({
                                 code: 200,
                                 data: {
                                     total     : 0,

@@ -1,7 +1,8 @@
-import Controllers           from '../core/Controllers.js';
-import StockTransfersModel   from '../models/StockTransfersModel.js';
-import persianDate           from "persian-date";
-import InventoriesController from './InventoriesController.js';
+import Controllers                from '../core/Controllers.js';
+import StockTransfersModel        from '../models/StockTransfersModel.js';
+import persianDate                from "persian-date";
+import InventoriesController      from './InventoriesController.js';
+import InventoryChangesController from "./InventoryChangesController.js";
 
 class StockTransfersController extends Controllers {
     static model = new StockTransfersModel();
@@ -38,8 +39,8 @@ class StockTransfersController extends Controllers {
         // !!!!     after add validator check page and perpage is a number and > 0        !!!!
 
         // pagination
-        $input.perPage = $input.perPage ?? 10;
-        $input.page    = $input.page ?? 1;
+        $input.perPage = $input.perPage ? Number($input.perPage) : 10;
+        $input.page    = $input.page ? Number($input.page) : 1;
         $input.offset  = ($input.page - 1) * $input.perPage;
 
         // sort
@@ -70,7 +71,7 @@ class StockTransfersController extends Controllers {
                 user                 : $input.user
             }).then(
                 (response) => {
-                    $input.inventoryChanges = response.data.changes
+                    $input._inventoryChanges = response.data._inventoryChanges
                 },
                 (response) => {
                     return reject(response);
@@ -83,7 +84,7 @@ class StockTransfersController extends Controllers {
                 _destinationWarehouse: $input._destinationWarehouse,
                 _product             : $input._product,
                 count                : $input.count,
-                inventoryChanges     : $input.inventoryChanges,
+                _inventoryChanges    : $input._inventoryChanges,
                 status               : 'active',
                 _user                : $input.user.data.id
             }).then(
@@ -127,9 +128,9 @@ class StockTransfersController extends Controllers {
 
             // filter
             this.model.listOfStockTransfers(query, {
-                skip    : $input.offset,
-                limit   : $input.perPage,
-                sort    : $input.sort
+                skip : $input.offset,
+                limit: $input.perPage,
+                sort : $input.sort
             }).then(
                 (response) => {
                     response = response.data;
@@ -190,7 +191,7 @@ class StockTransfersController extends Controllers {
             this.model.get($id).then(
                 (stockTransfer) => {
                     // return inventory that was changed
-                    InventoriesController.stockReturn(stockTransfer).then(
+                    InventoryChangesController.deleteOne(stockTransfer._inventoryChanges).then(
                         (response) => {
                             // delete the stock transfer
                             stockTransfer.deleteOne().then(
