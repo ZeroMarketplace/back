@@ -41,6 +41,7 @@ import settlementsRouter         from './routes/settlements.js';
 import salesInvoicesRouter       from './routes/sales-invoices.js';
 import inventoriesRouter         from './routes/inventories.js';
 import stockTransfersRouter      from './routes/stock-transfers.js';
+import commodityProfitsRouter    from './routes/commodity-profits.js';
 
 // add routes
 app.use('/api/users', usersRouter);
@@ -59,5 +60,6 @@ app.use('/api/settlements', settlementsRouter);
 app.use('/api/sales-invoices', salesInvoicesRouter);
 app.use('/api/inventories', inventoriesRouter);
 app.use('/api/stock-transfers', stockTransfersRouter);
+app.use('/api/commodity-profits', commodityProfitsRouter);
 
 export default app;

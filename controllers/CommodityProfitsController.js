@@ -1,6 +1,7 @@
 import Controllers           from '../core/Controllers.js';
 import CommodityProfitsModel from '../models/CommodityProfitsModel.js';
 import InventoriesController from './InventoriesController.js';
+import persianDate           from 'persian-date';
 
 
 class CommodityProfitsController extends Controllers {
@@ -8,6 +9,55 @@ class CommodityProfitsController extends Controllers {
 
     constructor() {
         super();
+    }
+
+    static queryBuilder($input) {
+        let query = {};
+
+        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
+
+        // pagination
+        $input.perPage = $input.perPage ? Number($input.perPage) : 10;
+        $input.page    = $input.page ? Number($input.page) : 1;
+        $input.offset  = ($input.page - 1) * $input.perPage;
+
+        // sort
+        if ($input.sortColumn && $input.sortDirection) {
+            $input.sort                    = {};
+            $input.sort[$input.sortColumn] = Number($input.sortDirection);
+        } else {
+            $input.sort = {createdAt: -1};
+        }
+
+        // for (const [$index, $value] of Object.entries($input)) {
+        //     switch ($index) {
+        //
+        //     }
+        // }
+
+        return query;
+    }
+
+    static outputBuilder($row) {
+        for (const [$index, $value] of Object.entries($row)) {
+            switch ($index) {
+                case 'updatedAt':
+                    let dateTimeJalali      = new persianDate($value);
+                    $row[$index + 'Jalali'] = dateTimeJalali.toLocale('fa').format();
+                    break;
+                case 'productDetails':
+                    // check if is variant of original product
+                    if ($row['_product'].toString() !== $value._id.toString()) {
+                        let variant  = $value.variants.find(variant => variant._id.toString() === $row['_product'].toString());
+                        $value.title = variant.title;
+                    }
+
+                    // delete variants from output
+                    $value['variants'] = undefined;
+
+                    break;
+            }
+        }
     }
 
     static insertOne($input) {
@@ -83,18 +133,38 @@ class CommodityProfitsController extends Controllers {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
+            let query = this.queryBuilder($input);
+
             // filter
-            this.model.list($input).then(
+            this.model.listOfCommodityProfits(query, {
+                skip : $input.offset,
+                limit: $input.perPage,
+                sort : $input.sort
+            }).then(
                 (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: {
-                            list: response
-                        }
+                    response = response.data;
+
+                    // get count
+                    this.model.count(query).then((count) => {
+
+                        // create output
+                        response.forEach((row) => {
+                            this.outputBuilder(row);
+                        });
+
+                        // return result
+                        return resolve({
+                            code: 200,
+                            data: {
+                                list : response,
+                                total: count
+                            }
+                        });
+
                     });
                 },
                 (error) => {
+                    console.log(error);
                     return reject({
                         code: 500
                     });
