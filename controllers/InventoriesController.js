@@ -537,6 +537,7 @@ class InventoriesController extends Controllers {
                 }
             }
 
+            // minus inventory count
             let inventoryChanges = [];
             await this.model.list(query, {
                 sort: {dateTime: 1}
@@ -548,8 +549,6 @@ class InventoriesController extends Controllers {
                         // The check of the remaining count is not finished
                         if (remainingCount > 0) {
                             if (remainingCount >= inventory.count) {
-                                // minus remaining count
-                                remainingCount -= inventory.count;
 
                                 // add to changes
                                 inventoryChanges.push({
@@ -563,9 +562,10 @@ class InventoriesController extends Controllers {
                                 // minus inventory count
                                 await this.updateCount({_id: inventory._id}, -inventory.count);
 
-                            } else {
                                 // minus remaining count
-                                remainingCount -= remainingCount;
+                                remainingCount -= inventory.count;
+
+                            } else {
 
                                 // add to changes
                                 inventoryChanges.push({
@@ -578,6 +578,9 @@ class InventoriesController extends Controllers {
 
                                 // minus inventory count
                                 await this.updateCount({_id: inventory._id}, -remainingCount);
+
+                                // minus remaining count
+                                remainingCount -= remainingCount;
                             }
                         } else {
                             break;
