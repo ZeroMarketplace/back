@@ -417,6 +417,8 @@ class SettlementsController extends Controllers {
                                         _product   : product._product,
                                         _warehouse : product._warehouse,
                                         count      : product.count,
+                                        price      : product.price,
+                                        _reference : $input._id,
                                         typeOfSales: 'retail'
                                     }).then(
                                         (response) => {

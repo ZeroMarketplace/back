@@ -3,6 +3,7 @@ import InventoriesModel           from "../models/InventoriesModel.js";
 import persianDate                from 'persian-date';
 import {ObjectId}                 from 'mongodb';
 import InventoryChangesController from "./InventoryChangesController.js";
+import CommodityProfitsController from "./CommodityProfitsController.js";
 
 class InventoriesController extends Controllers {
     static model = new InventoriesModel();
@@ -216,6 +217,25 @@ class InventoriesController extends Controllers {
             //             code: 500
             //         });
             //     });
+        });
+    }
+
+    static get($id, $options) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid and remove other parameters (just valid query by user role) ...
+
+            // filter
+            this.model.get($id, $options).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200,
+                        data: response
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                });
         });
     }
 
@@ -559,8 +579,22 @@ class InventoriesController extends Controllers {
                                     _inventory: inventory._id
                                 });
 
+                                // add commodity profit
+                                await CommodityProfitsController.insertOne({
+                                    typeOfSales: $input.typeOfSales,
+                                    _reference : $input._reference,
+                                    _inventory : inventory._id,
+                                    price      : $input.price,
+                                    count      : inventory.count
+                                }).catch(error => {
+                                    return reject(error);
+                                });
+
                                 // minus inventory count
-                                await this.updateCount({_id: inventory._id}, -inventory.count);
+                                await this.updateCount({_id: inventory._id}, -inventory.count)
+                                    .catch(error => {
+                                        return reject(error);
+                                    });
 
                                 // minus remaining count
                                 remainingCount -= inventory.count;
@@ -576,8 +610,22 @@ class InventoriesController extends Controllers {
                                     _inventory: inventory._id
                                 });
 
+                                // add commodity profit
+                                await CommodityProfitsController.insertOne({
+                                    typeOfSales: $input.typeOfSales,
+                                    _reference : $input._reference,
+                                    _inventory : inventory._id,
+                                    price      : $input.price,
+                                    count      : remainingCount
+                                }).catch(error => {
+                                    return reject(error);
+                                });
+
                                 // minus inventory count
-                                await this.updateCount({_id: inventory._id}, -remainingCount);
+                                await this.updateCount({_id: inventory._id}, -remainingCount)
+                                    .catch(error => {
+                                        return reject(error);
+                                    });
 
                                 // minus remaining count
                                 remainingCount -= remainingCount;

@@ -5,7 +5,8 @@ import AddAndSubtractController   from './AddAndSubtractController.js';
 import persianDate                from 'persian-date';
 import InventoriesController      from '../controllers/InventoriesController.js';
 import SettlementsController      from './SettlementsController.js';
-import InventoryChangesController from "./InventoryChangesController.js";
+import InventoryChangesController from './InventoryChangesController.js';
+import CommodityProfitsController from './CommodityProfitsController.js';
 
 class SalesInvoicesController extends Controllers {
     static model = new SalesInvoicesModel();
@@ -371,6 +372,12 @@ class SalesInvoicesController extends Controllers {
                         for (const product of salesInvoice.products) {
                             await InventoryChangesController.deleteOne(product._inventoryChanges);
                         }
+
+                        // delete commodity profits
+                        await CommodityProfitsController.delete({
+                            referenceType: 'sales-invoices',
+                            _reference   : salesInvoice._id
+                        });
                     }
 
                     // delete the purchaseInvoice
