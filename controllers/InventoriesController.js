@@ -179,44 +179,6 @@ class InventoriesController extends Controllers {
                     return reject(response);
                 },
             );
-
-            // filter
-            // this.model.list(query, {
-            //     populate: [
-            //         {path: '_warehouse', select: 'title'}
-            //     ],
-            //     skip    : $input.offset,
-            //     limit   : $input.perPage,
-            //     sort    : $input.sort
-            // }).then(
-            //     (response) => {
-            //         // get count
-            //         this.model.count(query).then(async (count) => {
-            //
-            //             // create output
-            //             // create output
-            //             for (const row of response) {
-            //                 const index     = response.indexOf(row);
-            //                 response[index] = await this.outputBuilder(row.toObject());
-            //             }
-            //
-            //             // return result
-            //             return resolve({
-            //                 code: 200,
-            //                 data: {
-            //                     list : response,
-            //                     total: count
-            //                 }
-            //             });
-            //
-            //         });
-            //     },
-            //     (error) => {
-            //         console.log(error);
-            //         return reject({
-            //             code: 500
-            //         });
-            //     });
         });
     }
 
