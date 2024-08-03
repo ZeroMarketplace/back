@@ -3,9 +3,11 @@ import {Schema} from 'mongoose';
 
 class CommodityProfitsModel extends Models {
 
-    /* Reference Type
+    /*
+     Reference Type
      * 'sales-invoices' -> TypeOfSales is retail
-     * 'orders' -> TypeOfSales is onlineSales*/
+     * 'orders' -> TypeOfSales is onlineSales
+     */
 
     // const Account = null;
     static schema = new Schema({
@@ -36,6 +38,58 @@ class CommodityProfitsModel extends Models {
                 },
                 {
                     $limit: $options.limit
+                },
+                {
+                    $lookup: {
+                        from        : 'sales-invoices',
+                        localField  : '_reference',
+                        foreignField: '_id',
+                        as          : 'salesInvoiceDetails'
+                    }
+                },
+                {
+                    $lookup: {
+                        from        : 'orders',
+                        localField  : '_reference',
+                        foreignField: '_id',
+                        as          : 'orderDetails'
+                    }
+                },
+                {
+                    $addFields: {
+                        referenceDetails: {
+                            $cond: {
+                                if  : {$eq: ['$referenceType', 'sales-invoices']},
+                                then: {$arrayElemAt: ['$salesInvoiceDetails', 0]},
+                                else: {$arrayElemAt: ['$orderDetails', 0]}
+                            }
+                        }
+                    }
+                },
+                {
+                    $project: {
+                        salesInvoiceDetails: 0,
+                        orderDetails       : 0
+                    }
+                },
+                {
+                    $unwind: {
+                        path                      : '$referenceDetails',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
+                {
+                    $addFields: {
+                        '_reference': {
+                            _id : '$referenceDetails._id',
+                            code: '$referenceDetails.code'
+                        }
+                    }
+                },
+                {
+                    $project: {
+                        'referenceDetails': 0
+                    }
                 },
                 {
                     $lookup: {
@@ -102,6 +156,8 @@ class CommodityProfitsModel extends Models {
                         count         : 1,
                         amount        : 1,
                         productDetails: 1,
+                        referenceType : 1,
+                        _reference    : 1,
                         updatedAt     : 1,
                         _product      : 1,
                     }
