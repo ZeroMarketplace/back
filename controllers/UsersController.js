@@ -19,6 +19,7 @@ class UsersController extends Controllers {
                 (responseDefaultPermission) => {
                     // filter
                     this.model.insertOne({
+                        name        : $input.name,
                         phone       : $input.phone,
                         password    : $input.password,
                         validated   : $input.validated,

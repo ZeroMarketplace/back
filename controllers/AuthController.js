@@ -3,53 +3,73 @@ import Controllers           from '../core/Controllers.js';
 import PermissionsController from './PermissionsController.js';
 import LoginByPhone          from '../core/Auth/LoginByPhone.js';
 import Logger                from '../core/Logger.js';
+import InputsController      from "./InputsController.js";
+import bcrypt                from 'bcrypt';
 
+const hashSaltRounds = 10;
 
 class AuthController extends Controllers {
 
     static login($input) {
-        return new Promise((resolve, reject) => {
+        return new Promise(async (resolve, reject) => {
             // check method of login
-            if (!$input.method || ($input.method && !['phone', 'email'].includes($input.method))) {
-                // reject for invalid method
-                return reject({
-                    code   : 400,
-                    message: 'The login method is invalid'
-                });
-            }
+            InputsController.validateInput($input, {
+                method: {type: 'string', allowedValues: ['phone', 'email'], required: true},
+                action: {type: 'string', allowedValues: ['authenticate', 'verification', 'access'], required: true}
+            }).then(
+                ($input) => {
+                    switch ($input.method) {
+                        case "phone":
+                            switch ($input.action) {
+                                case 'authenticate':
+                                    // authenticate phone
+                                    LoginByPhone.authenticate($input).then(
+                                        (resolved) => resolve(resolved),
+                                        (rejected) => reject(rejected)
+                                    );
+                                    break;
+                                case 'verification':
+                                    // verify phone
+                                    LoginByPhone.verification($input).then(
+                                        (resolved) => resolve(resolved),
+                                        (rejected) => reject(rejected)
+                                    );
+                                    break;
+                                case 'access':
+                                    // access with password
+                                    LoginByPhone.access($input).then(
+                                        (resolved) => resolve(resolved),
+                                        (rejected) => reject(rejected)
+                                    );
+                                    break;
+                            }
+                            break;
+                    }
+                },
+                (validationError) => {
+                    return reject(validationError);
+                }
+            );
+        });
+    }
 
-            switch ($input.method) {
-                case "phone":
+    static hashPassword($password) {
+        return bcrypt.hash($password, hashSaltRounds);
+    }
 
-                    if ($input.phone) {
-                        if ($input.code) {
-                            // verify phone
-                            LoginByPhone.verification($input).then(
-                                (resolved) => resolve(resolved),
-                                (rejected) => reject(rejected)
-                            );
-                        } else if ($input.password && $input.validation) {
-                            // access with password
-                            LoginByPhone.access($input).then(
-                                (resolved) => resolve(resolved),
-                                (rejected) => reject(rejected)
-                            );
-                        } else {
-                            // authenticate phone
-                            LoginByPhone.authenticate($input).then(
-                                (resolved) => resolve(resolved),
-                                (rejected) => reject(rejected)
-                            );
-                        }
+    static async comparePassword($password, $hash) {
+        return new Promise((resolve, reject) => {
+            bcrypt.compare($password, $hash).then(
+                (isMatch) => {
+                    if (isMatch) {
+                        return resolve($password)
                     } else {
                         return reject({
-                            code   : 400,
-                            message: 'The phone number field is empty'
+                            code: 401
                         });
                     }
-
-                    break;
-            }
+                }
+            );
         });
     }
 
