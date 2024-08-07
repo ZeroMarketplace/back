@@ -6,10 +6,10 @@ import InventoriesController      from '../controllers/InventoriesController.js'
 import Logger                     from '../core/Logger.js';
 import fs                         from 'fs';
 import multer                     from 'multer';
-import md5                        from 'md5';
 import persianDate                from 'persian-date';
 import PurchaseInvoicesController from './PurchaseInvoicesController.js';
 import PropertiesController       from './PropertiesController.js';
+import {ObjectId}                 from "mongodb";
 
 // config upload service
 const filesPath          = 'public/products/';
@@ -18,7 +18,7 @@ const fileStorage        = multer.diskStorage({
         cb(null, filesPath)
     },
     filename   : function (req, file, cb) {
-        const uniqueSuffix = md5('PF' + new Date().getTime()) + '.' + file.mimetype.split('/')[1];
+        const uniqueSuffix = (new ObjectId().toString()) + '.' + file.mimetype.split('/')[1];
         cb(null, uniqueSuffix)
     }
 });

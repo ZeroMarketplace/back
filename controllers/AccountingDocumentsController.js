@@ -3,11 +3,11 @@ import AccountingDocumentsModel from '../models/AccountingDocumentsModel.js';
 import CountersController       from '../controllers/CountersController.js';
 import AccountsController       from '../controllers/AccountsController.js';
 import persianDate              from 'persian-date';
-import md5                      from 'md5';
 import multer                   from 'multer';
 import Logger                   from '../core/Logger.js';
 import fs                       from 'fs';
 import path                     from 'path';
+import {ObjectId}               from "mongodb";
 
 // config upload service
 const filesPath            = 'storage/files/accounting-documents/';
@@ -16,9 +16,7 @@ const fileStorage          = multer.diskStorage({
         cb(null, filesPath)
     },
     filename   : function (req, file, cb) {
-        const uniqueSuffix = md5(
-                'ADF' + (new Date().getTime() + Math.floor(Math.random() * 1000 + 1))) +
-            '.' + file.mimetype.split('/')[1];
+        const uniqueSuffix = (new ObjectId().toString()) + '.' + file.mimetype.split('/')[1];
         cb(null, uniqueSuffix)
     }
 });
