@@ -156,7 +156,12 @@ class LoginByPhone extends LoginStrategies {
                                                 code: 200,
                                                 data: {
                                                     token: token,
-                                                    role : responseUserQuery.role
+                                                    user : {
+                                                        name   : responseUserQuery.name,
+                                                        phone  : responseUserQuery.phone,
+                                                        avatars: responseUserQuery.avatars,
+                                                        role   : responseUserQuery.role
+                                                    },
                                                 }
                                             });
                                         },
@@ -178,7 +183,7 @@ class LoginByPhone extends LoginStrategies {
                                                 ($password) => {
                                                     // create user and return token
                                                     UserController.insertOne({
-                                                        name : {
+                                                        name     : {
                                                             first: $input.firstName,
                                                             last : $input.lastName,
                                                         },
@@ -201,7 +206,12 @@ class LoginByPhone extends LoginStrategies {
                                                                 code: 200,
                                                                 data: {
                                                                     token: token,
-                                                                    role : responseUserInsertQuery.role
+                                                                    user : {
+                                                                        name   : responseUserInsertQuery.name,
+                                                                        phone  : responseUserInsertQuery.phone,
+                                                                        avatars: responseUserInsertQuery.avatars,
+                                                                        role   : responseUserInsertQuery.role
+                                                                    },
                                                                 }
                                                             });
                                                         },
