@@ -2,6 +2,7 @@ import express          from "express";
 import InputsController from '../controllers/InputsController.js';
 import UsersController  from '../controllers/UsersController.js';
 import AuthController   from '../controllers/AuthController.js';
+import ProductsController from "../controllers/ProductsController.js";
 
 let router = express.Router();
 
@@ -34,9 +35,28 @@ router.get(
     AuthController.checkAccess,
     function (req, res) {
         // create clean input
+        let $input = InputsController.clearInput(req.query);
+
+        UsersController.listOfUsers($input).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+router.get(
+    '/:id',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res) {
+        // create clean input
         let $input = InputsController.clearInput(req.params);
 
-        UsersController.list($input).then(
+        UsersController.get($input.id).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

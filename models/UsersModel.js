@@ -21,6 +21,15 @@ class UsersModel extends Models {
         {timestamps: true});
 
     constructor() {
+        // Ensure virtual fields are included in JSON and Object output
+        UsersModel.schema.set('toJSON', { virtuals: true });
+        UsersModel.schema.set('toObject', { virtuals: true });
+
+        // add virtual fullName
+        UsersModel.schema.virtual('name.fullName').get(function() {
+            return `${this.name.first} ${this.name.last}`;
+        });
+
         super('users', UsersModel.schema);
     }
 
