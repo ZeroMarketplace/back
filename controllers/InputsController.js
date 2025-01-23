@@ -76,6 +76,13 @@ class InputsController extends Controllers {
                                     errors.push(`${field} must be a valid email`);
                                 }
                                 break;
+                            case 'phone':
+                                // check is Email
+                                const mobileRegex = /^(\+98|0)?9\d{9}$/;
+                                if(!mobileRegex.test(value)) {
+                                    errors.push(`${field} must be a valid email`);
+                                }
+                                break;
                         }
                     }
 

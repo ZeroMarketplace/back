@@ -5,6 +5,7 @@ import UserController        from '../../controllers/UsersController.js';
 import {ObjectId}            from 'mongodb';
 import InputsController      from '../../controllers/InputsController.js';
 import AuthController        from '../../controllers/AuthController.js';
+import UsersController       from "../../controllers/UsersController.js";
 
 
 class LoginByPhone extends LoginStrategies {
@@ -82,11 +83,32 @@ class LoginByPhone extends LoginStrategies {
                             }).then(
                                 // user founded
                                 (userQueryResponse) => {
+                                    userQueryResponse = userQueryResponse.data;
+
+                                    // add phone validate to validated options
+                                    if(userQueryResponse.validated) {
+                                        if(!userQueryResponse.validated.includes('phone')) {
+                                            userQueryResponse.validated.push('phone');
+                                            userQueryResponse.save();
+                                        }
+                                    } else {
+                                        userQueryResponse.validated = ['phone'];
+                                        userQueryResponse.save();
+                                    }
+
+
+                                    // check user has password or not
+                                    let userHasPassword = false;
+                                    if (userQueryResponse.password) {
+                                        userHasPassword = true
+                                    }
+
                                     return resolve({
                                         code: 200,
                                         data: {
-                                            validation  : validationQueryResponse.id,
-                                            userIsExists: true
+                                            validation     : validationQueryResponse.id,
+                                            userIsExists   : true,
+                                            userHasPassword: userHasPassword
                                         }
                                     });
                                 },
@@ -142,37 +164,37 @@ class LoginByPhone extends LoginStrategies {
                                 (responseUserQuery) => {
                                     responseUserQuery = responseUserQuery.data;
 
-                                    AuthController.comparePassword($input.password, responseUserQuery.password).then(
-                                        (responseComparePassword) => {
-                                            // create token and return
-                                            let token = AuthController.createJWT({
-                                                _id        : responseUserQuery._id,
-                                                role       : responseUserQuery.role,
-                                                permissions: responseUserQuery._permissions
-                                            });
-
-                                            return resolve({
-                                                code: 200,
-                                                data: {
-                                                    token: token,
-                                                    user : {
-                                                        _id      : responseUserQuery._id,
-                                                        firstName: responseUserQuery.name.first,
-                                                        lastName : responseUserQuery.name.last,
-                                                        phone    : responseUserQuery.phone,
-                                                        avatars  : responseUserQuery.avatars,
-                                                        color    : responseUserQuery.color,
-                                                        role     : responseUserQuery.role
-                                                    },
-                                                }
-                                            });
-                                        },
-                                        (errorComparePassword) => {
-                                            return reject({
-                                                code: 401
-                                            });
-                                        },
-                                    );
+                                    // user has not password
+                                    if (!responseUserQuery.password) {
+                                        UsersController.setPassword(responseUserQuery._id, {
+                                            password: $input.password
+                                        }).then(
+                                            (responseSetPassword) => {
+                                                return resolve({
+                                                    code: 200,
+                                                    data: this.createAccessToken(responseUserQuery)
+                                                });
+                                            },
+                                            (reason) => {
+                                                return reject(reason);
+                                            }
+                                        );
+                                    } else {
+                                        // user has password
+                                        AuthController.comparePassword($input.password, responseUserQuery.password).then(
+                                            (responseComparePassword) => {
+                                                return resolve({
+                                                    code: 200,
+                                                    data: this.createAccessToken(responseUserQuery)
+                                                });
+                                            },
+                                            (errorComparePassword) => {
+                                                return reject({
+                                                    code: 401
+                                                });
+                                            },
+                                        );
+                                    }
                                 },
                                 // user not found
                                 (responseUserQuery) => {
@@ -181,58 +203,25 @@ class LoginByPhone extends LoginStrategies {
                                         lastName : {type: 'string', required: true}
                                     }).then(
                                         ($input) => {
-                                            AuthController.hashPassword($input.password).then(
-                                                ($password) => {
-                                                    // create user and return token
-                                                    UserController.insertOne({
-                                                        name     : {
-                                                            first: $input.firstName,
-                                                            last : $input.lastName,
-                                                        },
-                                                        phone    : $input.phone,
-                                                        password : $password,
-                                                        validated: ['phone']
-                                                    }).then(
-                                                        // user inserted
-                                                        (responseUserInsertQuery) => {
-                                                            responseUserInsertQuery = responseUserInsertQuery.data;
-
-                                                            // create token and return
-                                                            let token = AuthController.createJWT({
-                                                                _id        : responseUserInsertQuery._id,
-                                                                role       : responseUserInsertQuery.role,
-                                                                permissions: responseUserInsertQuery._permissions
-                                                            });
-
-                                                            return resolve({
-                                                                code: 200,
-                                                                data: {
-                                                                    token: token,
-                                                                    user : {
-                                                                        _id      : responseUserInsertQuery._id,
-                                                                        firstName: responseUserInsertQuery.name.first,
-                                                                        lastName : responseUserInsertQuery.name.last,
-                                                                        phone    : responseUserInsertQuery.phone,
-                                                                        avatars  : responseUserInsertQuery.avatars,
-                                                                        color    : responseUserInsertQuery.color,
-                                                                        role     : responseUserInsertQuery.role
-                                                                    },
-                                                                }
-                                                            });
-                                                        },
-                                                        // user not created
-                                                        (responseUserInsertQuery) => {
-                                                            return reject({
-                                                                code   : 500,
-                                                                message: 'User not created'
-                                                            });
-                                                        }
-                                                    );
-                                                },
-                                                (errorHashPassword) => {
-                                                    return reject({
-                                                        code: 500
+                                            // create user and return token
+                                            UserController.insertOne({
+                                                firstName: $input.firstName,
+                                                lastName : $input.lastName,
+                                                phone    : $input.phone,
+                                                password : $input.password,
+                                                validated: ['phone']
+                                            }).then(
+                                                // user inserted
+                                                (responseUserInsertQuery) => {
+                                                    responseUserInsertQuery = responseUserInsertQuery.data;
+                                                    return resolve({
+                                                        code: 200,
+                                                        data: this.createAccessToken(responseUserInsertQuery)
                                                     });
+                                                },
+                                                // user not created
+                                                (err) => {
+                                                    return reject(err);
                                                 }
                                             );
                                         },
@@ -256,6 +245,28 @@ class LoginByPhone extends LoginStrategies {
                 }
             );
         });
+    }
+
+    static createAccessToken($user) {
+        // create token and return
+        let token = AuthController.createJWT({
+            _id        : $user._id,
+            role       : $user.role,
+            permissions: $user._permissions
+        });
+
+        return {
+            token: token,
+            user : {
+                _id      : $user._id,
+                firstName: $user.name.first,
+                lastName : $user.name.last,
+                phone    : $user.phone,
+                avatars  : $user.avatars,
+                color    : $user.color,
+                role     : $user.role
+            },
+        };
     }
 }
 

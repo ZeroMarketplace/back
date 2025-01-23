@@ -13,10 +13,10 @@ class UsersModel extends Models {
             password    : String,
             role        : {type: String, enum: ['admin', 'user']},
             status      : {type: String, enum: ['active', 'inactive', 'blocked']},
-            validated   : [String],
-            avatars     : [String],
+            validated   : {type: [String], default:undefined},
+            avatars     : {type: [String], default:undefined},
             color       : String,
-            contacts    : [{type: Schema.Types.ObjectId, ref: 'users'}],
+            contacts    : {type: [{type: Schema.Types.ObjectId, ref: 'users'}] , default: undefined},
             _permissions: {type: Schema.Types.ObjectId, ref: 'permissions'},
             lastSeen    : {type: Date, default: undefined}
         },

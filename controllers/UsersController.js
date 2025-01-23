@@ -3,6 +3,8 @@ import PermissionsController from './PermissionsController.js';
 import UsersModel            from '../models/UsersModel.js';
 import Logger                from '../core/Logger.js';
 import HelpersController     from './HelpersController.js';
+import InputsController      from "./InputsController.js";
+import AuthController        from "./AuthController.js";
 
 class UsersController extends Controllers {
     static model = new UsersModel();
@@ -90,41 +92,115 @@ class UsersController extends Controllers {
     }
 
     static insertOne($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
+        return new Promise(async (resolve, reject) => {
+            try {
+                // check filter is valid ...
+                await InputsController.validateInput($input, {
+                    firstName: {type: 'string', required: true},
+                    lastName : {type: 'string', required: true},
+                    phone    : {type: 'phone'},
+                    email    : {type: 'email'},
+                    password : {type: 'string'},
+                });
 
-            // get permissions for add to new user
-            PermissionsController.getUsersDefaultPermissions().then(
-                (responseDefaultPermission) => {
-                    // filter
-                    this.model.insertOne({
-                        name        : $input.name,
-                        phone       : $input.phone,
-                        password    : $input.password,
-                        validated   : $input.validated,
-                        color       : HelpersController.generateRandomColor(),
-                        role        : 'user',
-                        status      : 'active',
-                        _permissions: responseDefaultPermission.data._id
-                    }).then(
-                        (response) => {
-                            // check the result ... and return
-                            return resolve({
-                                code: 200,
-                                data: response
-                            });
-                        },
-                        (error) => {
-                            return reject(error);
-                        });
-                },
-                (error) => {
-                    Logger.systemError('AUTH-Permissions', error);
+                // check method of signup
+                if (!$input.phone && !$input.email) {
                     return reject({
-                        code: 500
+                        code: 400,
+                        data: {
+                            message: 'Please enter a valid phone number or email address',
+                        }
                     });
                 }
-            );
+
+
+                let user = {};
+
+                // check user exists
+                await this.model.item({
+                    $or: [
+                        {phone: $input.phone ?? ''},
+                        {email: $input.email ?? ''}
+                    ]
+                }).then(
+                    (userFound) => {
+                        user = userFound;
+                    },
+                    (err) => {
+                        // do nothing
+                    }
+                );
+
+                // if user found. return user
+                if (user._id) {
+                    return resolve({
+                        code: 200,
+                        data: user
+                    });
+                }
+
+                // Set Name
+                user.name = {
+                    first: $input.firstName,
+                    last : $input.lastName,
+                };
+
+                // set phone
+                if ($input.phone) {
+                    user.phone = $input.phone;
+                }
+
+                // set email
+                if ($input.email) {
+                    user.email = $input.email;
+                }
+
+                // set validated
+                if ($input.validated) {
+                    user.validated = $input.validated;
+                }
+
+                // set password
+                if ($input.password) {
+                    await AuthController.hashPassword($input.password).then(
+                        (password) => {
+                            user.password = password;
+                        }
+                    );
+                }
+
+                // set color
+                user.color = HelpersController.generateRandomColor();
+
+                // set role
+                user.role = 'user';
+
+                // set status
+                user.status = 'active';
+
+                // set user permission
+                await PermissionsController.getUsersDefaultPermissions()
+                    .then(
+                        (responseDefaultPermission) => {
+                            user._permissions = responseDefaultPermission.data._id;
+                        }
+                    );
+
+                await this.model.insertOne(user).then(
+                    (result) => {
+                        return resolve({
+                            code: 200,
+                            data: result
+                        });
+                    },
+                    (err) => {
+                        return reject(err);
+                    }
+                );
+
+            } catch (err) {
+                return reject(err);
+            }
         });
     }
 
@@ -253,6 +329,32 @@ class UsersController extends Controllers {
                 (response) => {
                     return reject(response);
                 });
+        });
+    }
+
+    static setPassword($id, $input) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid ...
+            AuthController.hashPassword($input.password).then(
+                (password) => {
+                    // filter
+                    this.model.updateOne($id, {
+                        password: password
+                    }).then(
+                        (response) => {
+                            // check the result ... and return
+                            return resolve({
+                                code: 200
+                            });
+                        },
+                        (response) => {
+                            return reject(response);
+                        });
+                },
+                (error) => {
+                    return reject(error);
+                }
+            );
         });
     }
 
