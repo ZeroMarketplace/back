@@ -15,6 +15,6 @@ export default class DataBaseConnection {
         // set strict populate to false
        mongoose.set('strictPopulate', false);
 
-        console.log('db connected');
+        console.log('DataBase Connection created');
     }
 }

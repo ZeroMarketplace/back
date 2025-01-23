@@ -294,7 +294,7 @@ class ProductsController extends Controllers {
                 title      : $input.title,
                 content    : $input.content,
                 status     : 'active',
-                _user      : $input.user.data.id
+                _user      : $input.user.data._id
             }).then(
                 (response) => {
                     // check the result ... and return

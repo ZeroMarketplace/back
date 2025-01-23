@@ -96,7 +96,7 @@ class CategoriesController extends Controllers {
                 _properties  : $input._properties,
                 _parent      : $input._parent,
                 status       : 'active',
-                _user        : $input.user.data.id
+                _user        : $input.user.data._id
             }).then(
                 (response) => {
                     // check the result ... and return

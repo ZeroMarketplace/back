@@ -28,7 +28,7 @@ class PropertiesController extends Controllers {
                 variant: $input.variant,
                 values : $input.values,
                 status : 'active',
-                _user  : $input.user.data.id
+                _user  : $input.user.data._id
             }).then(
                 (response) => {
                     // check the result ... and return

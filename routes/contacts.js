@@ -1,7 +1,7 @@
 import express          from "express";
 import InputsController from '../controllers/InputsController.js';
-import UsersController  from '../controllers/UsersController.js';
 import AuthController   from '../controllers/AuthController.js';
+import ContactsController from '../controllers/ContactsController.js';
 
 let router = express.Router();
 
@@ -17,7 +17,7 @@ router.post(
         // add author to created user
         $input.user = req.user;
 
-        UsersController.insertOne($input).then(
+        ContactsController.insertOne($input).then(
             (response) => {
                 return res.status(response.code).json(response.data ?? {});
             },
@@ -36,7 +36,10 @@ router.get(
         // create clean input
         let $input = InputsController.clearInput(req.query);
 
-        UsersController.listOfUsers($input).then(
+        // add author to created user
+        $input.user = req.user;
+
+        ContactsController.listOfContacts($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
@@ -55,7 +58,7 @@ router.get(
         // create clean input
         let $input = InputsController.clearInput(req.params);
 
-        UsersController.get($input.id).then(
+        ContactsController.get($input.id).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
@@ -81,7 +84,7 @@ router.put(
         // add author to created user
         $input.user = req.user;
 
-        UsersController.updateOne($params.id, $input).then(
+        ContactsController.updateOne($params.id, $input).then(
             (response) => {
                 return res.status(response.code).json(response.data ?? {});
             },
@@ -101,7 +104,7 @@ router.delete(
         // get id from params and put into Input
         let $params = InputsController.clearInput(req.params);
 
-        UsersController.deleteOne($params.id).then(
+        ContactsController.deleteOne($params.id).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

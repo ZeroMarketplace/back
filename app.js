@@ -42,6 +42,8 @@ import salesInvoicesRouter       from './routes/sales-invoices.js';
 import inventoriesRouter         from './routes/inventories.js';
 import stockTransfersRouter      from './routes/stock-transfers.js';
 import commodityProfitsRouter    from './routes/commodity-profits.js';
+import contactsRouter      from './routes/contacts.js';
+import conversationsRouter from './routes/conversations.js';
 
 // add routes
 app.use('/api/users', usersRouter);
@@ -61,5 +63,7 @@ app.use('/api/sales-invoices', salesInvoicesRouter);
 app.use('/api/inventories', inventoriesRouter);
 app.use('/api/stock-transfers', stockTransfersRouter);
 app.use('/api/commodity-profits', commodityProfitsRouter);
+app.use('/api/contacts', contactsRouter);
+app.use('/api/conversations', conversationsRouter);
 
 export default app;

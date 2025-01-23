@@ -36,6 +36,11 @@ class InputsController extends Controllers {
                         continue;
                     }
 
+                    // check if is not required but value is null
+                    if(!rules.required && (value === undefined)) {
+                        continue;
+                    }
+
                     // check type
                     if (rules.type) {
                         switch (rules.type) {

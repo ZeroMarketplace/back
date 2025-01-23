@@ -233,7 +233,7 @@ class AccountingDocumentsController extends Controllers {
                 _reference      : $input._reference,
                 type            : $input.type,
                 status          : 'active',
-                _user           : $input.user.data.id
+                _user           : $input.user.data._id
             }).then(
                 async (response) => {
                     let accountsInvolved = response.accountsInvolved;

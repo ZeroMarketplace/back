@@ -111,7 +111,7 @@ class InventoriesController extends Controllers {
                 _purchaseInvoice: $input._purchaseInvoice,
                 price           : $input.price,
                 status          : 'active',
-                _user           : $input.user.data.id
+                _user           : $input.user.data._id
             }).then(
                 (response) => {
                     // check the result ... and return
@@ -376,7 +376,7 @@ class InventoriesController extends Controllers {
                                         store   : lastInventoryOfProduct.data.price.store,
                                     },
                                     status          : 'active',
-                                    _user           : $input.user.data.id
+                                    _user           : $input.user.data._id
                                 });
 
                                 // add to changes (insert)

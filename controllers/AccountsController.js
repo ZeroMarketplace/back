@@ -233,7 +233,7 @@ class AccountsController extends Controllers {
                 balance    : Number($input.balance),
                 description: $input.description,
                 status     : 'active',
-                _user      : $input.user.data.id
+                _user      : $input.user.data._id
             }).then(
                 (response) => {
                     // check the result ... and return

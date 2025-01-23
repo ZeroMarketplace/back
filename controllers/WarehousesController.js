@@ -39,7 +39,7 @@ class WarehousesController extends Controllers {
                 onlineSales: $input.onlineSales,
                 retail     : $input.retail,
                 status     : 'active',
-                _user      : $input.user.data.id
+                _user      : $input.user.data._id
             }).then(
                 (response) => {
                     // check the result ... and return

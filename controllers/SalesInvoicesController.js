@@ -161,7 +161,7 @@ class SalesInvoicesController extends Controllers {
                 total      : $input.total,
                 sum        : $input.sum,
                 status     : 'Unpaid',
-                _user      : $input.user.data.id
+                _user      : $input.user.data._id
             }).then(
                 (response) => {
                     return resolve({

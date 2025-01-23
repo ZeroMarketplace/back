@@ -2,10 +2,9 @@ import ValidationsController from '../../controllers/ValidationsController.js';
 import LoginStrategies       from './LoginStrategies.js';
 import Sender                from '../Sender.js';
 import UserController        from '../../controllers/UsersController.js';
-import jwt                   from 'jsonwebtoken';
 import {ObjectId}            from 'mongodb';
 import InputsController      from '../../controllers/InputsController.js';
-import AuthController        from "../../controllers/AuthController.js";
+import AuthController        from '../../controllers/AuthController.js';
 
 
 class LoginByPhone extends LoginStrategies {
@@ -147,7 +146,7 @@ class LoginByPhone extends LoginStrategies {
                                         (responseComparePassword) => {
                                             // create token and return
                                             let token = AuthController.createJWT({
-                                                id         : responseUserQuery.id,
+                                                _id        : responseUserQuery._id,
                                                 role       : responseUserQuery.role,
                                                 permissions: responseUserQuery._permissions
                                             });
@@ -157,10 +156,13 @@ class LoginByPhone extends LoginStrategies {
                                                 data: {
                                                     token: token,
                                                     user : {
-                                                        name   : responseUserQuery.name,
-                                                        phone  : responseUserQuery.phone,
-                                                        avatars: responseUserQuery.avatars,
-                                                        role   : responseUserQuery.role
+                                                        _id      : responseUserQuery._id,
+                                                        firstName: responseUserQuery.name.first,
+                                                        lastName : responseUserQuery.name.last,
+                                                        phone    : responseUserQuery.phone,
+                                                        avatars  : responseUserQuery.avatars,
+                                                        color    : responseUserQuery.color,
+                                                        role     : responseUserQuery.role
                                                     },
                                                 }
                                             });
@@ -197,7 +199,7 @@ class LoginByPhone extends LoginStrategies {
 
                                                             // create token and return
                                                             let token = AuthController.createJWT({
-                                                                id         : responseUserInsertQuery.id,
+                                                                _id        : responseUserInsertQuery._id,
                                                                 role       : responseUserInsertQuery.role,
                                                                 permissions: responseUserInsertQuery._permissions
                                                             });
@@ -207,10 +209,13 @@ class LoginByPhone extends LoginStrategies {
                                                                 data: {
                                                                     token: token,
                                                                     user : {
-                                                                        name   : responseUserInsertQuery.name,
-                                                                        phone  : responseUserInsertQuery.phone,
-                                                                        avatars: responseUserInsertQuery.avatars,
-                                                                        role   : responseUserInsertQuery.role
+                                                                        _id      : responseUserInsertQuery._id,
+                                                                        firstName: responseUserInsertQuery.name.first,
+                                                                        lastName : responseUserInsertQuery.name.last,
+                                                                        phone    : responseUserInsertQuery.phone,
+                                                                        avatars  : responseUserInsertQuery.avatars,
+                                                                        color    : responseUserInsertQuery.color,
+                                                                        role     : responseUserInsertQuery.role
                                                                     },
                                                                 }
                                                             });

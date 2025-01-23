@@ -40,7 +40,7 @@ class AddAndSubtractController extends Controllers {
                 operation: $input.operation,
                 _account : $input._account,
                 status   : 'active',
-                _user    : $input.user.data.id
+                _user    : $input.user.data._id
             }).then(
                 (response) => {
                     // check the result ... and return

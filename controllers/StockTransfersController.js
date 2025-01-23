@@ -86,7 +86,7 @@ class StockTransfersController extends Controllers {
                 count                : $input.count,
                 _inventoryChanges    : $input._inventoryChanges,
                 status               : 'active',
-                _user                : $input.user.data.id
+                _user                : $input.user.data._id
             }).then(
                 (response) => {
                     // check the result ... and return

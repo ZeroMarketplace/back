@@ -13,9 +13,9 @@ class ValidationsController extends Controllers {
             // check data is valid ...
 
             // generate opt code
-            let code = '';
-            for (let i = 0; i < 5; i++) {
-                code += '' + Math.floor(Math.random() * 10);
+            let code = '' + (Math.floor(Math.random() * 9) + 1); // first number from 1 to 9
+            for (let i = 0; i < 4; i++) {
+                code += Math.floor(Math.random() * 10);
             }
 
             // insert

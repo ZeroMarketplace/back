@@ -123,7 +123,7 @@ class PurchaseInvoicesController extends Controllers {
                 total      : $input.total,
                 sum        : $input.sum,
                 status     : 'active',
-                _user      : $input.user.data.id
+                _user      : $input.user.data._id
             }).then(
                 (response) => {
 

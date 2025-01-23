@@ -11,22 +11,24 @@ class UsersModel extends Models {
             phone       : String,
             email       : String,
             password    : String,
-            role        : {type: String, enum: ['admin', 'user', 'warehouse']},
+            role        : {type: String, enum: ['admin', 'user']},
             status      : {type: String, enum: ['active', 'inactive', 'blocked']},
             validated   : [String],
             avatars     : [String],
             color       : String,
-            _permissions: {type: Schema.Types.ObjectId, ref: 'permissions'}
+            contacts    : [{type: Schema.Types.ObjectId, ref: 'users'}],
+            _permissions: {type: Schema.Types.ObjectId, ref: 'permissions'},
+            lastSeen    : {type: Date, default: undefined}
         },
         {timestamps: true});
 
     constructor() {
         // Ensure virtual fields are included in JSON and Object output
-        UsersModel.schema.set('toJSON', { virtuals: true });
-        UsersModel.schema.set('toObject', { virtuals: true });
+        UsersModel.schema.set('toJSON', {virtuals: true});
+        UsersModel.schema.set('toObject', {virtuals: true});
 
         // add virtual fullName
-        UsersModel.schema.virtual('name.fullName').get(function() {
+        UsersModel.schema.virtual('name.fullName').get(function () {
             return `${this.name.first} ${this.name.last}`;
         });
 

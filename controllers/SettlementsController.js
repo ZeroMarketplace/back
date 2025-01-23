@@ -384,7 +384,7 @@ class SettlementsController extends Controllers {
                 type      : $input.type,
                 _reference: $input._id,
                 payment   : $input.payment,
-                _user     : $input.user.data.id
+                _user     : $input.user.data._id
             }).then(
                 async (responseInsertSettlement) => {
                     // match settlement Id with accounting document

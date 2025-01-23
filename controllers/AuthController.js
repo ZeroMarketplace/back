@@ -6,6 +6,9 @@ import Logger                from '../core/Logger.js';
 import InputsController      from "./InputsController.js";
 import bcrypt                from 'bcrypt';
 
+// init users permissions
+PermissionsController.initDefaultPermissions();
+
 const hashSaltRounds = 10;
 
 class AuthController extends Controllers {

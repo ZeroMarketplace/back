@@ -2,8 +2,7 @@ import Controllers           from '../core/Controllers.js';
 import PermissionsController from './PermissionsController.js';
 import UsersModel            from '../models/UsersModel.js';
 import Logger                from '../core/Logger.js';
-import InventoriesController from "./InventoriesController.js";
-import persianDate           from "persian-date";
+import HelpersController     from './HelpersController.js';
 
 class UsersController extends Controllers {
     static model = new UsersModel();
@@ -103,9 +102,10 @@ class UsersController extends Controllers {
                         phone       : $input.phone,
                         password    : $input.password,
                         validated   : $input.validated,
+                        color       : HelpersController.generateRandomColor(),
                         role        : 'user',
                         status      : 'active',
-                        _permissions: responseDefaultPermission.data.id
+                        _permissions: responseDefaultPermission.data._id
                     }).then(
                         (response) => {
                             // check the result ... and return
@@ -128,12 +128,12 @@ class UsersController extends Controllers {
         });
     }
 
-    static item($input) {
+    static item($filter, $options) {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
             // filter
-            this.model.item($input).then(
+            this.model.item($filter, $options).then(
                 (response) => {
                     // check the result ... and return
                     return resolve({
@@ -143,6 +143,25 @@ class UsersController extends Controllers {
                 },
                 (response) => {
                     return reject(response);
+                });
+        });
+    }
+
+    static list($input, $options) {
+        return new Promise((resolve, reject) => {
+            // filter
+            this.model.list($input, $options).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200,
+                        data: response
+                    });
+                },
+                (error) => {
+                    return reject({
+                        code: 500
+                    });
                 });
         });
     }
@@ -196,15 +215,16 @@ class UsersController extends Controllers {
         });
     }
 
-    static get($id) {
+    static get($id, $options = {}, $type = 'api') {
         return new Promise((resolve, reject) => {
             // check filter is valid and remove other parameters (just valid query by user role) ...
 
             // filter
-            this.model.get($id).then(
+            this.model.get($id, $options).then(
                 async (response) => {
                     // reformat row for output
-                    response =  await this.outputBuilder(response.toObject());
+                    if ($type === 'api')
+                        response = await this.outputBuilder(response.toObject());
 
                     return resolve({
                         code: 200,
@@ -229,6 +249,20 @@ class UsersController extends Controllers {
                         code: 200,
                         data: response.toObject()
                     });
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
+    }
+
+    static update($filter, $input) {
+        return new Promise(async (resolve, reject) => {
+            // filter
+            this.model.update($filter, $input).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve(response);
                 },
                 (response) => {
                     return reject(response);
