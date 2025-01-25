@@ -126,10 +126,11 @@ class Models {
 
     updateOne($id, $set) {
         return new Promise((resolve, reject) => {
-            this.collectionModel.updateOne({_id: new ObjectId($id)}, $set).then(
+            this.collectionModel.findOneAndUpdate({_id: new ObjectId($id)}, $set, {new: true}).then(
                 (response) => {
                     return resolve({
-                        code: 200
+                        code: 200,
+                        data: response
                     });
                 },
                 (error) => {
