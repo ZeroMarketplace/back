@@ -1,6 +1,7 @@
 import Controllers        from '../core/Controllers.js';
 import PropertiesModel    from '../models/PropertiesModel.js';
 import CountersController from './CountersController.js';
+import InputsController   from './InputsController.js';
 import ProductsController from './ProductsController.js';
 
 class PropertiesController extends Controllers {
@@ -12,34 +13,52 @@ class PropertiesController extends Controllers {
 
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
-
-            // create code for values
-            for (let value of $input.values) {
-                value.code = await CountersController.increment('properties-values');
-            }
-
-            // filter
-            this.model.insertOne({
-                title  : {
-                    en: $input.title.en,
-                    fa: $input.title.fa
-                },
-                variant: $input.variant,
-                values : $input.values,
-                status : 'active',
-                _user  : $input.user.data._id
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    title  : {type: "string", required: true},
+                    variant: {type: "boolean", required: true},
+                    values : {
+                        type : "array",
+                        items: {
+                            type      : "object",
+                            properties: {
+                                title: {
+                                    type    : "string",
+                                    required: true,
+                                },
+                                value: {
+                                    type: "string",
+                                },
+                            },
+                        },
+                    },
                 });
+
+                // create code for values
+                for (let value of $input.values) {
+                    value.code = await CountersController.increment("properties-values");
+                }
+
+                // insert into database
+                this.model.insertOne({
+                    title  : $input.title,
+                    variant: $input.variant,
+                    values : $input.values,
+                    status : "active",
+                    _user  : $input.user.data._id,
+                }).then(
+                    (response) => {
+                        // check the result ... and return
+                        return resolve({
+                            code: 200,
+                            data: response.toObject(),
+                        });
+                    }
+                );
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 

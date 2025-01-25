@@ -5,20 +5,20 @@ class PropertiesModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
-            title  : {
-                en: String,
-                fa: String
-            },
-            variant: Boolean,
-            values : [
+        title: String,
+        variant: Boolean,
+        values: {
+            type: [
                 {
-                    code : Number,
+                    code: Number,
                     title: String,
-                    value: String
+                    value: {type: String, default: undefined}
                 }
             ],
-            status : {type: String, enum: ['active', 'inactive']},
-            _user  : {type: Schema.Types.ObjectId, ref: 'users'}
+            default: undefined
+        },
+        status : {type: String, enum: ['active', 'inactive']},
+        _user  : {type: Schema.Types.ObjectId, ref: 'users'}
         },
         {timestamps: true});
 

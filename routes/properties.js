@@ -4,6 +4,84 @@ import PropertiesController from '../controllers/PropertiesController.js';
 import AuthController       from '../controllers/AuthController.js';
 
 let router = express.Router();
+/**
+ * @swagger
+ * /api/properties:
+ *   post:
+ *     summary: Add a Property
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - variant
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Title of the property
+ *                 example: color
+ *               variant:
+ *                 type: boolean
+ *                 description: If true, the property can create a variant of the product
+ *               values:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     title:
+ *                       type: string
+ *                       example: red
+ *                     value:
+ *                       type: string
+ *                       example: "#fc0b03"
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *       403:
+ *          description: Forbidden
+ *       200:
+ *         description: Successful insert
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 _user:
+ *                   type: string
+ *                 title:
+ *                   type: string
+ *                 variant:
+ *                   type: boolean
+ *                 status:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                 updatedAt:
+ *                   type: string
+ *                 values:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       title:
+ *                         type: string
+ *                         example: red
+ *                       value:
+ *                         type: string
+ *                         example: "#fc0b03"
+ */
 
 router.post(
     '/',
