@@ -83,6 +83,27 @@ class InputsController extends Controllers {
                                         errors.push(`${fieldPath} must be a valid phone number`);
                                     }
                                     break;
+                                case 'array':
+                                    // handle nested objects or arrays
+                                    if (Array.isArray(value)) {
+                                        if (rules.items) {
+                                            value.forEach((item, index) => {
+                                                validate(item, rules.items, `${fieldPath}[${index}]`);
+                                            });
+                                        }
+                                    } else {
+                                        errors.push(`${fieldPath} must be a valid array`);
+                                    }
+                                    break;
+                                case 'object':
+                                    if (typeof value === 'object') {
+                                        if (rules.properties) {
+                                            validate(value, rules.properties, fieldPath);
+                                        }
+                                    } else {
+                                        errors.push(`${fieldPath} must be a valid object`);
+                                    }
+                                    break;
                             }
                         }
 
@@ -104,15 +125,6 @@ class InputsController extends Controllers {
                         // check pattern
                         if (rules.pattern && !new RegExp(rules.pattern).test(value)) {
                             errors.push(`${fieldPath} does not match the pattern ${rules.pattern}`);
-                        }
-
-                        // handle nested objects or arrays
-                        if (rules.type === 'array' && Array.isArray(value) && rules.items) {
-                            value.forEach((item, index) => {
-                                validate(item, rules.items, `${fieldPath}[${index}]`);
-                            });
-                        } else if (rules.type === 'object' && typeof value === 'object' && rules.properties) {
-                            validate(value, rules.properties, fieldPath);
                         }
                     }
                 }
