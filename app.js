@@ -6,6 +6,8 @@ import helmet          from 'helmet';
 import cors            from 'cors';
 import {dirname}       from 'node:path';
 import {fileURLToPath} from 'node:url';
+import swaggerUi     from 'swagger-ui-express';
+import swaggerConfig from "./swaggerConfig.js";
 
 // get __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -22,6 +24,7 @@ app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use(process.env.STATICS_URL, express.static(path.join(__dirname, 'public')));
 app.use(cors());
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerConfig));
 
 process.env.TZ = "Asia/Tehran";
 
@@ -42,8 +45,8 @@ import salesInvoicesRouter       from './routes/sales-invoices.js';
 import inventoriesRouter         from './routes/inventories.js';
 import stockTransfersRouter      from './routes/stock-transfers.js';
 import commodityProfitsRouter    from './routes/commodity-profits.js';
-import contactsRouter      from './routes/contacts.js';
-import conversationsRouter from './routes/conversations.js';
+import contactsRouter            from './routes/contacts.js';
+import conversationsRouter       from './routes/conversations.js';
 
 // add routes
 app.use('/api/users', usersRouter);

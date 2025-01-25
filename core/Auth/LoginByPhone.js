@@ -12,7 +12,7 @@ class LoginByPhone extends LoginStrategies {
     static authenticate($input) {
         return new Promise((resolve, reject) => {
             InputsController.validateInput($input, {
-                phone: {type: 'string', required: true},
+                phone: {type: 'phone', required: true},
             }).then(
                 ($input) => {
                     ValidationsController.item({certificate: $input.phone, type: 'phone'}).then(
@@ -65,7 +65,7 @@ class LoginByPhone extends LoginStrategies {
     static verification($input) {
         return new Promise((resolve, reject) => {
             InputsController.validateInput($input, {
-                phone: {type: 'string', required: true},
+                phone: {type: 'phone', required: true},
                 code : {type: 'number', minLength: 5, maxLength: 5, required: true},
             }).then(
                 ($input) => {
@@ -144,7 +144,7 @@ class LoginByPhone extends LoginStrategies {
     static access($input) {
         return new Promise((resolve, reject) => {
             InputsController.validateInput($input, {
-                phone     : {type: 'string', required: true},
+                phone     : {type: 'phone', required: true},
                 validation: {type: 'mongoId', required: true},
                 password  : {type: 'strongPassword', required: true},
             }).then(
