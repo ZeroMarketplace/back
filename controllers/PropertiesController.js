@@ -125,36 +125,53 @@ class PropertiesController extends Controllers {
 
     static updateOne($id, $input) {
         return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
+           try {
+               // validate $input
+               await InputsController.validateInput($input, {
+                   title  : {type: "string", required: true},
+                   variant: {type: "boolean", required: true},
+                   values : {
+                       type : "array",
+                       items: {
+                           type      : "object",
+                           properties: {
+                               title: {
+                                   type    : "string",
+                                   required: true,
+                               },
+                               value: {
+                                   type: "string",
+                               },
+                           },
+                       },
+                   },
+               });
 
-            // create code for values
-            for (let value of $input.values) {
-                if (!value.code)
-                    value.code = await CountersController.increment('properties-values');
-            }
+               // create code for values
+               for (let value of $input.values) {
+                   if (!value.code)
+                       value.code = await CountersController.increment('properties-values');
+               }
 
-            // filter
-            this.model.updateOne($id, {
-                title  : {
-                    en: $input.title.en,
-                    fa: $input.title.fa
-                },
-                variant: $input.variant,
-                values : $input.values
-            }).then(
-                async (response) => {
+               // filter
+               await this.model.updateOne($id, {
+                   title  : $input.title,
+                   variant: $input.variant,
+                   values : $input.values
+               }).then(
+                   async (response) => {
 
-                    // update every product has variant with this property
-                    await ProductsController.setVariantsTitleBasedOnProperty($id);
-
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
+                       // update every product has variant with this property
+                       await ProductsController.setVariantsTitleBasedOnProperty($id);
+                       return resolve({
+                           code: 200,
+                           data: response.data
+                       });
+                   });
+           }
+           catch (e) {
+               return reject(e);
+           }
         });
     }
 
