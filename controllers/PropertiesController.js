@@ -123,73 +123,78 @@ class PropertiesController extends Controllers {
         });
     }
 
-    static updateOne($id, $input) {
+    static updateOne($input) {
         return new Promise(async (resolve, reject) => {
-           try {
-               // validate $input
-               await InputsController.validateInput($input, {
-                   title  : {type: "string", required: true},
-                   variant: {type: "boolean", required: true},
-                   values : {
-                       type : "array",
-                       items: {
-                           type      : "object",
-                           properties: {
-                               title: {
-                                   type    : "string",
-                                   required: true,
-                               },
-                               value: {
-                                   type: "string",
-                               },
-                           },
-                       },
-                   },
-               });
+            try {
 
-               // create code for values
-               for (let value of $input.values) {
-                   if (!value.code)
-                       value.code = await CountersController.increment('properties-values');
-               }
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id    : {type: 'mongoId', required: true},
+                    title  : {type: "string", required: true},
+                    variant: {type: "boolean", required: true},
+                    values : {
+                        type : "array",
+                        items: {
+                            type      : "object",
+                            properties: {
+                                title: {
+                                    type    : "string",
+                                    required: true,
+                                },
+                                value: {
+                                    type: "string",
+                                },
+                            },
+                        },
+                    },
+                });
 
-               // filter
-               await this.model.updateOne($id, {
-                   title  : $input.title,
-                   variant: $input.variant,
-                   values : $input.values
-               }).then(
-                   async (response) => {
+                // create code for values
+                for (let value of $input.values) {
+                    if (!value.code)
+                        value.code = await CountersController.increment('properties-values');
+                }
 
-                       // update every product has variant with this property
-                       await ProductsController.setVariantsTitleBasedOnProperty($id);
-                       return resolve({
-                           code: 200,
-                           data: response.data
-                       });
-                   });
-           }
-           catch (e) {
-               return reject(e);
-           }
+                // filter
+                await this.model.updateOne($input._id, {
+                    title  : $input.title,
+                    variant: $input.variant,
+                    values : $input.values
+                }).then(
+                    async (response) => {
+
+                        // update every product has variant with this property
+                        await ProductsController.setVariantsTitleBasedOnProperty($input._id);
+                        return resolve({
+                            code: 200,
+                            data: response.data
+                        });
+                    });
+            } catch (e) {
+                return reject(e);
+            }
         });
     }
 
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.deleteOne($id).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static deleteOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id    : {type: 'mongoId', required: true}
                 });
+
+                // delete from db
+                this.model.deleteOne($input._id).then(
+                    (response) => {
+                        // check the result ... and return
+                        return resolve({
+                            code: 200
+                        });
+                    });
+            } catch (e) {
+                return reject(e);
+            }
         });
     }
 

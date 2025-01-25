@@ -230,7 +230,7 @@ router.get(
  */
 
 router.put(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res, next) {
@@ -244,7 +244,10 @@ router.put(
         // add author to created property
         $input.user = req.user;
 
-        PropertiesController.updateOne($params.id, $input).then(
+        // set id in $input
+        $input._id = $params._id;
+
+        PropertiesController.updateOne($input).then(
             (response) => {
                 return res.status(response.code).json(response.data ?? {});
             },
@@ -255,8 +258,37 @@ router.put(
     }
 );
 
+
+
+/**
+ * @swagger
+ * /api/properties/{id}:
+ *   delete:
+ *     summary: delete a Property
+ *     parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *          description: The ID of the item to which the property belongs
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *       403:
+ *          description: Forbidden
+ *       200:
+ *         description: Successful delete
+ */
 router.delete(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res, next) {
@@ -264,7 +296,9 @@ router.delete(
         // get id from params and put into Input
         let $params = InputsController.clearInput(req.params);
 
-        PropertiesController.deleteOne($params.id).then(
+        PropertiesController.deleteOne({
+            _id: $params._id,
+        }).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
