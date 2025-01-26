@@ -49,6 +49,10 @@ let router = express.Router();
  *                      properties:
  *                          message:
  *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
  *       403:
  *          description: Forbidden
  *       200:
@@ -87,6 +91,10 @@ let router = express.Router();
  *                       value:
  *                         type: string
  *                         example: "#fc0b03"
+ *                       code:
+ *                          type: number
+ *                       _id:
+ *                          type: string
  */
 
 router.post(
@@ -140,6 +148,10 @@ router.post(
  *                      properties:
  *                          message:
  *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
  *       200:
  *         description: Successful get
  *         content:
@@ -222,6 +234,10 @@ router.get(
  *                      properties:
  *                          message:
  *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
  *       200:
  *         description: Successful get
  *         content:
@@ -325,6 +341,10 @@ router.get(
  *                     value:
  *                       type: string
  *                       example: "#fc0b03"
+ *                     code:
+ *                       type: number
+ *                     _id:
+ *                       type: string
  *     responses:
  *       400:
  *          description: Bad Request (for validation)
@@ -335,6 +355,10 @@ router.get(
  *                      properties:
  *                          message:
  *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
  *       403:
  *          description: Forbidden
  *       200:
@@ -373,6 +397,10 @@ router.get(
  *                       value:
  *                         type: string
  *                         example: "#fc0b03"
+ *                       code:
+ *                         type: number
+ *                       _id:
+ *                         type: string
  */
 
 router.put(
@@ -429,6 +457,10 @@ router.put(
  *                      properties:
  *                          message:
  *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
  *       403:
  *          description: Forbidden
  *       200:
