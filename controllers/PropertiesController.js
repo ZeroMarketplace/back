@@ -135,7 +135,7 @@ class PropertiesController extends Controllers {
                 await InputsController.validateInput($input, {
                     title        : {type: "string"},
                     variant      : {type: "boolean"},
-                    perpage      : {type: "number"},
+                    perPage      : {type: "number"},
                     page         : {type: "number"},
                     sortColumn   : {type: "string"},
                     sortDirection: {type: "number"},
