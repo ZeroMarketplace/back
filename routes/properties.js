@@ -70,6 +70,10 @@ let router = express.Router();
  *                   type: string
  *                 updatedAt:
  *                   type: string
+ *                 createdAtJalali:
+ *                   type: string
+ *                 updatedAtJalali:
+ *                   type: string
  *                 values:
  *                   type: array
  *                   items:
@@ -106,13 +110,81 @@ router.post(
     }
 );
 
+
+/**
+ * @swagger
+ * /api/properties:
+ *   get:
+ *     summary: Get all Properties
+ *     parameters:
+ *       - in: query
+ *         name: title
+ *         schema:
+ *           type: string
+ *         description: title of property
+ *       - in: query
+ *         name: variant
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *       200:
+ *         description: Successful get
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 _user:
+ *                   type: string
+ *                 title:
+ *                   type: string
+ *                 variant:
+ *                   type: boolean
+ *                 status:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                 updatedAt:
+ *                   type: string
+ *                 createdAtJalali:
+ *                   type: string
+ *                 updatedAtJalali:
+ *                   type: string
+ *                 values:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       title:
+ *                         type: string
+ *                         example: red
+ *                       value:
+ *                         type: string
+ *                         example: "#fc0b03"
+ *                       code:
+ *                         type: number
+ *                         example: 120
+ *                       _id:
+ *                         type: string
+ */
 router.get(
     '/',
     function (req, res) {
         // create clean input
-        let $input = InputsController.clearInput(req.params);
+        let $query = InputsController.clearInput(req.query);
 
-        PropertiesController.list($input).then(
+        PropertiesController.list($query).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
@@ -123,16 +195,78 @@ router.get(
     }
 );
 
-
+/**
+ * @swagger
+ * /api/properties/{id}:
+ *   get:
+ *     summary: Get Property by id
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         description: id of property
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *       200:
+ *         description: Successful get
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 _user:
+ *                   type: string
+ *                 title:
+ *                   type: string
+ *                 variant:
+ *                   type: boolean
+ *                 status:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                 updatedAt:
+ *                   type: string
+ *                 createdAtJalali:
+ *                   type: string
+ *                 updatedAtJalali:
+ *                   type: string
+ *                 values:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       title:
+ *                         type: string
+ *                         example: red
+ *                       value:
+ *                         type: string
+ *                         example: "#fc0b03"
+ *                       code:
+ *                         type: number
+ *                         example: 120
+ *                       _id:
+ *                         type: string
+ */
 router.get(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res) {
         // create clean input
         let $input = InputsController.clearInput(req.params);
 
-        PropertiesController.get($input.id).then(
+        PropertiesController.get({_id: $input._id}).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
@@ -216,6 +350,10 @@ router.get(
  *                   type: string
  *                 updatedAt:
  *                   type: string
+ *                 createdAtJalali:
+ *                   type: string
+ *                 updatedAtJalali:
+ *                   type: string
  *                 values:
  *                   type: array
  *                   items:
@@ -257,7 +395,6 @@ router.put(
         );
     }
 );
-
 
 
 /**
