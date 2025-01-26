@@ -29,7 +29,7 @@ class InputsController extends Controllers {
                 for (const field in schema) {
                     if (schema.hasOwnProperty(field)) {
                         const rules     = schema[field];
-                        const value     = input[field];
+                        let value       = input[field];
                         const fieldPath = parentPath ? `${parentPath}.${field}` : field;
 
                         // check required
@@ -58,7 +58,8 @@ class InputsController extends Controllers {
                                     }
                                     break;
                                 case 'number':
-                                    if (!validator.isNumeric(value)) {
+                                    value = Number(value);
+                                    if (typeof value !== 'number' || isNaN(value)) {
                                         errors.push(`${fieldPath} must be a Number`);
                                     }
                                     break;
@@ -86,6 +87,21 @@ class InputsController extends Controllers {
                                 case 'array':
                                     // handle nested objects or arrays
                                     if (Array.isArray(value)) {
+                                        // check minLength
+                                        if(rules.minItemCount) {
+                                            if(value.length < rules.minItemCount) {
+                                                errors.push(`${fieldPath} must have at least ${rules.minItemCount} item`);
+                                            }
+                                        }
+
+                                        // check maxLength
+                                        if(rules.maxItemCount) {
+                                            if(value.length < rules.maxItemCount) {
+                                                errors.push(`${fieldPath} must have at least ${rules.maxItemCount} item`);
+                                            }
+                                        }
+
+                                        // check items of array
                                         if (rules.items) {
                                             value.forEach((item, index) => {
                                                 validate(item, rules.items, `${fieldPath}[${index}]`);
