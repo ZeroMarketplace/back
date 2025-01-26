@@ -1,6 +1,8 @@
 import Controllers        from '../core/Controllers.js';
 import CategoriesModel    from '../models/CategoriesModel.js';
 import CountersController from '../controllers/CountersController.js';
+import InputsController   from "./InputsController.js";
+import persianDate        from "persian-date";
 
 class CategoriesController extends Controllers {
     static model = new CategoriesModel();
@@ -9,10 +11,21 @@ class CategoriesController extends Controllers {
         super();
     }
 
-    findChildren(list, children) {
-        let result = [];
+    static outputBuilder($row) {
+        for (const [$index, $value] of Object.entries($row)) {
+            switch ($index) {
+                case 'updatedAt':
+                    let updatedAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
+                    break;
+                case 'createdAt':
+                    let createdAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
+                    break;
+            }
+        }
 
-        return result;
+        return $row;
     }
 
     static findCategoryChildren($list, $children) {
@@ -47,22 +60,6 @@ class CategoriesController extends Controllers {
         return result;
     }
 
-    static addChild($id, $childId) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.addChild($id, $childId).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({code: 200});
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
     static properties($id) {
         return new Promise((resolve, reject) => {
             this.get($id, {populate: '_properties', lean: true}).then(
@@ -83,35 +80,48 @@ class CategoriesController extends Controllers {
 
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.insertOne({
-                title        : {
-                    en: $input.title.en,
-                    fa: $input.title.fa
-                },
-                code         : await CountersController.increment('categories'),
-                profitPercent: $input.profitPercent,
-                _properties  : $input._properties,
-                _parent      : $input._parent,
-                status       : 'active',
-                _user        : $input.user.data._id
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    if ($input._parent) {
-                        CategoriesController.addChild($input._parent, response._id);
-                    }
-
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    title        : {type: "string", required: true},
+                    profitPercent: {type: "number"},
+                    _properties  : {
+                        type        : 'array',
+                        minItemCount: 1,
+                        items       : {
+                            type: 'mongoId'
+                        }
+                    },
+                    _parent      : {type: 'mongoId'},
                 });
+
+                // insert to db
+                let response = await this.model.insertOne({
+                    title        : $input.title,
+                    code         : await CountersController.increment('categories'),
+                    profitPercent: $input.profitPercent,
+                    _properties  : $input._properties,
+                    _parent      : $input._parent,
+                    status       : 'active',
+                    _user        : $input.user.data._id
+                });
+
+                // add child to parent children
+                if ($input._parent) {
+                    await this.model.addChild($input._parent, response._id);
+                }
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 

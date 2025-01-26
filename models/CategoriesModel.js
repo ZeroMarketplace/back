@@ -7,15 +7,12 @@ class CategoriesModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
-            title        : {
-                en: String,
-                fa: String
-            },
+            title        : String,
             code         : Number,
-            profitPercent: Number,
-            _properties  : [{type: Schema.Types.ObjectId, ref: 'properties'}],
-            _parent      : {type: String, required: false},
-            children     : [{type: Schema.Types.ObjectId, ref: 'categories'}],
+            profitPercent: {type: Number, default: undefined},
+            _properties  : {type: [{type: Schema.Types.ObjectId, ref: 'properties'}], default: undefined},
+            _parent      : {type: String, default: undefined},
+            children     : {type: [{type: Schema.Types.ObjectId, ref: 'categories'}], default: undefined},
             status       : {type: String, enum: ['active', 'inactive']},
             _user        : {type: Schema.Types.ObjectId, ref: 'users'}
         },
