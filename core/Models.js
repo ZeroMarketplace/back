@@ -128,10 +128,7 @@ class Models {
         return new Promise((resolve, reject) => {
             this.collectionModel.findOneAndUpdate({_id: new ObjectId($id)}, $set, {new: true}).then(
                 (response) => {
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
+                    return resolve(response);
                 },
                 (error) => {
                     Logger.systemError('DB-Update', error);
