@@ -24,7 +24,7 @@ let router = express.Router();
  *               title:
  *                 type: string
  *                 description: Title of the category
- *                 example: color
+ *                 example: scarf
  *               profitPercent:
  *                 type: number
  *                 description: profit percent of category
