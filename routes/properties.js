@@ -8,6 +8,8 @@ let router = express.Router();
  * @swagger
  * /api/properties:
  *   post:
+ *     tags:
+ *       - Properties
  *     summary: Add a Property
  *     requestBody:
  *       required: true
@@ -116,6 +118,8 @@ router.post(
  * /api/properties:
  *   get:
  *     summary: Get all Properties
+ *     tags:
+ *       - Properties
  *     parameters:
  *       - in: query
  *         name: title
@@ -200,6 +204,8 @@ router.get(
  * /api/properties/{id}:
  *   get:
  *     summary: Get Property by id
+ *     tags:
+ *       - Properties
  *     parameters:
  *       - in: path
  *         name: id
@@ -282,6 +288,8 @@ router.get(
  * /api/properties/{id}:
  *   put:
  *     summary: Edit a Property
+ *     tags:
+ *       - Properties
  *     parameters:
  *        - in: path
  *          name: id
@@ -402,6 +410,8 @@ router.put(
  * /api/properties/{id}:
  *   delete:
  *     summary: delete a Property
+ *     tags:
+ *       - Properties
  *     parameters:
  *        - in: path
  *          name: id

@@ -11,6 +11,8 @@ let router = express.Router();
  * /api/auth/login/authenticate:
  *   post:
  *      summary: Login in action authenticate
+ *      tags:
+ *       - Auth
  *      requestBody:
  *          required: true
  *          content:
@@ -55,6 +57,8 @@ let router = express.Router();
  * /api/auth/login/verification:
  *   post:
  *     summary: Login in action verification
+ *     tags:
+ *       - Auth
  *     requestBody:
  *       required: true
  *       content:
@@ -104,6 +108,8 @@ let router = express.Router();
  * /api/auth/login/access:
  *   post:
  *     summary: Login in action access
+ *     tags:
+ *       - Auth
  *     requestBody:
  *       required: true
  *       content:
