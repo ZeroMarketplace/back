@@ -11,7 +11,7 @@ class CategoriesModel extends Models {
             code         : Number,
             profitPercent: {type: Number, default: undefined},
             _properties  : {type: [{type: Schema.Types.ObjectId, ref: 'properties'}], default: undefined},
-            _parent      : {type: String, default: undefined},
+            _parent      : {type: Schema.Types.ObjectId, default: undefined},
             children     : {type: [{type: Schema.Types.ObjectId, ref: 'categories'}], default: undefined},
             status       : {type: String, enum: ['active', 'inactive']},
             _user        : {type: Schema.Types.ObjectId, ref: 'users'}
@@ -59,72 +59,71 @@ class CategoriesModel extends Models {
         });
     }
 
-    findChildrenIds(list, id) {
-        let result = [];
-
-        let item = list.find(i => i.id.toString() === id.toString());
-
-        if (item.children) {
-            item.children.forEach((childItem) => {
-                result.push(childItem);
-                let childrenIds = this.findChildrenIds(list, childItem);
-                childrenIds.forEach((jChildItem) => {
-                    result.push(jChildItem);
-                })
-            });
-        }
-
-        return result;
-    }
-
     deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            this.collectionModel.findById($id).then(
-                async (category) => {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // find the category
+                const category = await this.collectionModel.findById($id);
 
-                    // delete sub categories
-                    let listOfCategories = await this.collectionModel.find();
-                    await this.collectionModel.deleteMany({
-                        _id: {$in: this.findChildrenIds(listOfCategories, category._id) ?? []}
-                    });
-
-
-                    // update parent children
-                    if (category._parent) {
-                        await this.collectionModel.findById(category._parent).then(
-                            async (parentsResponse) => {
-                                // update parent
-                                parentsResponse.children.splice(parentsResponse.children.indexOf($id), 1);
-                                await parentsResponse.save();
-
-                            }
-                        );
-                    }
-
-                    // at end remove the category
-                    category.deleteOne().then(
-                        (response) => {
-                            return resolve({
-                                code: 200
-                            });
-                        },
-                        (error) => {
-                            Logger.systemError('DB-Delete-Category-remove', error);
-                            return reject({
-                                code: 500
-                            });
-                        },
-                    );
-
-
-                },
-                (error) => {
-                    Logger.systemError('DB-Delete-Category-Find', error);
+                // handle not found
+                if(!category) {
                     return reject({
                         code: 404
+                    })
+                }
+
+                // find all category children
+                const children = await this.collectionModel.aggregate([
+                    {
+                        $match: {_id: new ObjectId($id)} // find the base category
+                    },
+                    {
+                        $graphLookup: {
+                            from            : "categories", // collection name
+                            startWith       : "$_id", // start with _id
+                            connectFromField: "_id", // the key of children identification
+                            connectToField  : "_parent", // key to connect parent
+                            as              : "allChildren" // all children in array
+                        }
+                    },
+                    {
+                        $project: {
+                            _id        : 0, // the _id of parents
+                            allChildren: "$allChildren._id" // the all _id of children
+                        }
+                    }
+                ]);
+
+                // has a child
+                if (children.length > 0) {
+                    // delete all children
+                    await this.collectionModel.deleteMany({
+                        _id: {$in: children[0].allChildren},
                     });
                 }
-            );
+
+                // update parent children
+                if (category._parent) {
+                    const parent = await this.collectionModel.findById(category._parent);
+                    // update parent
+                    parent.children.splice(parent.children.indexOf($id), 1);
+                    await parent.save();
+                }
+
+                // delete the category
+                await category.deleteOne();
+
+                return resolve({
+                    code: 200
+                });
+
+
+            } catch (error) {
+                return reject({
+                    code: 500,
+                    data: {error: error}
+                });
+            }
         });
     }
 

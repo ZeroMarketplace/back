@@ -11,6 +11,38 @@ class CategoriesController extends Controllers {
         super();
     }
 
+    static queryBuilder($input) {
+        let $query = {};
+
+        // pagination
+        $input.perPage = $input.perPage ?? 10;
+        $input.page    = $input.page ?? 1;
+        $input.offset  = ($input.page - 1) * $input.perPage;
+
+        // sort
+        if ($input.sortColumn && $input.sortDirection) {
+            $input.sort                    = {};
+            $input.sort[$input.sortColumn] = $input.sortDirection;
+        } else {
+            $input.sort = {createdAt: -1};
+        }
+
+        Object.entries($input).forEach((field) => {
+            // field [0] => index
+            // field [1] => value
+            switch (field[0]) {
+                case 'title':
+                    $query[field[0]] = {$regex: '.*' + field[1] + '.*'};
+                    break;
+                case 'profitPercent':
+                    $query[field[0]] = field[1];
+                    break;
+            }
+        });
+
+        return $query;
+    }
+
     static outputBuilder($row) {
         for (const [$index, $value] of Object.entries($row)) {
             switch ($index) {
@@ -44,7 +76,6 @@ class CategoriesController extends Controllers {
 
     static sortCategories($list) {
         let result = [];
-
 
         // find children
         $list.forEach((item) => {
@@ -164,25 +195,53 @@ class CategoriesController extends Controllers {
     }
 
     static list($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.list($input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: {
-                            list: CategoriesController.sortCategories(response)
-                        }
-                    });
-                },
-                (error) => {
-                    return reject({
-                        code: 500
-                    });
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate Input
+                await InputsController.validateInput($input, {
+                    title        : {type: "string"},
+                    profitPercent: {type: "number"},
+                    perPage      : {type: "number"},
+                    page         : {type: "number"},
+                    sortColumn   : {type: "string"},
+                    sortDirection: {type: "number"},
                 });
+
+
+                // check filter is valid and remove other parameters (just valid query by user role) ...
+                let $query = this.queryBuilder($input);
+                // get list
+                let list = await this.model.list(
+                    $query,
+                    {
+                        sort : $input.sort
+                    }
+                );
+
+                // get the count of properties
+                const count = await this.model.count($query);
+
+                // create output
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row.toObject());
+                }
+
+                // sort and create structural categories
+                list = this.sortCategories(list);
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : list,
+                        total: count
+                    }
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -224,21 +283,23 @@ class CategoriesController extends Controllers {
         });
     }
 
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.deleteOne($id).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static deleteOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
                 });
+
+                // delete from db
+                await this.model.deleteOne($input._id);
+
+                return resolve({
+                    code: 200
+                });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 }

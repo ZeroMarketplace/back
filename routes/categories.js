@@ -108,11 +108,86 @@ router.post(
     }
 );
 
+/**
+ * @swagger
+ * /api/categories:
+ *   get:
+ *     summary: Get all Categories
+ *     tags:
+ *       - Categories
+ *     parameters:
+ *       - in: query
+ *         name: title
+ *         schema:
+ *           type: string
+ *         description: title of property
+ *       - in: query
+ *         name: profitPercent
+ *         schema:
+ *           type: number
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
+ *       200:
+ *         description: Successful get
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: number
+ *                 list:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       _user:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       profitPercent:
+ *                         type: number
+ *                       code:
+ *                         type: number
+ *                       children:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           description: Category Item
+ *                       status:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                       updatedAt:
+ *                         type: string
+ *                       createdAtJalali:
+ *                         type: string
+ *                       updatedAtJalali:
+ *                         type: string
+ *                       _properties:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ */
 router.get(
     '/',
     function (req, res) {
         // create clean input
-        let $input = InputsController.clearInput(req.params);
+        let $input = InputsController.clearInput(req.query);
 
         CategoriesController.list($input).then(
             (response) => {
@@ -272,8 +347,41 @@ router.put(
     }
 );
 
+/**
+ * @swagger
+ * /api/categories/{id}:
+ *   delete:
+ *     summary: delete a Category
+ *     tags:
+ *       - Categories
+ *     parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *          description: The ID of the item to which the category belongs
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
+ *       403:
+ *          description: Forbidden
+ *       200:
+ *         description: Successful delete
+ */
 router.delete(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res, next) {
@@ -281,7 +389,7 @@ router.delete(
         // get id from params and put into Input
         let $params = InputsController.clearInput(req.params);
 
-        CategoriesController.deleteOne($params.id).then(
+        CategoriesController.deleteOne($params).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
