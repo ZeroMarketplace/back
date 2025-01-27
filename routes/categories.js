@@ -52,6 +52,8 @@ let router = express.Router();
  *                                type: string
  *       403:
  *          description: Forbidden
+ *       401:
+ *          description: Unauthorized
  *       200:
  *         description: Successful insert
  *         content:
@@ -327,6 +329,8 @@ router.get(
  *                              type: array
  *                              items:
  *                                type: string
+ *       401:
+ *          description: Unauthorized
  *       403:
  *          description: Forbidden
  *       200:
@@ -420,6 +424,8 @@ router.put(
  *                                  type: string
  *       403:
  *          description: Forbidden
+ *       401:
+ *         description: Unauthorized
  *       200:
  *         description: Successful delete
  */
