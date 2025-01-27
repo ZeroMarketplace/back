@@ -91,24 +91,6 @@ class CategoriesController extends Controllers {
         return result;
     }
 
-    static properties($id) {
-        return new Promise((resolve, reject) => {
-            this.get($id, {populate: '_properties', lean: true}).then(
-                (category) => {
-                    return resolve({
-                        code: 200,
-                        data: {
-                            list: category.data._properties
-                        }
-                    });
-                },
-                (error) => {
-                    return reject(error);
-                }
-            );
-        });
-    }
-
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -156,22 +138,28 @@ class CategoriesController extends Controllers {
         });
     }
 
-    static get($id, $options) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.get($id, $options).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    // get property from _id
+    static get($input, $options) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
                 });
+
+                // get from db
+                let response = await this.model.get($input._id, $options);
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 

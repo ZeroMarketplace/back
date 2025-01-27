@@ -200,30 +200,73 @@ router.get(
     }
 );
 
+/**
+ * @swagger
+ * /api/categories/{id}:
+ *   get:
+ *     summary: Get Category by id
+ *     tags:
+ *       - Categories
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         description: id of category
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
+ *       200:
+ *         description: Successful get
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 _user:
+ *                   type: string
+ *                 title:
+ *                   type: string
+ *                 profitPercent:
+ *                   type: number
+ *                 code:
+ *                   type: number
+ *                 children:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     description: Category Item
+ *                 status:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                 updatedAt:
+ *                   type: string
+ *                 createdAtJalali:
+ *                   type: string
+ *                 updatedAtJalali:
+ *                   type: string
+ */
 router.get(
-    '/:id',
+    '/:_id',
     function (req, res) {
         // create clean input
         let $input = InputsController.clearInput(req.params);
 
-        CategoriesController.get($input.id).then(
-            (response) => {
-                return res.status(response.code).json(response.data);
-            },
-            (error) => {
-                return res.status(error.code ?? 500).json(error.data ?? {});
-            }
-        );
-    }
-);
-
-router.get(
-    '/:id/properties',
-    function (req, res) {
-        // create clean input
-        let $input = InputsController.clearInput(req.params);
-
-        CategoriesController.properties($input.id).then(
+        CategoriesController.get($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
