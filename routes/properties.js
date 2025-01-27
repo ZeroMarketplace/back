@@ -159,40 +159,47 @@ router.post(
  *             schema:
  *               type: object
  *               properties:
- *                 _id:
- *                   type: string
- *                 _user:
- *                   type: string
- *                 title:
- *                   type: string
- *                 variant:
- *                   type: boolean
- *                 status:
- *                   type: string
- *                 createdAt:
- *                   type: string
- *                 updatedAt:
- *                   type: string
- *                 createdAtJalali:
- *                   type: string
- *                 updatedAtJalali:
- *                   type: string
- *                 values:
+ *                 total:
+ *                   type: number
+ *                 list:
  *                   type: array
  *                   items:
  *                     type: object
  *                     properties:
- *                       title:
- *                         type: string
- *                         example: red
- *                       value:
- *                         type: string
- *                         example: "#fc0b03"
- *                       code:
- *                         type: number
- *                         example: 120
  *                       _id:
  *                         type: string
+ *                       _user:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       variant:
+ *                         type: boolean
+ *                       status:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                       updatedAt:
+ *                         type: string
+ *                       createdAtJalali:
+ *                         type: string
+ *                       updatedAtJalali:
+ *                         type: string
+ *                       values:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             title:
+ *                               type: string
+ *                               example: red
+ *                             value:
+ *                               type: string
+ *                               example: "#fc0b03"
+ *                             code:
+ *                               type: number
+ *                               example: 120
+ *                             _id:
+ *                               type: string
  */
 router.get(
     '/',
