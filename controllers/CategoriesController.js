@@ -186,26 +186,41 @@ class CategoriesController extends Controllers {
         });
     }
 
-    static updateOne($id, $input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.updateOne($id, {
-                title        : {
-                    en: $input.title.en,
-                    fa: $input.title.fa
-                },
-                profitPercent: $input.profitPercent,
-                _properties  : $input._properties
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
-                },
-                (response) => {
-                    return reject(response);
+    static updateOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id          : {type: 'mongoId', required: true},
+                    title        : {type: "string", required: true},
+                    profitPercent: {type: "number"},
+                    _properties  : {
+                        type        : 'array',
+                        minItemCount: 1,
+                        items       : {
+                            type: 'mongoId'
+                        }
+                    },
+                    _parent      : {type: 'mongoId'},
                 });
+
+                let response = await this.model.updateOne($input._id, {
+                    title        : $input.title,
+                    profitPercent: $input.profitPercent,
+                    _properties  : $input._properties
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 

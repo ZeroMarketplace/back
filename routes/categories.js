@@ -29,6 +29,8 @@ let router = express.Router();
  *                 type: number
  *                 description: profit percent of category
  *                 example: 12
+ *               _parent:
+ *                  type: string
  *               _properties:
  *                 type: array
  *                 items:
@@ -157,8 +159,92 @@ router.get(
     }
 );
 
+/**
+ * @swagger
+ * /api/categories/{id}:
+ *   put:
+ *     tags:
+ *       - Categories
+ *     summary: Edit a Category
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the item to which the category belongs
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 description: Title of the category
+ *                 example: scarf
+ *               profitPercent:
+ *                 type: number
+ *                 description: profit percent of category
+ *                 example: 12
+ *               _properties:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   example: '6795ceadfc134b7daee34775'
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                type: string
+ *       403:
+ *          description: Forbidden
+ *       200:
+ *         description: Successful insert
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 code:
+ *                   type: number
+ *                 _user:
+ *                   type: string
+ *                 title:
+ *                   type: string
+ *                 profitPercent:
+ *                   type: number
+ *                 status:
+ *                   type: string
+ *                 createdAt:
+ *                   type: string
+ *                 updatedAt:
+ *                   type: string
+ *                 createdAtJalali:
+ *                   type: string
+ *                 updatedAtJalali:
+ *                   type: string
+ *                 _properties:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ */
 router.put(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res, next) {
@@ -172,7 +258,10 @@ router.put(
         // add author to created category
         $input.user = req.user;
 
-        CategoriesController.updateOne($params.id, $input).then(
+        // add _id of category to $input
+        $input._id = $params._id;
+
+        CategoriesController.updateOne($input).then(
             (response) => {
                 return res.status(response.code).json(response.data ?? {});
             },
