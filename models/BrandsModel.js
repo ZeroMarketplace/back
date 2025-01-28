@@ -5,12 +5,9 @@ class BrandsModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
-            title : {
-                en: String,
-                fa: String
-            },
-            status: {type: String, enum: ['active', 'inactive']},
-            _user : {type: Schema.Types.ObjectId, ref: 'users'}
+            title : {type: String, required: true},
+            status: {type: String, enum: ['active', 'inactive'], required: true},
+            _user : {type: Schema.Types.ObjectId, ref: 'users', required: true},
         },
         {timestamps: true});
 

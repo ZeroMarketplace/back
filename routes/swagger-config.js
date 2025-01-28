@@ -7,4 +7,6 @@
  *     description: APIs for managing properties
  *   - name: Categories
  *     description: APIs for managing categories
+ *   - name: Brands
+ *     description: APIs for managing brands
  */
