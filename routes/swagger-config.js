@@ -9,4 +9,6 @@
  *     description: APIs for managing categories
  *   - name: Brands
  *     description: APIs for managing brands
+ *   - name: Units
+ *     description: APIs for managing units
  */
