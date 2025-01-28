@@ -301,7 +301,7 @@ router.get(
         // create clean input
         let $input = InputsController.clearInput(req.params);
 
-        PropertiesController.get({_id: $input._id}).then(
+        PropertiesController.get($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

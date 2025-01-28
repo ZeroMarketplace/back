@@ -269,13 +269,12 @@ class PropertiesController extends Controllers {
                 });
 
                 // delete from db
-                this.model.deleteOne($input._id).then(
-                    (response) => {
-                        // check the result ... and return
-                        return resolve({
-                            code: 200
-                        });
-                    });
+                await this.model.deleteOne($input._id);
+
+                // return result
+                return resolve({
+                    code: 200
+                });
             } catch (e) {
                 return reject(e);
             }
