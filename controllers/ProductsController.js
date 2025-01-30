@@ -3,13 +3,13 @@ import ProductsModel              from '../models/ProductsModel.js';
 import CategoriesController       from '../controllers/CategoriesController.js';
 import CountersController         from '../controllers/CountersController.js';
 import InventoriesController      from '../controllers/InventoriesController.js';
-import Logger                     from '../core/Logger.js';
 import fs                         from 'fs';
 import multer                     from 'multer';
 import persianDate                from 'persian-date';
 import PurchaseInvoicesController from './PurchaseInvoicesController.js';
 import PropertiesController       from './PropertiesController.js';
 import {ObjectId}                 from "mongodb";
+import InputsController           from "./InputsController.js";
 
 // config upload service
 const filesPath          = 'public/products/';
@@ -79,7 +79,7 @@ class ProductsController extends Controllers {
     static async createVariantTitle($productName, $variant) {
         let title = $productName;
         for (const property of $variant.properties) {
-            let propertyDetail = await PropertiesController.get(property._property);
+            let propertyDetail = await PropertiesController.get({_id: property._property});
             propertyDetail     = propertyDetail.data;
             let value          = propertyDetail.values.find(value => value.code === property.value);
             title += ' ' + value.title
@@ -90,6 +90,14 @@ class ProductsController extends Controllers {
     static async outputBuilder($row) {
         for (const [$index, $value] of Object.entries($row)) {
             switch ($index) {
+                case 'updatedAt':
+                    let updatedAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
+                    break;
+                case 'createdAt':
+                    let createdAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
+                    break;
                 case '_id':
                     // set price of product
                     let priceOfProduct = await InventoriesController.getProductPrice($value);
@@ -110,202 +118,289 @@ class ProductsController extends Controllers {
         return $row;
     }
 
-    static uploadFile($id, $input) {
-        return new Promise((resolve, reject) => {
-            this.model.get($id).then(
-                (product) => {
+    static queryBuilder($input) {
+        let $query = {};
 
-                    // upload files with multer
-                    uploadProductFiles($input.req, $input.res, (err) => {
-                        if (err) {
-                            return reject({
-                                code: 500,
-                                data: err
-                            });
-                        }
+        // pagination
+        $input.perPage = $input.perPage ?? 10;
+        $input.page    = $input.page ?? 1;
+        $input.offset  = ($input.page - 1) * $input.perPage;
 
+        // sort
+        if ($input.sortColumn && $input.sortDirection) {
+            $input.sort                    = {};
+            $input.sort[$input.sortColumn] = $input.sortDirection;
+        } else {
+            $input.sort = {createdAt: -1};
+        }
 
-                        // create array of files
-                        if (!product.files) {
-                            product.files = [];
-                        }
-
-                        // add file Names to the list
-                        $input.req.files.forEach((file) => {
-                            product.files.push(file.filename);
-                        });
-
-                        product.save().then(
-                            (responseSave) => {
-                                return resolve({
-                                    code: 200
-                                });
-                            },
-                            (error) => {
-                                Logger.systemError('products-saveFilesName', error);
-                                return reject({
-                                    code: 500
-                                });
-                            },
-                        );
-
-                    })
-                },
-                (error) => {
-                    return reject(error);
-                }
-            );
+        Object.entries($input).forEach((field) => {
+            // field [0] => index
+            // field [1] => value
+            switch (field[0]) {
+                case 'title':
+                    $input['$or'] = [
+                        {'title': {$regex: '.*' + field[1] + '.*'}},
+                        {'variants.title': {$regex: '.*' + field[1] + '.*'}}
+                    ];
+                    delete $input['title'];
+                    break;
+            }
         });
+
+        return $query;
     }
 
-    static deleteFile($id, $input) {
-        return new Promise((resolve, reject) => {
-            this.model.get($id).then(
-                (product) => {
-                    // check file is exiting
-                    if (product.files.length && product.files.includes($input.fileName)) {
-                        // delete File
-                        fs.unlink(filesPath + $input.fileName, (error) => {
-                            if (error) return reject({code: 500});
+    static uploadFile($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                });
 
-                            product.files.splice(product.files.indexOf($input.fileName), 1);
+                // get product
+                const product = await this.model.get($input._id);
 
-                            product.save().then(
-                                (responseSave) => {
-                                    return resolve({
-                                        code: 200
-                                    });
-                                },
-                                (errorSave) => {
-                                    Logger.systemError('SaveProduct-deleteFile');
-                                }
-                            );
-                        });
-                    } else {
+                // upload product files
+                uploadProductFiles($input.req, $input.res, (err) => {
+                    if (err) {
                         return reject({
-                            code: 404
+                            code: 500,
+                            data: err
                         });
                     }
-                },
-                (error) => {
-                    return reject(error);
-                }
-            );
+
+                    // create array of files
+                    if (!product.files) {
+                        product.files = [];
+                    }
+
+                    // add file Names to the list
+                    $input.req.files.forEach((file) => {
+                        product.files.push(file.filename);
+                    });
+
+                    // save product
+                    product.save();
+
+                    return resolve({
+                        code: 200
+                    });
+                })
+
+            } catch (error) {
+                console.log(error);
+                return reject(error);
+            }
         });
     }
 
-    static deleteVariant($productId, $input) {
-        return new Promise((resolve, reject) => {
-            this.model.get($productId).then(
-                (product) => {
-                    // find purchase-invoices with this product
-                    PurchaseInvoicesController.item({
-                        'products._id': $input.variantId
-                    }, {select: '_id'}).then(
-                        (purchaseInvoices) => {
-                            return reject({
-                                code   : 400,
-                                message: 'It is not possible to remove the product variant.' +
-                                    ' Because it is used in the purchase invoice',
-                            });
-                        },
-                        (response) => {
-                            if (response.code === 404) {
-                                // delete variant from product
-                                product.variants.splice(
-                                    product.variants.indexOf(
-                                        product.variants.find(variant => variant._id === $input.variantId)
-                                    ), 1);
-                                // save product
-                                product.save().then(
-                                    (responseSave) => {
-                                        // return response
-                                        return resolve({
-                                            code: 200
-                                        })
-                                    }
-                                );
+    static deleteFile($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                })
 
-                            } else {
-                                return reject({
-                                    code: 500
-                                });
-                            }
-                        }
-                    );
-                },
-                (error) => {
-                    return reject(error);
+                // get the product files detail
+                const product = await this.model.get($input._id, {
+                    select: '_id files'
+                });
+
+                // check file is exiting
+                if (product.files.length && product.files.includes($input.fileName)) {
+                    // delete File
+                    await fs.unlinkSync(filesPath + $input.fileName);
+
+                    // remove file from files list
+                    product.files.splice(product.files.indexOf($input.fileName), 1);
+
+                    // save the product
+                    await product.save();
+
+                    return resolve({
+                        code: 200
+                    });
+                } else {
+                    return reject({
+                        code: 404
+                    });
                 }
-            );
+            } catch (error) {
+                return reject(error)
+            }
+        });
+    }
+
+    static deleteVariant($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id     : {type: 'mongoId', required: true},
+                    _variant: {type: 'mongoId', required: true}
+                })
+
+                const product = await this.model.get($input._id);
+
+                // find purchase-invoices with this product
+                await PurchaseInvoicesController.item(
+                    {'products._id': $input._variant},
+                    {select: '_id'}
+                ).then(
+                    (purchaseInvoices) => {
+                        return reject({
+                            code   : 400,
+                            message: 'It is not possible to remove the product variant.' +
+                                ' Because it is used in the purchase invoice',
+                        });
+                    },
+                    async (response) => {
+                        if (response.code === 404) {
+
+                            // delete variant from product
+                            product.variants.splice(
+                                product.variants.indexOf(
+                                    product.variants.find(variant => variant._id === $input._variant)
+                                ), 1);
+
+                            // save product
+                            await product.save();
+
+                            return resolve({
+                                code: 200
+                            })
+
+                        } else {
+                            return reject({
+                                code: 500
+                            });
+                        }
+                    }
+                );
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
-
-            // product code
-            let category = await CategoriesController.get($input.categories[0]);
-            $input.code  = Number(
-                category.data.code + '' +
-                await CountersController.increment('Category No. ' + category.data.code + ' products')
-            );
-
-            // variants
-            if ($input.variants) {
-                for (let variant of $input.variants) {
-                    variant.code = Number(
-                        category.data.code + '' +
-                        await CountersController.increment('Category No. ' + category.data.code + ' products')
-                    );
-
-                    // create variant title
-                    // create variant title
-                    variant.title = await this.createVariantTitle($input.title, variant);
-                }
-            }
-
-            // dimensions
-            if (!$input.dimensions) {
-                $input.dimensions = {
-                    width : 0,
-                    length: 0
-                };
-            } else {
-                $input.dimensions.width  = Number($input.dimensions.width);
-                $input.dimensions.length = Number($input.dimensions.length);
-            }
-
-            // filter
-            this.model.insertOne({
-                name       : $input.name,
-                code       : $input.code,
-                _categories: $input.categories,
-                _brand     : $input.brand,
-                _unit      : $input.unit,
-                barcode    : $input.barcode,
-                iranCode   : $input.iranCode,
-                weight     : Number($input.weight),
-                tags       : $input.tags,
-                properties : $input.properties,
-                variants   : $input.variants,
-                dimensions : $input.dimensions,
-                title      : $input.title,
-                content    : $input.content,
-                status     : 'active',
-                _user      : $input.user.data._id
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
+            try {
+                await InputsController.validateInput($input, {
+                    name       : {type: 'string', required: true},
+                    _categories: {
+                        type        : 'array',
+                        minItemCount: 1,
+                        items       : {
+                            type: 'mongoId'
+                        }
+                    },
+                    _brand     : {type: 'mongoId', required: true},
+                    _unit      : {type: 'mongoId', required: true},
+                    barcode    : {type: 'string'},
+                    iranCode   : {type: 'string'},
+                    weight     : {type: 'number'},
+                    tags       : {type: 'string'},
+                    properties : {
+                        type : 'array',
+                        items: {
+                            type      : 'object',
+                            properties: {
+                                title: {type: 'string'},
+                                _id  : {type: 'mongoId'},
+                            }
+                        }
+                    },
+                    variants   : {
+                        type : 'array',
+                        items: {
+                            type      : 'object',
+                            properties: {
+                                properties: {
+                                    type : 'array',
+                                    items: {
+                                        type      : 'object',
+                                        properties: {
+                                            _property: {type: 'mongoId'},
+                                            value    : {type: 'number'}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    dimensions : {
+                        type      : 'object',
+                        properties: {
+                            length: {type: 'number'},
+                            width : {type: 'number'},
+                        }
+                    },
+                    title      : {type: 'string'},
+                    content    : {type: 'string'}
                 });
+
+                // product code
+                let category = await CategoriesController.get({_id: $input._categories[0]});
+                $input.code  = Number(
+                    category.data.code + '' +
+                    await CountersController.increment('Category No. ' + category.data.code + ' products')
+                );
+
+                // variants
+                if ($input.variants) {
+                    for (let variant of $input.variants) {
+                        variant.code = Number(
+                            category.data.code + '' +
+                            await CountersController.increment('Category No. ' + category.data.code + ' products')
+                        );
+
+                        // create variant title
+                        variant.title = await this.createVariantTitle($input.title, variant);
+                    }
+                }
+
+                // dimensions
+                if (!$input.dimensions) {
+                    $input.dimensions = {
+                        width : 0,
+                        length: 0
+                    };
+                }
+
+                // filter
+                let response = await this.model.insertOne({
+                    name       : $input.name,
+                    code       : $input.code,
+                    _categories: $input._categories,
+                    _brand     : $input._brand,
+                    _unit      : $input._unit,
+                    barcode    : $input.barcode,
+                    iranCode   : $input.iranCode,
+                    weight     : $input.weight,
+                    tags       : $input.tags,
+                    properties : $input.properties,
+                    variants   : $input.variants,
+                    dimensions : $input.dimensions,
+                    title      : $input.title,
+                    content    : $input.content,
+                    status     : 'active',
+                    _user      : $input.user.data._id
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                console.log(error);
+                return reject(error);
+            }
         });
     }
 
@@ -328,172 +423,224 @@ class ProductsController extends Controllers {
         });
     }
 
-    static queryBuilder($input) {
-        Object.entries($input).forEach((field) => {
-            // field [0] => index
-            // field [1] => value
-            switch (field[0]) {
-                case 'title':
-                    $input['$or'] = [
-                        {'title': {$regex: '.*' + field[1] + '.*'}},
-                        {'variants.title': {$regex: '.*' + field[1] + '.*'}}
-                    ];
-                    delete $input['title'];
-                    break;
-            }
-        });
-
-        return $input;
-    }
-
     static list($input, $options = {}) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            let query = this.queryBuilder($input);
-
-            $options.populate = [
-                {path: '_unit', select: '_id title'}
-            ];
-
-            // filter
-            this.model.list(query, $options).then(
-                async (response) => {
-                    // check the result ... and return
-
-                    // create output
-                    for (const row of response) {
-                        const index     = response.indexOf(row);
-                        response[index] = await this.outputBuilder(row.toObject());
-                    }
-
-                    return resolve({
-                        code: 200,
-                        data: {
-                            list: response
-                        }
-                    });
-                },
-                (error) => {
-                    return reject({
-                        code: 500
-                    });
-                });
-        });
-    }
-
-    static get($id) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.item({
-                $or: [
-                    {_id: $id},
-                    {'variants._id': $id}
-                ],
-            }, {}).then(
-                async (response) => {
-                    // reformat row for output
-                    response = await this.outputBuilder(response.toObject());
-
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
-    static updateOne($id, $input) {
         return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
-
-            // variants
-            if ($input.variants) {
-                let category = await CategoriesController.get($input.categories[0]);
-                for (let variant of $input.variants) {
-                    if (!variant.code)
-                        variant.code = Number(
-                            category.data.code + '' +
-                            await CountersController.increment('Category No. ' + category.data.code + ' products')
-                        );
-
-                    // create variant title
-                    variant.title = await this.createVariantTitle($input.title, variant);
-                }
-            }
-
-            // dimensions
-            if (!$input.dimensions) {
-                $input.dimensions = {
-                    width : 0,
-                    length: 0
-                };
-            } else {
-                $input.dimensions.width  = Number($input.dimensions.width);
-                $input.dimensions.length = Number($input.dimensions.length);
-            }
-
-            // filter
-            this.model.updateOne($id, {
-                name       : $input.name,
-                _categories: $input.categories,
-                _brand     : $input.brand,
-                _unit      : $input.unit,
-                barcode    : $input.barcode,
-                iranCode   : $input.iranCode,
-                weight     : Number($input.weight),
-                tags       : $input.tags,
-                properties : $input.properties,
-                variants   : $input.variants,
-                dimensions : $input.dimensions,
-                title      : $input.title,
-                content    : $input.content,
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
-                },
-                (response) => {
-                    return reject(response);
+            try {
+                // validate Input
+                await InputsController.validateInput($input, {
+                    title        : {type: "string"},
+                    perPage      : {type: "number"},
+                    page         : {type: "number"},
+                    sortColumn   : {type: "string"},
+                    sortDirection: {type: "number"},
                 });
+
+
+                // check filter is valid and remove other parameters (just valid query by user role) ...
+                let $query = this.queryBuilder($input);
+                // get list
+                const list = await this.model.list(
+                    $query,
+                    {
+                        skip : $input.offset,
+                        limit: $input.perPage,
+                        sort : $input.sort
+                    }
+                );
+
+                // get the count of properties
+                const count = await this.model.count($query);
+
+                // create output
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row.toObject());
+                }
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : list,
+                        total: count
+                    }
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
+    static get($input, $options) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                });
 
-            this.get($id).then(
-                (product) => {
-                    product = product.data;
+                // get the product
+                let response = await this.model.item({
+                    $or: [
+                        {_id: $input._id},
+                        {'variants._id': $input._id}
+                    ],
+                }, $options);
 
-                    // delete files
-                    if (product.files) {
-                        product.files.forEach((file) => {
-                            fs.unlinkSync(filesPath + file);
-                        });
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    static updateOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id        : {type: 'mongoId', required: true},
+                    name       : {type: 'string', required: true},
+                    _categories: {
+                        type        : 'array',
+                        minItemCount: 1,
+                        items       : {
+                            type: 'mongoId'
+                        }
+                    },
+                    _brand     : {type: 'mongoId', required: true},
+                    _unit      : {type: 'mongoId', required: true},
+                    barcode    : {type: 'string'},
+                    iranCode   : {type: 'string'},
+                    weight     : {type: 'number'},
+                    tags       : {type: 'string'},
+                    properties : {
+                        type : 'array',
+                        items: {
+                            type      : 'object',
+                            properties: {
+                                title: {type: 'string'},
+                                _id  : {type: 'mongoId'},
+                            }
+                        }
+                    },
+                    variants   : {
+                        type : 'array',
+                        items: {
+                            type      : 'object',
+                            properties: {
+                                properties: {
+                                    type : 'array',
+                                    items: {
+                                        type      : 'object',
+                                        properties: {
+                                            _property: {type: 'mongoId'},
+                                            value    : {type: 'number'}
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    dimensions : {
+                        type      : 'object',
+                        properties: {
+                            length: {type: 'number'},
+                            width : {type: 'number'},
+                        }
+                    },
+                    title      : {type: 'string'},
+                    content    : {type: 'string'}
+                });
+
+                // variants
+                if ($input.variants) {
+                    let category = await CategoriesController.get({_id: $input._categories[0]});
+                    for (let variant of $input.variants) {
+                        if (!variant.code)
+                            variant.code = Number(
+                                category.data.code + '' +
+                                await CountersController.increment('Category No. ' + category.data.code + ' products')
+                            );
+
+                        // create variant title
+                        variant.title = await this.createVariantTitle($input.title, variant);
                     }
-
-                    this.model.deleteOne($id).then(
-                        (response) => {
-                            // check the result ... and return
-                            return resolve({
-                                code: 200
-                            });
-                        },
-                        (response) => {
-                            return reject(response);
-                        });
-                },
-                (error) => {
-                    return reject(error);
                 }
-            );
+
+                // dimensions
+                if (!$input.dimensions) {
+                    $input.dimensions = {
+                        width : 0,
+                        length: 0
+                    };
+                }
+
+                // filter
+                let response = await this.model.updateOne($input._id, {
+                    name       : $input.name,
+                    _categories: $input._categories,
+                    _brand     : $input._brand,
+                    _unit      : $input._unit,
+                    barcode    : $input.barcode,
+                    iranCode   : $input.iranCode,
+                    weight     : $input.weight,
+                    tags       : $input.tags,
+                    properties : $input.properties,
+                    variants   : $input.variants,
+                    dimensions : $input.dimensions,
+                    title      : $input.title,
+                    content    : $input.content,
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    static deleteOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true},
+                });
+
+                // get the product
+                let product = await this.model.get($input._id, {select: '_id files'});
+
+                // delete files
+                if (product.files) {
+                    for (const file of product.files) {
+                        await fs.unlinkSync(filesPath + file);
+                    }
+                }
+
+                // delete the product
+                await product.deleteOne();
+
+                return resolve({
+                    code: 200
+                })
+
+            } catch (error) {
+                return reject(error)
+            }
         });
     }
 

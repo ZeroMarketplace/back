@@ -1,32 +1,32 @@
-import Models     from '../core/Models.js';
-import {Schema}   from 'mongoose';
+import Models   from '../core/Models.js';
+import {Schema} from 'mongoose';
 
 class ProductsModel extends Models {
 
     static schema = new Schema({
-            name       : String,
-            code       : Number,
-            _categories: [{type: Schema.Types.ObjectId, ref: 'categories'}],
-            _brand     : {type: Schema.Types.ObjectId, ref: 'brands'},
-            _unit      : {type: Schema.Types.ObjectId, ref: 'units'},
+            name       : {type: String, required: true},
+            code       : {type: Number, required: true},
+            _categories: {type: [{type: Schema.Types.ObjectId, ref: 'categories'}], required: true},
+            _brand     : {type: Schema.Types.ObjectId, ref: 'brands', required: true},
+            _unit      : {type: Schema.Types.ObjectId, ref: 'units', required: true},
             barcode    : String,
             iranCode   : String,
             weight     : Number,
             tags       : String,
             properties : [
                 {
-                    title: String,
+                    title: {type: String},
                     value: Schema.Types.Mixed,
                     _id  : {type: Schema.Types.ObjectId, ref: 'properties'}
                 }
             ],
             variants   : [
                 {
-                    code      : Number,
+                    code      : {type: Number, required: true},
                     properties: [
                         {
-                            _property: {type: Schema.Types.ObjectId, ref: 'properties'},
-                            value    : Number
+                            _property: {type: Schema.Types.ObjectId, ref: 'properties', required: true},
+                            value    : {type: Number, required: true},
                         }
                     ],
                     title     : String
@@ -39,8 +39,8 @@ class ProductsModel extends Models {
             title      : String,
             content    : String,
             files      : [String],
-            status     : {type: String, enum: ['active', 'inactive']},
-            _user      : {type: Schema.Types.ObjectId, ref: 'users'}
+            status     : {type: String, enum: ['active', 'inactive'], required: true},
+            _user      : {type: Schema.Types.ObjectId, ref: 'users', required: true},
         },
         {
             timestamps: true,

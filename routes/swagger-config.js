@@ -11,4 +11,6 @@
  *     description: APIs for managing brands
  *   - name: Units
  *     description: APIs for managing units
+ *   - name: Products
+ *     description: APIs for managing units
  */
