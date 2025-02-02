@@ -251,9 +251,11 @@ class ProductsController extends Controllers {
                 ).then(
                     (purchaseInvoices) => {
                         return reject({
-                            code   : 400,
-                            message: 'It is not possible to remove the product variant.' +
-                                ' Because it is used in the purchase invoice',
+                            code: 400,
+                            data: {
+                                message: 'It is not possible to remove the product variant.' +
+                                    ' Because it is used in the purchase invoice',
+                            }
                         });
                     },
                     async (response) => {
