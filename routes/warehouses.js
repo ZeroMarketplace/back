@@ -365,7 +365,7 @@ router.put(
 
 /**
  * @swagger
- * /api/warehouses//default/{typeOfSales}/{id}:
+ * /api/warehouses/default/{typeOfSales}/{id}:
  *   put:
  *     tags:
  *       - Warehouses
