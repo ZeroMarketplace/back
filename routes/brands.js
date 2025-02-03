@@ -241,11 +241,16 @@ router.get(
 
 /**
  * @swagger
- * /api/brands:
+ * /api/brands/{id}:
  *   put:
  *     tags:
  *       - Brands
  *     summary: Edit a Brand
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
