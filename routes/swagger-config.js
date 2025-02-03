@@ -12,5 +12,7 @@
  *   - name: Units
  *     description: APIs for managing units
  *   - name: Products
- *     description: APIs for managing units
+ *     description: APIs for managing Products
+ *   - name: Warehouses
+ *     description: APIs for managing Warehouses
  */
