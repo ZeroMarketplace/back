@@ -5,17 +5,22 @@ class AccountsModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
-            title      : {
-                en: String,
-                fa: String
+            title      : {type: String, required: true},
+            type       : {
+                type    : String,
+                enum    : ['cash', 'bank', 'expense', 'income', 'system', 'user'],
+                required: true
             },
-            type       : {type: String, enum: ['cash', 'bank', 'expense', 'income', 'system', 'user']},
             _reference : {type: Schema.Types.ObjectId}, // refer to user
-            balance    : Number,
+            balance    : {type: Number, default: 0},
             description: String,
-            defaultFor : {type: String, enum: ['cash', 'bank', 'expense', 'income'], isNullable: true},
+            defaultFor : {
+                type      : String,
+                enum      : ['cash', 'bank', 'expense', 'income'],
+                isNullable: true
+            },
             status     : {type: String, enum: ['active', 'inactive']},
-            _user      : {type: Schema.Types.ObjectId, ref: 'users'}
+            _user      : {type: Schema.Types.ObjectId, ref: 'users'},
         },
         {timestamps: true});
 

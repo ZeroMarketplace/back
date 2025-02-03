@@ -15,4 +15,6 @@
  *     description: APIs for managing Products
  *   - name: Warehouses
  *     description: APIs for managing Warehouses
+ *   - name: Accounts
+ *     description: APIs for managing Warehouses
  */

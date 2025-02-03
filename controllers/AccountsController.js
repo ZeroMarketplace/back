@@ -1,5 +1,7 @@
-import Controllers   from '../core/Controllers.js';
-import AccountsModel from '../models/AccountsModel.js';
+import Controllers      from '../core/Controllers.js';
+import AccountsModel    from '../models/AccountsModel.js';
+import InputsController from "./InputsController.js";
+import persianDate      from "persian-date";
 
 class AccountsController extends Controllers {
     static model = new AccountsModel();
@@ -8,10 +10,25 @@ class AccountsController extends Controllers {
         super();
     }
 
-    static queryBuilder($input) {
-        let query = {};
+    static outputBuilder($row) {
+        for (const [$index, $value] of Object.entries($row)) {
+            switch ($index) {
+                case 'updatedAt':
+                    let updatedAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
+                    break;
+                case 'createdAt':
+                    let createdAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
+                    break;
+            }
+        }
 
-        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
+        return $row;
+    }
+
+    static queryBuilder($input) {
+        let $query = {};
 
         // pagination
         $input.perPage = $input.perPage ?? 10;
@@ -21,128 +38,127 @@ class AccountsController extends Controllers {
         // sort
         if ($input.sortColumn && $input.sortDirection) {
             $input.sort                    = {};
-            $input.sort[$input.sortColumn] = Number($input.sortDirection);
+            $input.sort[$input.sortColumn] = $input.sortDirection;
         } else {
             $input.sort = {createdAt: -1};
         }
 
-        for (const [$index, $value] of Object.entries($input)) {
-            switch ($index) {
+        Object.entries($input).forEach((field) => {
+            // field [0] => index
+            // field [1] => value
+            switch (field[0]) {
                 case 'title':
-                    query['title.fa'] = {$regex: '.*' + $value + '.*'};
+                    $query[field[0]] = {$regex: '.*' + field[1] + '.*'};
                     break;
             }
-        }
+        });
 
-        return query;
+        return $query;
     }
 
     // insert global account to db
     static initGlobalAccounts() {
-        return new Promise((resolve, reject) => {
-            this.model.insertMany([
-                // cash purchase
-                {
-                    title      : {
-                        fa: 'خرید نقدی',
-                        en: 'cash purchase',
+        return new Promise(async (resolve, reject) => {
+            try {
+                // init system accounts array
+                const systemAccounts = [
+                    // cash purchase
+                    {
+                        title      : 'خرید نقدی',
+                        type       : 'system',
+                        balance    : 0,
+                        description: 'cash purchase'
                     },
-                    type       : 'system',
-                    balance    : 0,
-                    description: 'cash purchase'
-                },
-                // credit purchase
-                {
-                    title      : {
-                        fa: 'خرید اعتباری',
-                        en: 'credit purchase',
+                    // credit purchase
+                    {
+                        title      : 'خرید اعتباری',
+                        type       : 'system',
+                        balance    : 0,
+                        description: 'credit purchase'
                     },
-                    type       : 'system',
-                    balance    : 0,
-                    description: 'credit purchase'
-                },
-                // cash sales
-                {
-                    title      : {
-                        fa: 'فروش نقدی',
-                        en: 'cash sales',
+                    // cash sales
+                    {
+                        title      : 'فروش نقدی',
+                        type       : 'system',
+                        balance    : 0,
+                        description: 'cash sales'
                     },
-                    type       : 'system',
-                    balance    : 0,
-                    description: 'cash sales'
-                },
-                // credit sales
-                {
-                    title      : {
-                        fa: 'فروش اعتباری',
-                        en: 'credit sales',
+                    // credit sales
+                    {
+                        title      : 'فروش اعتباری',
+                        type       : 'system',
+                        balance    : 0,
+                        description: 'credit sales'
                     },
-                    type       : 'system',
-                    balance    : 0,
-                    description: 'credit sales'
-                },
-                // Return from purchase
-                {
-                    title      : {
-                        fa: 'برگشت از خرید',
-                        en: 'return from purchase',
+                    // Return from purchase
+                    {
+                        title      : 'برگشت از خرید',
+                        type       : 'system',
+                        balance    : 0,
+                        description: 'return from purchase'
                     },
-                    type       : 'system',
-                    balance    : 0,
-                    description: 'return from purchase'
-                },
-                // return from sale
-                {
-                    title      : {
-                        fa: 'برگشت از فروش',
-                        en: 'return from sale',
+                    // return from sale
+                    {
+                        title      : 'برگشت از فروش',
+                        type       : 'system',
+                        balance    : 0,
+                        description: 'return from sale'
                     },
-                    type       : 'system',
-                    balance    : 0,
-                    description: 'return from sale'
-                },
-                // discounts
-                {
-                    title      : {
-                        fa: 'تخفیفات',
-                        en: 'discounts',
+                    // discounts
+                    {
+                        title      : 'تخفیفات',
+                        type       : 'system',
+                        balance    : 0,
+                        description: 'discounts'
                     },
-                    type       : 'system',
-                    balance    : 0,
-                    description: 'discounts'
-                },
-                // tax savings
-                {
-                    title      : {
-                        fa: 'ذخیره مالیات',
-                        en: 'tax savings',
+                    // tax savings
+                    {
+                        title      : 'ذخیره مالیات',
+                        type       : 'system',
+                        balance    : 0,
+                        description: 'tax savings'
                     },
-                    type       : 'system',
-                    balance    : 0,
-                    description: 'tax savings'
-                },
-                // debtors
-                {
-                    title      : {
-                        fa: 'بدهکاران',
-                        en: 'debtors',
+                    // debtors
+                    {
+                        title      : 'بدهکاران',
+                        type       : 'system',
+                        balance    : 0,
+                        description: 'debtors'
                     },
-                    type       : 'system',
-                    balance    : 0,
-                    description: 'debtors'
-                },
-                // creditors
-                {
-                    title      : {
-                        fa: 'بستانکاران',
-                        en: 'creditors',
+                    // creditors
+                    {
+                        title      : 'بستانکاران',
+                        type       : 'system',
+                        balance    : 0,
+                        description: 'creditors'
                     },
-                    type       : 'system',
-                    balance    : 0,
-                    description: 'creditors'
-                },
-            ]);
+                ];
 
+                for (const account of systemAccounts) {
+                    await this.model.item({
+                        type: 'system',
+                        description: account.description
+                    }).then(
+                        (foundedAccount) => {},
+                        async (error) => {
+                            if (error.code === 404) {
+                                // insert the account
+                                await this.model.insertOne(account);
+                            } else {
+                                console.log(error);
+                            }
+                        }
+                    );
+                }
+            } catch (err) {
+                console.log(error);
+                return reject({
+                    code: 500,
+                    data: {
+                        message: err
+                    }
+                });
+            }
         });
     }
 
@@ -220,31 +236,40 @@ class AccountsController extends Controllers {
     }
 
     static insertOne($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.insertOne({
-                title      : {
-                    en: $input.title.en,
-                    fa: $input.title.fa
-                },
-                type       : $input.type,
-                balance    : Number($input.balance),
-                description: $input.description,
-                status     : 'active',
-                _user      : $input.user.data._id
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    title      : {type: 'string', required: true},
+                    type       : {
+                        type         : 'string',
+                        allowedValues: ['cash', 'bank', 'expense', 'income'],
+                        required     : true
+                    },
+                    balance    : {type: 'number', required: true},
+                    description: {type: 'string'},
                 });
+
+                let response = await this.model.insertOne({
+                    title      : $input.title,
+                    type       : $input.type,
+                    balance    : $input.balance,
+                    description: $input.description,
+                    status     : 'active',
+                    _user      : $input.user.data._id
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -268,140 +293,182 @@ class AccountsController extends Controllers {
     }
 
     static list($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate Input
+                await InputsController.validateInput($input, {
+                    title        : {type: "string"},
+                    perPage      : {type: "number"},
+                    page         : {type: "number"},
+                    sortColumn   : {type: "string"},
+                    sortDirection: {type: "number"},
+                });
 
-            let query   = this.queryBuilder($input);
-            let options = {
-                sort: $input.sort
-            };
 
-            // pagination
-            if ($input.pagination) {
-                options.skip  = $input.offset;
-                options.limit = $input.perPage;
+                // check filter is valid and remove other parameters (just valid query by user role) ...
+                let $query = this.queryBuilder($input);
+                // get list
+                const list = await this.model.list(
+                    $query,
+                    {
+                        skip : $input.offset,
+                        limit: $input.perPage,
+                        sort : $input.sort
+                    }
+                );
+
+                // get the count of properties
+                const count = await this.model.count($query);
+
+                // create output
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row.toObject());
+                }
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : list,
+                        total: count
+                    }
+                });
+
+            } catch (error) {
+                return reject(error);
             }
-
-            // filter
-            this.model.list(query, options).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: {
-                            list: response
-                        }
-                    });
-                },
-                (error) => {
-                    return reject({
-                        code: 500
-                    });
-                });
         });
     }
 
-    static get($id, $options) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.get($id, $options).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static get($input, $options) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
                 });
+
+                // get from db
+                let response = await this.model.get($input._id, $options);
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
-    static updateOne($id, $input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.updateOne($id, {
-                title      : {
-                    en: $input.title.en,
-                    fa: $input.title.fa
-                },
-                type       : $input.type,
-                balance    : Number($input.balance),
-                description: $input.description,
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
-                },
-                (response) => {
-                    return reject(response);
+    static updateOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id        : {type: 'mongoId', required: true},
+                    title      : {type: 'string', required: true},
+                    type       : {
+                        type         : 'string',
+                        allowedValues: ['cash', 'bank', 'expense', 'income'],
+                        required     : true
+                    },
+                    balance    : {type: 'number', required: true},
+                    description: {type: 'string'},
                 });
+
+                let response = await this.model.updateOne($input._id, {
+                    title      : $input.title,
+                    type       : $input.type,
+                    balance    : $input.balance,
+                    description: $input.description,
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                console.log(error);
+                return reject(error);
+            }
         });
     }
 
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.deleteOne($id).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static deleteOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
                 });
+
+                // delete from db
+                await this.model.deleteOne($input._id);
+
+                // return result
+                return resolve({
+                    code: 200
+                });
+            } catch (e) {
+                return reject(e);
+            }
         });
     }
 
     // set default of account (type)
-    static setDefaultFor($id) {
-        return new Promise((resolve, reject) => {
-            // find the account
-            this.model.get($id, {
-                select: 'type'
-            }).then(
-                (account) => {
+    static setDefaultFor($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                })
 
-                    // search for leaving default (type)
-                    this.model.item({defaultFor: account.type}).then(
-                        (responseFind) => {
-                            // update old default to null
-                            responseFind.defaultFor = undefined;
-                            responseFind.save();
+                // find the account
+                const account = await this.model.get(
+                    $input._id,
+                    {select: 'type'}
+                );
 
-                            // update new default
-                            account.defaultFor = account.type;
-                            account.save();
+                // search for leaving default (type)
+                await this.model.item({defaultFor: account.type}).then(
+                    async (responseFind) => {
+                        // update old default to null
+                        responseFind.defaultFor = undefined;
+                        await responseFind.save();
 
-                            return resolve({
-                                code: 200
-                            });
-                        },
-                        (response) => {
-                            // update default
-                            account.defaultFor = account.type;
-                            account.save();
+                        // update new default
+                        account.defaultFor = account.type;
+                        await account.save();
 
-                            return resolve({
-                                code: 200
-                            });
-                        }
-                    );
+                        return resolve({
+                            code: 200
+                        });
+                    },
+                    async (response) => {
+                        // update default
+                        account.defaultFor = account.type;
+                        await account.save();
 
-                },
-                (response) => {
-                    return reject(response);
-                }
-            );
+                        return resolve({
+                            code: 200
+                        });
+                    }
+                );
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
