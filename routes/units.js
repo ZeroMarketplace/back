@@ -241,11 +241,16 @@ router.get(
 
 /**
  * @swagger
- * /api/units:
+ * /api/units/{id}:
  *   put:
  *     tags:
  *       - Units
  *     summary: Edit a Unit
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
