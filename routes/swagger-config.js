@@ -16,5 +16,7 @@
  *   - name: Warehouses
  *     description: APIs for managing Warehouses
  *   - name: Accounts
- *     description: APIs for managing Warehouses
+ *     description: APIs for managing Accounts
+ *   - name: Add and Subtract
+ *     description: APIs for managing Add And Subtract
  */
