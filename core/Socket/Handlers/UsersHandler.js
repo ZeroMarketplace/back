@@ -18,7 +18,7 @@ export default (io, socket) => {
             } else {
                 // get user lastSeen
                 let lastSeen = 'recently';
-                await UsersController.get(data._user, {
+                await UsersController.get({_id: data._user}, {
                     select: 'lastSeen'
                 }).then((response) => {
                     if (response.data.lastSeen)

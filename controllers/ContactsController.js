@@ -46,7 +46,7 @@ class ContactsController extends Controllers {
                             }
 
                             // find the user self
-                            UsersController.get($input.user.data._id, {}, 'system').then(
+                            UsersController.get({_id: $input.user.data._id}, {}, 'system').then(
                                 (user) => {
                                     user = user.data;
 
@@ -128,7 +128,7 @@ class ContactsController extends Controllers {
 
     static listOfContacts($input) {
         return new Promise((resolve, reject) => {
-            UsersController.get($input.user.data._id, {
+            UsersController.get({_id: $input.user.data._id}, {
                 select  : 'contacts',
                 populate: [
                     {path: 'contacts', select: '_id name avatars color'},

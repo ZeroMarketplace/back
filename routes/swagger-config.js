@@ -19,4 +19,6 @@
  *     description: APIs for managing Accounts
  *   - name: Add and Subtract
  *     description: APIs for managing Add And Subtract
+ *   - name: Users
+ *     description: APIs for managing Users
  */

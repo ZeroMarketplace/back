@@ -94,7 +94,9 @@ class AuthController extends Controllers {
         if (token == null) return res.sendStatus(401);
 
         jwt.verify(token, process.env.TOKEN_SECRET, (err, user) => {
-            if (err) return res.sendStatus(403);
+            if (err) return res.status(403).json({
+                message: 'token verification failed',
+            });
 
             req.user = user;
 
@@ -102,23 +104,22 @@ class AuthController extends Controllers {
         });
     }
 
-    static checkAccess(req, res, next) {
-        PermissionsController.get(req.user.data.permissions).then(
-            (response) => {
-                if (
-                    response.data.urls &&
-                    response.data.urls[req.baseUrl] &&
-                    response.data.urls[req.baseUrl][req.method]
-                ) {
-                    next();
-                } else {
-                    return res.sendStatus(403);
-                }
-            },
-            (error) => {
-                Logger.systemError('AUTH-Permissions', error)
+    static async checkAccess(req, res, next) {
+        try {
+            const permission = await PermissionsController.get(req.user.data.permissions);
+            if (
+                permission.data.urls &&
+                permission.data.urls[req.baseUrl] &&
+                permission.data.urls[req.baseUrl][req.method]
+            ) {
+                next();
+            } else {
+                return res.sendStatus(403);
             }
-        );
+        }
+        catch (error) {
+            Logger.systemError('AUTH-Permissions', error)
+        }
     }
 
 }

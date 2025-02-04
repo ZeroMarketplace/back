@@ -16,7 +16,12 @@ class UsersController extends Controllers {
     static outputBuilder($row) {
         for (const [$index, $value] of Object.entries($row)) {
             switch ($index) {
-
+                case 'name':
+                    $row['firstName'] = $value.first;
+                    $row['lastName']  = $value.last;
+                    $row['fullName']  = $value.first + ' ' + $value.last;
+                    delete $row['name'];
+                    break;
             }
         }
 
@@ -26,19 +31,15 @@ class UsersController extends Controllers {
     static queryBuilder($input) {
         let query = {};
 
-        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
-
         // pagination
-        if ($input.pagination) {
-            $input.perPage = $input.perPage ?? 10;
-            $input.page    = $input.page ?? 1;
-            $input.offset  = ($input.page - 1) * $input.perPage;
-        }
+        $input.perPage = $input.perPage ?? 10;
+        $input.page    = $input.page ?? 1;
+        $input.offset  = ($input.page - 1) * $input.perPage;
 
         // sort
         if ($input.sortColumn && $input.sortDirection) {
             $input.sort                    = {};
-            $input.sort[$input.sortColumn] = Number($input.sortDirection);
+            $input.sort[$input.sortColumn] = $input.sortDirection;
         } else {
             $input.sort = {createdAt: -1};
         }
@@ -179,24 +180,17 @@ class UsersController extends Controllers {
                 user.status = 'active';
 
                 // set user permission
-                await PermissionsController.getUsersDefaultPermissions()
-                    .then(
-                        (responseDefaultPermission) => {
-                            user._permissions = responseDefaultPermission.data._id;
-                        }
-                    );
+                const usersDefaultPermission = await PermissionsController.getUsersDefaultPermissions();
+                user._permissions            = usersDefaultPermission.data._id;
 
-                await this.model.insertOne(user).then(
-                    (result) => {
-                        return resolve({
-                            code: 200,
-                            data: result
-                        });
-                    },
-                    (err) => {
-                        return reject(err);
-                    }
-                );
+                let response = await this.model.insertOne(user);
+
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
 
             } catch (err) {
                 return reject(err);
@@ -242,93 +236,109 @@ class UsersController extends Controllers {
         });
     }
 
-    static listOfUsers($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
+    static users($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate Input
+                await InputsController.validateInput($input, {
+                    title        : {type: "string"},
+                    perPage      : {type: "number"},
+                    page         : {type: "number"},
+                    sortColumn   : {type: "string"},
+                    sortDirection: {type: "number"},
+                });
 
-            let query = this.queryBuilder($input);
+                let query = this.queryBuilder($input);
 
-            let options = {
-                sort      : $input.sort,
-                projection: {
-                    password: 0
+                let options = {
+                    sort      : $input.sort,
+                    skip      : $input.offset,
+                    limit     : $input.perPage,
+                    projection: {
+                        password: 0
+                    }
+                };
+
+                // get the items
+                let response = await this.model.list(query, options);
+
+                // create output
+                for (const row of response) {
+                    const index     = response.indexOf(row);
+                    response[index] = await this.outputBuilder(row);
                 }
-            };
 
-            if ($input.pagination) {
-                options.skip  = $input.offset;
-                options.limit = $input.perPage;
+
+                // get count of items
+                const count = await this.model.count(query);
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : response,
+                        total: count
+                    }
+                });
+            } catch (error) {
+                return reject(error);
             }
-
-            // filter
-            this.model.list(query, options).then(
-                (response) => {
-                    // get count
-                    this.model.count(query).then(async (count) => {
-
-                        // create output
-                        for (const row of response) {
-                            const index     = response.indexOf(row);
-                            response[index] = await this.outputBuilder(row);
-                        }
-
-                        // return result
-                        return resolve({
-                            code: 200,
-                            data: {
-                                list : response,
-                                total: count
-                            }
-                        });
-
-                    });
-                },
-                (error) => {
-                    return reject({
-                        code: 500
-                    });
-                });
         });
     }
 
-    static get($id, $options = {}, $type = 'api') {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.get($id, $options).then(
-                async (response) => {
-                    // reformat row for output
-                    if ($type === 'api')
-                        response = await this.outputBuilder(response.toObject());
-
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static get($input, $options = {}, $type = 'api') {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
                 });
+
+                let response = await this.model.get($input._id, $options);
+
+                // reformat row for output
+                if ($type === 'api')
+                    response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
-    static updateOne($id, $input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.updateOne($id, {}).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static updateOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id      : {type: 'mongoId', required: true},
+                    firstName: {type: "string", required: true},
+                    lastName : {type: "string", required: true},
+                    color    : {type: 'string', required: true}
                 });
+
+                // update db
+                let response = await this.model.updateOne($input._id, {
+                    firstName: $input.firstName,
+                    lastName : $input.lastName,
+                    color    : $input.firstName
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -373,16 +383,23 @@ class UsersController extends Controllers {
     }
 
     static deleteOne($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                });
 
-            // filter
-            this.model.deleteOne($input).then(response => {
-                // check the result ... and return
-                return resolve(response);
-            }).catch(response => {
-                return reject(response);
-            });
+                // delete from db
+                await this.model.deleteOne($input._id);
+
+                // return result
+                return resolve({
+                    code: 200
+                });
+            } catch (e) {
+                return reject(e);
+            }
         });
     }
 
