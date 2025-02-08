@@ -4,6 +4,9 @@ import persianDate                from 'persian-date';
 import {ObjectId}                 from 'mongodb';
 import InventoryChangesController from "./InventoryChangesController.js";
 import CommodityProfitsController from "./CommodityProfitsController.js";
+import InputsController           from "./InputsController.js";
+import PurchaseInvoices           from "../routes/purchase-invoices.js";
+import PurchaseInvoicesController from "./PurchaseInvoicesController.js";
 
 class InventoriesController extends Controllers {
     static model = new InventoriesModel();
@@ -52,6 +55,14 @@ class InventoriesController extends Controllers {
                     let dateTimeJalali      = new persianDate($value);
                     $row[$index + 'Jalali'] = dateTimeJalali.toLocale('fa').format();
                     break;
+                case 'updatedAt':
+                    let updatedAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
+                    break;
+                case 'createdAt':
+                    let createdAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
+                    break;
                 case 'productDetails':
                     // check if is variant of original product
                     if ($row['product'].toString() !== $value._id.toString()) {
@@ -99,30 +110,105 @@ class InventoriesController extends Controllers {
     }
 
     static insertOne($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.insertOne({
-                dateTime        : $input.dateTime,
-                count           : $input.count,
-                _product        : $input._product,
-                _warehouse      : $input._warehouse,
-                _purchaseInvoice: $input._purchaseInvoice,
-                price           : $input.price,
-                status          : 'active',
-                _user           : $input.user.data._id
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    dateTime        : {type: 'date', required: true},
+                    count           : {type: 'number', required: true},
+                    _product        : {type: 'mongoId', required: true},
+                    _warehouse      : {type: 'mongoId', required: true},
+                    _purchaseInvoice: {type: 'mongoId', required: true},
+                    price           : {
+                        type      : 'object',
+                        properties: {
+                            purchase: {type: 'number', required: true},
+                            consumer: {type: 'number', required: true},
+                            store   : {type: 'number', required: true}
+                        }
+                    }
                 });
+
+                // insert to db
+                let response = await this.model.insertOne({
+                    dateTime        : $input.dateTime,
+                    count           : $input.count,
+                    _product        : $input._product,
+                    _warehouse      : $input._warehouse,
+                    _purchaseInvoice: $input._purchaseInvoice,
+                    price           : $input.price,
+                    status          : 'active',
+                    _user           : $input.user.data._id
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    static insertByPurchaseInvoice($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id : {type: 'mongoId', required: true},
+                    user: {
+                        type      : 'object',
+                        properties: {
+                            data: {
+                                type      : 'object',
+                                properties: {
+                                    _id: {type: 'mongoId', required: true},
+                                },
+                                required  : true
+                            }
+                        },
+                        required  : true
+                    }
+                });
+
+                // get purchase invoice
+                let purchaseInvoice = await PurchaseInvoicesController.get({
+                    _id: $input._id
+                });
+                // get data of purchase invoice
+                purchaseInvoice     = purchaseInvoice.data;
+
+                // for each product in invoice
+                for (const product of purchaseInvoice.products) {
+                    // insert an inventory for product
+                    await this.model.insertOne({
+                        dateTime        : purchaseInvoice.dateTime,
+                        _product        : product._id,
+                        count           : product.count,
+                        _warehouse      : purchaseInvoice._warehouse,
+                        _purchaseInvoice: purchaseInvoice._id,
+                        price           : {
+                            purchase: product.price.purchase,
+                            consumer: product.price.consumer,
+                            store   : product.price.store
+                        },
+                        status          : 'active',
+                        _user           : $input.user.data._id
+                    });
+                }
+
+                return resolve({
+                    code: 200
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -236,45 +322,6 @@ class InventoriesController extends Controllers {
                 (response) => {
                     // check the result ... and return
                     return resolve(response);
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.deleteOne($id).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
-    static delete($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.delete($input).then(
-                (response) => {
-                    if (response.deletedCount) {
-                        return resolve({
-                            code: 200
-                        });
-                    } else {
-                        return reject(response);
-                    }
                 },
                 (response) => {
                     return reject(response);
@@ -630,6 +677,45 @@ class InventoriesController extends Controllers {
             });
 
         })
+    }
+
+    static deleteOne($id) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid ...
+
+            // filter
+            this.model.deleteOne($id).then(
+                (response) => {
+                    // check the result ... and return
+                    return resolve({
+                        code: 200
+                    });
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
+    }
+
+    static delete($input) {
+        return new Promise((resolve, reject) => {
+            // check filter is valid ...
+
+            // filter
+            this.model.delete($input).then(
+                (response) => {
+                    if (response.deletedCount) {
+                        return resolve({
+                            code: 200
+                        });
+                    } else {
+                        return reject(response);
+                    }
+                },
+                (response) => {
+                    return reject(response);
+                });
+        });
     }
 
 }

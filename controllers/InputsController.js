@@ -69,7 +69,8 @@ class InputsController extends Controllers {
                                     }
                                     break;
                                 case 'date':
-                                    if (!validator.isDate(value)) {
+                                    let date = new Date(value);
+                                    if (!validator.isDate(date)) {
                                         errors.push(`${fieldPath} must be a Date`);
                                     }
                                     break;

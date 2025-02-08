@@ -5,6 +5,7 @@ import AddAndSubtractController from './AddAndSubtractController.js';
 import persianDate              from 'persian-date';
 import InventoriesController    from '../controllers/InventoriesController.js';
 import SettlementsController    from './SettlementsController.js';
+import InputsController         from "./InputsController.js";
 
 class PurchaseInvoicesController extends Controllers {
     static model = new PurchaseInvoicesModel();
@@ -16,18 +17,26 @@ class PurchaseInvoicesController extends Controllers {
     static outputBuilder($row) {
         for (const [$index, $value] of Object.entries($row)) {
             switch ($index) {
+                case 'updatedAt':
+                    let updatedAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
+                    break;
+                case 'createdAt':
+                    let createdAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
+                    break;
                 case 'dateTime':
                     let dateTimeJalali      = new persianDate($value);
                     $row[$index + 'Jalali'] = dateTimeJalali.toLocale('fa').format();
                     break;
             }
         }
+
+        return $row;
     }
 
     static queryBuilder($input) {
-        let query = {};
-
-        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
+        let $query = {};
 
         // pagination
         $input.perPage = $input.perPage ?? 10;
@@ -37,18 +46,20 @@ class PurchaseInvoicesController extends Controllers {
         // sort
         if ($input.sortColumn && $input.sortDirection) {
             $input.sort                    = {};
-            $input.sort[$input.sortColumn] = Number($input.sortDirection);
+            $input.sort[$input.sortColumn] = $input.sortDirection;
         } else {
             $input.sort = {createdAt: -1};
         }
 
-        // for (const [$index, $value] of Object.entries($input)) {
-        //     switch ($index) {
-        //
-        //     }
-        // }
+        Object.entries($input).forEach((field) => {
+            // field [0] => index
+            // field [1] => value
+            switch (field[0]) {
 
-        return query;
+            }
+        });
+
+        return $query;
     }
 
     static async calculateInvoice($input) {
@@ -69,7 +80,9 @@ class PurchaseInvoicesController extends Controllers {
         // calc subtracts in addAndSub
         for (const addAndSub of $input.AddAndSub) {
             // get add and subtract
-            let detailAddAndSubtract = await AddAndSubtractController.get(addAndSub._reason);
+            let detailAddAndSubtract = await AddAndSubtractController.get({
+                _id: addAndSub._reason
+            });
             detailAddAndSubtract     = detailAddAndSubtract.data;
 
             // save detail for using in add operations
@@ -107,70 +120,109 @@ class PurchaseInvoicesController extends Controllers {
 
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
-            let code = await CountersController.increment('purchase-invoices');
-            await this.calculateInvoice($input);
-
-            // filter
-            this.model.insertOne({
-                code       : code,
-                _customer  : $input.customer,
-                dateTime   : $input.dateTime,
-                _warehouse : $input.warehouse,
-                description: $input.description,
-                products   : $input.products,
-                AddAndSub  : $input.AddAndSub,
-                total      : $input.total,
-                sum        : $input.sum,
-                status     : 'active',
-                _user      : $input.user.data._id
-            }).then(
-                (response) => {
-
-                    // update inventories
-                    response.products.forEach(async (product) => {
-                        await InventoriesController.insertOne({
-                            dateTime        : new Date(),
-                            count           : product.count,
-                            _product        : product._id,
-                            _warehouse      : response._warehouse,
-                            _purchaseInvoice: response._id,
-                            price           : {
-                                purchase: product.price.purchase,
-                                consumer: product.price.consumer,
-                                store   : product.price.store
-                            },
-                            user            : $input.user
-                        });
-                    });
-
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _customer     : {type: 'mongoId', required: true},
+                    _warehouse    : {type: 'mongoId', required: true},
+                    dateTime      : {type: 'date', required: true},
+                    description   : {type: 'string'},
+                    products      : {
+                        type : 'array',
+                        items: {
+                            type      : 'object',
+                            properties: {
+                                _id  : {type: 'mongoId', required: true},
+                                count: {type: 'number', required: true},
+                                price: {
+                                    type      : 'object',
+                                    properties: {
+                                        purchase: {type: 'number', required: true},
+                                        consumer: {type: 'number', required: true},
+                                        store   : {type: 'number', required: true}
+                                    }
+                                },
+                                total: {type: 'number', required: true}
+                            }
+                        }
+                    },
+                    AddAndSub: {
+                        type : 'array',
+                        items: {
+                            type      : 'object',
+                            properties: {
+                                _reason: {type: 'mongoId', required: true},
+                                amount : {type: 'number', required: true},
+                                value  : {type: 'number', required: true},
+                            }
+                        }
+                    }
                 });
+
+                // create code for invoice
+                let code = await CountersController.increment('purchase-invoices');
+
+                // calculate the invoice numbers
+                await this.calculateInvoice($input);
+
+                // insert to db
+                let response = await this.model.insertOne({
+                    code       : code,
+                    _customer  : $input._customer,
+                    dateTime   : $input.dateTime,
+                    _warehouse : $input._warehouse,
+                    description: $input.description,
+                    products   : $input.products,
+                    AddAndSub  : $input.AddAndSub,
+                    total      : $input.total,
+                    sum        : $input.sum,
+                    status     : 'active',
+                    _user      : $input.user.data._id
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+
+                // insert inventories
+                await InventoriesController.insertByPurchaseInvoice({
+                    _id : response._id.toString(),
+                    user: $input.user
+                });
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                console.log(error);
+                return reject(error);
+            }
         });
     }
 
-    static get($id, $options) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.get($id, $options).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static get($input, $options) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
                 });
+
+                // get from db
+                let response = await this.model.get($input._id, $options);
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 

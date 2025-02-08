@@ -1,22 +1,42 @@
-import Models     from '../core/Models.js';
-import {Schema}   from 'mongoose';
+import Models   from '../core/Models.js';
+import {Schema} from 'mongoose';
 
 class InventoriesModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
-            dateTime        : Date,
-            count           : Number,
-            _product        : {type: Schema.Types.ObjectId, ref: 'products'},
-            _warehouse      : {type: Schema.Types.ObjectId, ref: 'warehouses'},
-            _purchaseInvoice: {type: Schema.Types.ObjectId, ref: 'purchase-invoices'},
-            price           : {
-                purchase: Number,
-                consumer: Number,
-                store   : Number
+            dateTime        : {type: Date, required: true},
+            count           : {type: Number, required: true},
+            _product        : {
+                type    : Schema.Types.ObjectId,
+                ref     : 'products',
+                required: true
             },
-            status          : {type: String, enum: ['active', 'inactive']},
-            _user           : {type: Schema.Types.ObjectId, ref: 'users'}
+            _warehouse      : {
+                type    : Schema.Types.ObjectId,
+                ref     : 'warehouses',
+                required: true
+            },
+            _purchaseInvoice: {
+                type    : Schema.Types.ObjectId,
+                ref     : 'purchase-invoices',
+                required: true
+            },
+            price           : {
+                purchase: {type: Number, required: true},
+                consumer: {type: Number, required: true},
+                store   : {type: Number, required: true}
+            },
+            status          : {
+                type    : String,
+                enum    : ['active', 'inactive'],
+                required: true
+            },
+            _user           : {
+                type    : Schema.Types.ObjectId,
+                ref     : 'users',
+                required: true
+            },
         },
         {timestamps: true});
 
