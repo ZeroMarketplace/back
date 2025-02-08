@@ -5,6 +5,7 @@ import Logger                from '../core/Logger.js';
 import HelpersController     from './HelpersController.js';
 import InputsController      from "./InputsController.js";
 import AuthController        from "./AuthController.js";
+import persianDate           from "persian-date";
 
 class UsersController extends Controllers {
     static model = new UsersModel();
@@ -16,11 +17,13 @@ class UsersController extends Controllers {
     static outputBuilder($row) {
         for (const [$index, $value] of Object.entries($row)) {
             switch ($index) {
-                case 'name':
-                    $row['firstName'] = $value.first;
-                    $row['lastName']  = $value.last;
-                    $row['fullName']  = $value.first + ' ' + $value.last;
-                    delete $row['name'];
+                case 'updatedAt':
+                    let updatedAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
+                    break;
+                case 'createdAt':
+                    let createdAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
                     break;
             }
         }
@@ -58,28 +61,28 @@ class UsersController extends Controllers {
 
                     // Search assuming all words are in `first`
                     conditions.push({
-                        'name.first': {$regex: names.join(' '), $options: 'i'}
+                        'firstName': {$regex: names.join(' '), $options: 'i'}
                     });
 
                     // Search assuming all words are in `last`
                     conditions.push({
-                        'name.last': {$regex: names.join(' '), $options: 'i'}
+                        'lastName': {$regex: names.join(' '), $options: 'i'}
                     });
 
                     // Search assuming the first word is in `first` and the rest in `last`
                     if (names.length > 1) {
                         conditions.push({
                             $and: [
-                                {'name.first': {$regex: names[0], $options: 'i'}},
-                                {'name.last': {$regex: names.slice(1).join(' '), $options: 'i'}}
+                                {'firstName': {$regex: names[0], $options: 'i'}},
+                                {'lastName': {$regex: names.slice(1).join(' '), $options: 'i'}}
                             ]
                         });
 
                         // Search assuming the first word is in `last` and the rest in `first`
                         conditions.push({
                             $and: [
-                                {'name.first': {$regex: names.slice(1).join(' '), $options: 'i'}},
-                                {'name.last': {$regex: names[0], $options: 'i'}}
+                                {'firstName': {$regex: names.slice(1).join(' '), $options: 'i'}},
+                                {'lastName': {$regex: names[0], $options: 'i'}}
                             ]
                         });
                     }
@@ -141,10 +144,8 @@ class UsersController extends Controllers {
                 }
 
                 // Set Name
-                user.name = {
-                    first: $input.firstName,
-                    last : $input.lastName,
-                };
+                user.firstName = $input.firstName;
+                user.lastName  = $input.lastName;
 
                 // set phone
                 if ($input.phone) {
@@ -260,23 +261,23 @@ class UsersController extends Controllers {
                 };
 
                 // get the items
-                let response = await this.model.list(query, options);
-
-                // create output
-                for (const row of response) {
-                    const index     = response.indexOf(row);
-                    response[index] = await this.outputBuilder(row);
-                }
+                let list = await this.model.list(query, options);
 
 
                 // get count of items
                 const count = await this.model.count(query);
 
+                // create output
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row.toObject());
+                }
+
                 // return result
                 return resolve({
                     code: 200,
                     data: {
-                        list : response,
+                        list : list,
                         total: count
                     }
                 });
