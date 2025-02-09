@@ -5,25 +5,39 @@ class AccountingDocumentsModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
-            code            : Number,
-            dateTime        : Date,
+            code            : {type: Number, required: true},
+            dateTime        : {type: Date, required: true},
             description     : String,
             accountsInvolved: [
                 {
-                    _account   : {type: Schema.Types.ObjectId, ref: 'accounts'},
+                    _account   : {
+                        type    : Schema.Types.ObjectId,
+                        ref     : 'accounts',
+                        required: true
+                    },
                     description: String,
-                    debit      : Number,
-                    credit     : Number
+                    debit      : {type: Number, required: true},
+                    credit     : {type: Number, required: true},
                 }
             ],
-            amount          : Number,
+            amount          : {type: Number, required: true},
             _reference      : {type: Schema.Types.ObjectId, isNullable: true},
             type            : {
-                type: String, enum: ['purchase-invoice-settlement', 'sales-invoice-settlement'], isNullable: true
+                type   : String,
+                enum   : ['purchase-invoice-settlement', 'sales-invoice-settlement'],
+                default: undefined
             },
-            files           : [String],
-            status          : {type: String, enum: ['active', 'inactive']},
-            _user           : {type: Schema.Types.ObjectId, ref: 'users'}
+            files           : {type: [String], default: undefined},
+            status          : {
+                type    : String,
+                enum    : ['active', 'inactive'],
+                required: true
+            },
+            _user           : {
+                type    : Schema.Types.ObjectId,
+                ref     : 'users',
+                required: true
+            }
         },
         {timestamps: true});
 
