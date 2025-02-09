@@ -180,7 +180,7 @@ router.get(
         // create clean input
         let $input = InputsController.clearInput(req.query);
 
-        AccountsController.list($input).then(
+        AccountsController.accounts($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

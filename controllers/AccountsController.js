@@ -50,6 +50,13 @@ class AccountsController extends Controllers {
                 case 'title':
                     $query[field[0]] = {$regex: '.*' + field[1] + '.*'};
                     break;
+                case 'type':
+                    $query[field[0]] = field[1];
+                    break;
+                case 'types':
+                    let types      = field[1].split(',');
+                    $query['type'] = {$in: types};
+                    break;
             }
         });
 
@@ -136,7 +143,7 @@ class AccountsController extends Controllers {
 
                 for (const account of systemAccounts) {
                     await this.model.item({
-                        type: 'system',
+                        type       : 'system',
                         description: account.description
                     }).then(
                         (foundedAccount) => {},
@@ -160,25 +167,6 @@ class AccountsController extends Controllers {
                 });
             }
         });
-    }
-
-    static getGlobalAccount($description) {
-        return new Promise((resolve, reject) => {
-            this.model.item({
-                type       : 'system',
-                description: $description
-            }).then(
-                (response) => {
-                    return resolve({
-                        code: 200,
-                        data: response
-                    })
-                },
-                (response) => {
-                    return reject(response);
-                }
-            );
-        })
     }
 
     static getUserAccount($userId) {
@@ -273,31 +261,43 @@ class AccountsController extends Controllers {
         });
     }
 
-    static item($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
+    static item($input, $options = {}, $resultType = 'object') {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let response = await this.model.item($input, $options);
 
-            // filter
-            this.model.item($input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
+                // create output
+                if ($resultType === 'object') {
+                    response = await this.outputBuilder(response.toObject());
+                }
+
+                return resolve({
+                    code: 200,
+                    data: response
                 });
+            } catch (error) {
+                return reject(error)
+            }
         });
     }
 
-    static list($input) {
+    static accounts($input) {
         return new Promise(async (resolve, reject) => {
             try {
                 // validate Input
                 await InputsController.validateInput($input, {
                     title        : {type: "string"},
+                    type         : {
+                        type         : "string",
+                        allowedValues: ['cash', 'bank', 'expense', 'income', 'system', 'user']
+                    },
+                    types        : {
+                        type : 'array',
+                        items: {
+                            type         : 'string',
+                            allowedValues: ['cash', 'bank', 'expense', 'income', 'system', 'user']
+                        }
+                    },
                     perPage      : {type: "number"},
                     page         : {type: "number"},
                     sortColumn   : {type: "string"},

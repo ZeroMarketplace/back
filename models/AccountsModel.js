@@ -5,7 +5,7 @@ class AccountsModel extends Models {
 
     // const Account = null;
     static schema = new Schema({
-            title      : {type: String, required: true},
+            title      : {type: String},
             type       : {
                 type    : String,
                 enum    : ['cash', 'bank', 'expense', 'income', 'system', 'user'],
