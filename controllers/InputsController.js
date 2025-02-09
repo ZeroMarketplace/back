@@ -86,6 +86,11 @@ class InputsController extends Controllers {
                                     }
                                     break;
                                 case 'array':
+                                    // convert string to array (exception for query)
+                                    if(typeof value === 'string') {
+                                        value = value.split(',');
+                                    }
+
                                     // handle nested objects or arrays
                                     if (Array.isArray(value)) {
                                         // check minLength
