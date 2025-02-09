@@ -7,6 +7,7 @@ import InventoriesController      from '../controllers/InventoriesController.js'
 import SettlementsController      from './SettlementsController.js';
 import InventoryChangesController from './InventoryChangesController.js';
 import CommodityProfitsController from './CommodityProfitsController.js';
+import InputsController           from "./InputsController.js";
 
 class SalesInvoicesController extends Controllers {
     static model = new SalesInvoicesModel();
@@ -21,6 +22,14 @@ class SalesInvoicesController extends Controllers {
                 case 'dateTime':
                     let dateTimeJalali      = new persianDate($value);
                     $row[$index + 'Jalali'] = dateTimeJalali.toLocale('fa').format();
+                    break;
+                case 'updatedAt':
+                    let updatedAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
+                    break;
+                case 'createdAt':
+                    let createdAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
                     break;
             }
         }
@@ -175,22 +184,30 @@ class SalesInvoicesController extends Controllers {
         });
     }
 
-    static get($id, $options) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.get($id, $options).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static get($input, $options = {}, $resultType = 'object') {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
                 });
+
+                // get from db
+                let response = await this.model.get($input._id, $options);
+
+                // create output
+                if($resultType === 'object') {
+                    response = await this.outputBuilder(response.toObject());
+                }
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -356,6 +373,32 @@ class SalesInvoicesController extends Controllers {
                 },
             );
         });
+    }
+
+    static setSettlement($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                await InputsController.validateInput($input, {
+                    _id        : {type: 'mongoId', required: true},
+                    _settlement: {type: 'mongoId', required: true},
+                });
+
+                let response = await this.model.updateOne($input._id, {
+                    _settlement: $input._settlement
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
     static deleteOne($id) {
