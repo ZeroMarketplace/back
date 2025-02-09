@@ -7,6 +7,7 @@ import CommodityProfitsController from "./CommodityProfitsController.js";
 import InputsController           from "./InputsController.js";
 import PurchaseInvoices           from "../routes/purchase-invoices.js";
 import PurchaseInvoicesController from "./PurchaseInvoicesController.js";
+import SalesInvoicesController    from "./SalesInvoicesController.js";
 
 class InventoriesController extends Controllers {
     static model = new InventoriesModel();
@@ -677,6 +678,46 @@ class InventoriesController extends Controllers {
             });
 
         })
+    }
+
+    static stockSalesBySalesInvoice($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // get sales invoice
+                let salesInvoice = await SalesInvoicesController.get(
+                    {_id: $input._id},
+                    {select: 'products'},
+                    'model'
+                );
+                salesInvoice     = salesInvoice.data;
+
+
+                // change inventory counts
+                for (const product of salesInvoice.products) {
+                    // update counts
+                    let response = await InventoriesController.stockSales({
+                        _product   : product._product,
+                        _warehouse : product._warehouse,
+                        count      : product.count,
+                        price      : product.price,
+                        _reference : $input._id,
+                        typeOfSales: 'retail'
+                    });
+
+                    // set the _inventoryChanges
+                    product._inventoryChanges = response.data._inventoryChanges;
+                }
+
+                // update the sales invoice
+                await salesInvoice.save();
+
+                return resolve({
+                    code: 200
+                });
+            } catch (error) {
+                return reject(error);
+            }
+        });
     }
 
     static deleteOne($id) {
