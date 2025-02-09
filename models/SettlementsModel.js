@@ -6,31 +6,48 @@ class AccountingDocumentsModel extends Models {
     // const Account = null;
     static schema = new Schema({
             description        : String,
-            type               : {type: String, enum: ['purchase-invoices', 'sales-invoices']},
-            _reference         : Schema.Types.ObjectId,
-            _accountingDocument: {type: Schema.Types.ObjectId, ref: 'users'},
+            type               : {
+                type    : String,
+                enum    : ['purchase-invoice', 'sales-invoice'],
+                required: true,
+            },
+            _reference         : {type: Schema.Types.ObjectId, required: true},
+            _accountingDocument: {
+                type: Schema.Types.ObjectId,
+                ref : 'accounting-documents',
+            },
             payment            : {
-                cash           : Number,
+                cash           : {type: Number, required: true},
                 cashAccounts   : [
                     {
-                        _account: {type: Schema.Types.ObjectId, ref: 'accounts'},
-                        amount  : Number,
-                        default : {type: Boolean, isNullable: true},
+                        _account: {
+                            type    : Schema.Types.ObjectId,
+                            ref     : 'accounts',
+                            required: true,
+                        },
+                        amount  : {type: Number, required: true}
                     }
                 ],
-                distributedCash: Boolean,
-                bank           : Number,
+                distributedCash: {type: Boolean, required: true},
+                bank           : {type: Number, required: true},
                 bankAccounts   : [
                     {
-                        _account: {type: Schema.Types.ObjectId, ref: 'accounts'},
-                        amount  : Number,
-                        default : {type: Boolean, isNullable: true},
+                        _account: {
+                            type    : Schema.Types.ObjectId,
+                            ref     : 'accounts',
+                            required: true,
+                        },
+                        amount  : {type: Number, required: true}
                     }
                 ],
-                distributedBank: Boolean,
-                credit         : Number,
+                distributedBank: {type: Boolean, required: true},
+                credit         : {type: Number, required: true},
             },
-            _user              : {type: Schema.Types.ObjectId, ref: 'users'}
+            _user              : {
+                type    : Schema.Types.ObjectId,
+                ref     : 'users',
+                required: true
+            },
         },
         {timestamps: true});
 

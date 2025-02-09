@@ -46,14 +46,14 @@ router.get(
 );
 
 router.get(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res) {
         // create clean input
         let $input = InputsController.clearInput(req.params);
 
-        SettlementsController.get($input.id).then(
+        SettlementsController.get($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
