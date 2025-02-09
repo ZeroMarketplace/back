@@ -201,7 +201,7 @@ class PurchaseInvoicesController extends Controllers {
         });
     }
 
-    static get($input, $options) {
+    static get($input, $options = {}, $resultType = 'object') {
         return new Promise(async (resolve, reject) => {
             try {
                 // validate input
@@ -213,7 +213,9 @@ class PurchaseInvoicesController extends Controllers {
                 let response = await this.model.get($input._id, $options);
 
                 // create output
-                response = await this.outputBuilder(response.toObject());
+                if($resultType === 'object') {
+                    response = await this.outputBuilder(response.toObject());
+                }
 
                 return resolve({
                     code: 200,
@@ -302,6 +304,32 @@ class PurchaseInvoicesController extends Controllers {
                     return reject(response);
                 });
         });
+    }
+
+    static setSettlement($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                await InputsController.validateInput($input, {
+                    _id        : {type: 'mongoId', required: true},
+                    _settlement: {type: 'mongoId', required: true},
+                });
+
+                let response = await this.model.updateOne($input._id, {
+                    _settlement: $input._settlement
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
     static updateOne($id, $input) {
