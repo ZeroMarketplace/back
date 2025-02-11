@@ -330,6 +330,100 @@ class InventoriesController extends Controllers {
         });
     }
 
+    static updateByPurchaseInvoice($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // get purchase invoice
+                let purchaseInvoice = await PurchaseInvoicesController.get(
+                    {_id: $input._id},
+                    {select: '_id products'}
+                );
+                // get data of purchase invoice
+                purchaseInvoice     = purchaseInvoice.data;
+
+
+                // get inventories created by this purchase invoice
+                let inventories = await this.model.list({
+                    _purchaseInvoice: purchaseInvoice._id,
+                });
+
+                // products of purchase invoice
+                let lastProducts = purchaseInvoice.products;
+                // new products
+                let newProducts = structuredClone($input.products);
+
+                // for each inventory
+                for (let inventory of inventories) {
+                    // find product in purchase invoice products
+                    let product = newProducts.find(
+                        i => i._id === inventory._product.toString()
+                    );
+
+                    // check exist
+                    if (product) {
+                        // update the inventory information
+                        // set price
+                        inventory.price = product.price;
+                        // set the count
+                        // find the last count in purchase invoice
+                        let lastProductInfo = lastProducts.find(
+                            i => i._id.toString() === inventory._product.toString()
+                        );
+                        // minus the last count
+                        inventory.count -= lastProductInfo.count;
+                        // add new count to inventory
+                        inventory.count += product.count;
+
+                        // set the new warehouse
+                        inventory._warehouse = $input._warehouse
+
+                        // set the new dateTime
+                        inventory.dateTime = $input.dateTime
+
+                        // save the inventory info
+                        await inventory.save();
+
+
+                        // delete the product from input product
+                        newProducts.splice(
+                            newProducts.indexOf(product),
+                            1
+                        );
+
+                    } else {
+                        // delete inventory because the product was deleted from invoice
+                        await inventory.deleteOne();
+                    }
+                }
+
+                // add inventory of new products
+                for (const product of newProducts) {
+                    await this.model.insertOne({
+                        dateTime        : $input.dateTime,
+                        count           : product.count,
+                        _product        : product._id,
+                        _warehouse      : $input._warehouse,
+                        _purchaseInvoice: $input._id,
+                        price           : {
+                            purchase: product.price.purchase,
+                            consumer: product.price.consumer,
+                            store   : product.price.store
+                        },
+                        status          : 'active',
+                        _user           : $input.user.data._id
+                    });
+                }
+
+                return resolve({
+                    code: 200
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
     static updateCount($filter, $value) {
         return new Promise((resolve, reject) => {
             // update account balance
