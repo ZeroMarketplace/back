@@ -86,44 +86,54 @@ class InputsController extends Controllers {
                                     }
                                     break;
                                 case 'array':
-                                    // convert string to array (exception for query)
-                                    if(typeof value === 'string') {
+                                    // Convert string to array if necessary (e.g., for query parameters)
+                                    if (typeof value === 'string') {
                                         value = value.split(',');
                                     }
 
-                                    // handle nested objects or arrays
-                                    if (Array.isArray(value)) {
-                                        // check minLength
-                                        if(rules.minItemCount) {
-                                            if(value.length < rules.minItemCount) {
-                                                errors.push(`${fieldPath} must have at least ${rules.minItemCount} item`);
-                                            }
-                                        }
-
-                                        // check maxLength
-                                        if(rules.maxItemCount) {
-                                            if(value.length < rules.maxItemCount) {
-                                                errors.push(`${fieldPath} must have at least ${rules.maxItemCount} item`);
-                                            }
-                                        }
-
-                                        // check items of array
-                                        if (rules.items) {
-                                            value.forEach((item, index) => {
-                                                validate(item, rules.items, `${fieldPath}[${index}]`);
-                                            });
-                                        }
-                                    } else {
+                                    if (!Array.isArray(value)) {
                                         errors.push(`${fieldPath} must be a valid array`);
+                                        break;
+                                    }
+
+                                    // Check minimum item count
+                                    if (rules.minItemCount && value.length < rules.minItemCount) {
+                                        errors.push(`${fieldPath} must have at least ${rules.minItemCount} items`);
+                                    }
+
+                                    // Check maximum item count
+                                    if (rules.maxItemCount && value.length > rules.maxItemCount) {
+                                        errors.push(`${fieldPath} must have at most ${rules.maxItemCount} items`);
+                                    }
+
+                                    if(rules.allowedValues) {
+                                        value.forEach((item, index) => {
+                                            const itemPath = `${fieldPath}[${index}]`;
+
+                                            // Validate each item based on allowedValues
+                                            if (rules.allowedValues && !rules.allowedValues.includes(item)) {
+                                                errors.push(`${itemPath} must be one of ${rules.allowedValues.join(', ')}`);
+                                            }
+                                        });
+                                    }
+
+                                    // Validate each item in the array
+                                    if (rules.items) {
+                                        value.forEach((item, index) => {
+                                            validate(item || {}, rules.items, `${fieldPath}[${index}]`);
+                                        });
                                     }
                                     break;
+
                                 case 'object':
-                                    if (typeof value === 'object') {
-                                        if (rules.properties) {
-                                            validate(value, rules.properties, fieldPath);
-                                        }
-                                    } else {
+                                    // Ensure value is an object and not null
+                                    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
                                         errors.push(`${fieldPath} must be a valid object`);
+                                        break;
+                                    }
+
+                                    if (rules.properties) {
+                                        validate(value, rules.properties, fieldPath);
                                     }
                                     break;
                             }
