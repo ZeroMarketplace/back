@@ -208,18 +208,18 @@ class AccountsController extends Controllers {
     }
 
     static updateAccountBalance($id, $value) {
-        return new Promise((resolve, reject) => {
-            // update account balance
-            this.model.updateAccountBalance($id, $value).then(
-                (response) => {
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                },
-            );
+        return new Promise(async (resolve, reject) => {
+            try {
+                // update account balance
+                let response = await this.model.updateAccountBalance($id, $value);
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
         })
     }
 
