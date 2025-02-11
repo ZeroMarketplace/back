@@ -11,6 +11,7 @@ import {ObjectId}                 from "mongodb";
 import SettlementsController      from "./SettlementsController.js";
 import PurchaseInvoicesController from "./PurchaseInvoicesController.js";
 import SalesInvoicesController    from "./SalesInvoicesController.js";
+import InputsController           from "./InputsController.js";
 
 // config upload service
 const filesPath            = 'storage/files/accounting-documents/';
@@ -89,6 +90,213 @@ class AccountingDocumentsController extends Controllers {
         // }
 
         return query;
+    }
+
+    static createDocumentBySettlement($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!$input.settlement) {
+                    $input.settlement = await SettlementsController.get({
+                        _id: $input._id
+                    });
+                }
+
+                // create accounting document
+                let accountingDocument              = {};
+                accountingDocument.code             = await CountersController.increment('accounting-documents');
+                accountingDocument._user            = $input.user.data._id;
+                accountingDocument.dateTime         = new Date();
+                accountingDocument.status           = 'active';
+                accountingDocument.accountsInvolved = [];
+
+                // add accounts involved and total
+                switch ($input.settlement.type) {
+                    case 'purchase-invoice':
+                        // get purchase-invoice record
+                        let purchaseInvoice           = await PurchaseInvoicesController.get(
+                            {_id: $input.settlement._reference.toString()},
+                            {populate: 'AddAndSub._reason'}
+                        );
+                        accountingDocument.amount     = purchaseInvoice.data.total;
+                        accountingDocument._reference = $input.settlement._id;
+                        accountingDocument.type       = 'purchase-invoice-settlement';
+
+                        // add purchase account to accounting document as debit
+                        let purchaseAccount = await AccountsController.item({
+                            type       : 'system',
+                            description: 'cash purchase'
+                        });
+                        accountingDocument.accountsInvolved.push({
+                            _account   : purchaseAccount.data._id,
+                            description: '',
+                            debit      : (purchaseInvoice.data.sum - $input.settlement.payment.credit),
+                            credit     : 0
+                        });
+
+                        // read bank accounts and add to accounting document as credit
+                        $input.settlement.payment.bankAccounts.forEach((bankAccount) => {
+                            if (bankAccount.amount) {
+                                accountingDocument.accountsInvolved.push({
+                                    _account   : bankAccount._account,
+                                    description: '',
+                                    debit      : 0,
+                                    credit     : bankAccount.amount
+                                });
+                            }
+                        });
+
+                        // read cash accounts and add to accounting document as credit
+                        $input.settlement.payment.cashAccounts.forEach((cashAccount) => {
+                            if (cashAccount.amount) {
+                                accountingDocument.accountsInvolved.push({
+                                    _account   : cashAccount._account,
+                                    description: '',
+                                    debit      : 0,
+                                    credit     : cashAccount.amount
+                                });
+                            }
+                        });
+
+                        // add credit amount (account)
+                        if ($input.settlement.payment.credit) {
+                            // debit the credit purchase account
+                            let creditPurchaseAccount = await AccountsController.item({
+                                type       : 'system',
+                                description: 'credit purchase',
+                            });
+                            accountingDocument.accountsInvolved.push({
+                                _account   : creditPurchaseAccount.data._id,
+                                description: '',
+                                debit      : $input.settlement.payment.credit,
+                                credit     : 0
+                            });
+
+                            // credit the user account in purchase-invoice
+                            let customerAccount = await AccountsController.getUserAccount(purchaseInvoice.data._customer);
+                            accountingDocument.accountsInvolved.push({
+                                _account   : customerAccount.data._id,
+                                description: '',
+                                debit      : 0,
+                                credit     : $input.settlement.payment.credit
+                            });
+                        }
+
+                        // add addAndSub accounts (subtract Operation)
+                        purchaseInvoice.data.AddAndSub.forEach((addAndSub) => {
+                            if (addAndSub._reason.operation === 'add') {
+                                accountingDocument.accountsInvolved.push({
+                                    _account   : addAndSub._reason._account,
+                                    description: '',
+                                    debit      : addAndSub.amount,
+                                    credit     : 0
+                                })
+                            } else if (addAndSub._reason.operation === 'subtract') {
+                                accountingDocument.accountsInvolved.push({
+                                    _account   : addAndSub._reason._account,
+                                    description: '',
+                                    debit      : 0,
+                                    credit     : addAndSub.amount
+                                })
+                            }
+                        });
+
+                        break;
+                    case 'sales-invoice':
+                        // get sales-invoice record
+                        let salesInvoice              = await SalesInvoicesController.get(
+                            {_id: $input.settlement._reference.toString()},
+                            {populate: 'AddAndSub._reason'}
+                        );
+                        accountingDocument.amount     = salesInvoice.data.total;
+                        accountingDocument._reference = $input.settlement._id;
+                        accountingDocument.type       = 'sales-invoice-settlement';
+
+                        // add sales account to accounting document as credit
+                        let salesAccount = await AccountsController.item({
+                            type       : 'system',
+                            description: 'cash sales'
+                        });
+                        accountingDocument.accountsInvolved.push({
+                            _account   : salesAccount.data._id,
+                            description: '',
+                            debit      : 0,
+                            credit     : (salesInvoice.data.sum - $input.payment.credit)
+                        });
+
+                        // read bank accounts and add to accounting document as credit
+                        $input.settlement.payment.bankAccounts.forEach((bankAccount) => {
+                            if (bankAccount.amount) {
+                                accountingDocument.accountsInvolved.push({
+                                    _account   : bankAccount._account,
+                                    description: '',
+                                    debit      : bankAccount.amount,
+                                    credit     : 0
+                                });
+                            }
+                        });
+
+                        // read cash accounts and add to accounting document as credit
+                        $input.settlement.payment.cashAccounts.forEach((cashAccount) => {
+                            if (cashAccount.amount) {
+                                accountingDocument.accountsInvolved.push({
+                                    _account   : cashAccount._account,
+                                    description: '',
+                                    debit      : cashAccount.amount,
+                                    credit     : 0
+                                });
+                            }
+                        });
+
+                        // add credit amount (account)
+                        if ($input.settlement.payment.credit) {
+                            // debit the credit purchase account
+                            let creditPurchaseAccount = await AccountsController.item({
+                                type       : 'system',
+                                description: 'credit purchase',
+                            });
+                            accountingDocument.accountsInvolved.push({
+                                _account   : creditPurchaseAccount.data._id,
+                                description: '',
+                                debit      : 0,
+                                credit     : $input.settlement.payment.credit
+                            });
+
+                            // credit the user account in purchase-invoice
+                            let customerAccount = await AccountsController.getUserAccount(salesInvoice.data._customer);
+                            accountingDocument.accountsInvolved.push({
+                                _account   : customerAccount.data._id,
+                                description: '',
+                                debit      : $input.settlement.payment.credit,
+                                credit     : 0
+                            });
+                        }
+
+                        // add addAndSub accounts (subtract Operation)
+                        salesInvoice.data.AddAndSub.forEach((addAndSub) => {
+                            if (addAndSub._reason.operation === 'add') {
+                                accountingDocument.accountsInvolved.push({
+                                    _account   : addAndSub._reason._account,
+                                    description: '',
+                                    debit      : 0,
+                                    credit     : addAndSub.amount
+                                })
+                            } else if (addAndSub._reason.operation === 'subtract') {
+                                accountingDocument.accountsInvolved.push({
+                                    _account   : addAndSub._reason._account,
+                                    description: '',
+                                    debit      : addAndSub.amount,
+                                    credit     : 0
+                                })
+                            }
+                        });
+                        break;
+                }
+
+                return resolve(accountingDocument);
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
     static uploadFile($id, $input) {
@@ -301,209 +509,17 @@ class AccountingDocumentsController extends Controllers {
     static insertBySettlement($input) {
         return new Promise(async (resolve, reject) => {
             try {
-                // get settlement if not passed
-                if (!$input.settlement) {
-                    $input.settlement = await SettlementsController.get({
-                        _id: $input._id
-                    });
-                }
 
-                // create accounting document
-                let accountingDocument              = {};
-                accountingDocument.code             = await CountersController.increment('accounting-documents');
-                accountingDocument._user            = $input.user.data._id;
-                accountingDocument.dateTime         = new Date();
-                accountingDocument.status           = 'active';
-                accountingDocument.accountsInvolved = [];
+                // create the accounting document
+                let accountingDocument = await this.createDocumentBySettlement($input)
 
-                // add accounts involved and total
-                switch ($input.settlement.type) {
-                    case 'purchase-invoice':
-                        // get purchase-invoice record
-                        let purchaseInvoice           = await PurchaseInvoicesController.get(
-                            {_id: $input.settlement._reference.toString()},
-                            {populate: 'AddAndSub._reason'}
-                        );
-                        accountingDocument.amount     = purchaseInvoice.data.total;
-                        accountingDocument._reference = $input.settlement._id;
-                        accountingDocument.type       = 'purchase-invoice-settlement';
-
-                        // add purchase account to accounting document as debit
-                        let purchaseAccount = await AccountsController.item({
-                            type       : 'system',
-                            description: 'cash purchase'
-                        });
-                        accountingDocument.accountsInvolved.push({
-                            _account   : purchaseAccount.data._id,
-                            description: '',
-                            debit      : (purchaseInvoice.data.sum - $input.settlement.payment.credit),
-                            credit     : 0
-                        });
-
-                        // read bank accounts and add to accounting document as credit
-                        $input.settlement.payment.bankAccounts.forEach((bankAccount) => {
-                            if (bankAccount.amount) {
-                                accountingDocument.accountsInvolved.push({
-                                    _account   : bankAccount._account,
-                                    description: '',
-                                    debit      : 0,
-                                    credit     : bankAccount.amount
-                                });
-                            }
-                        });
-
-                        // read cash accounts and add to accounting document as credit
-                        $input.settlement.payment.cashAccounts.forEach((cashAccount) => {
-                            if (cashAccount.amount) {
-                                accountingDocument.accountsInvolved.push({
-                                    _account   : cashAccount._account,
-                                    description: '',
-                                    debit      : 0,
-                                    credit     : cashAccount.amount
-                                });
-                            }
-                        });
-
-                        // add credit amount (account)
-                        if ($input.settlement.payment.credit) {
-                            // debit the credit purchase account
-                            let creditPurchaseAccount = await AccountsController.item({
-                                type       : 'system',
-                                description: 'credit purchase',
-                            });
-                            accountingDocument.accountsInvolved.push({
-                                _account   : creditPurchaseAccount.data._id,
-                                description: '',
-                                debit      : $input.settlement.payment.credit,
-                                credit     : 0
-                            });
-
-                            // credit the user account in purchase-invoice
-                            let customerAccount = await AccountsController.getUserAccount(purchaseInvoice.data._customer);
-                            accountingDocument.accountsInvolved.push({
-                                _account   : customerAccount.data._id,
-                                description: '',
-                                debit      : 0,
-                                credit     : $input.settlement.payment.credit
-                            });
-                        }
-
-                        // add addAndSub accounts (subtract Operation)
-                        purchaseInvoice.data.AddAndSub.forEach((addAndSub) => {
-                            if (addAndSub._reason.operation === 'add') {
-                                accountingDocument.accountsInvolved.push({
-                                    _account   : addAndSub._reason._account,
-                                    description: '',
-                                    debit      : addAndSub.amount,
-                                    credit     : 0
-                                })
-                            } else if (addAndSub._reason.operation === 'subtract') {
-                                accountingDocument.accountsInvolved.push({
-                                    _account   : addAndSub._reason._account,
-                                    description: '',
-                                    debit      : 0,
-                                    credit     : addAndSub.amount
-                                })
-                            }
-                        });
-
-                        break;
-                    case 'sales-invoice':
-                        // get sales-invoice record
-                        let salesInvoice              = await SalesInvoicesController.get(
-                            {_id: $input.settlement._reference.toString()},
-                            {populate: 'AddAndSub._reason'}
-                        );
-                        accountingDocument.amount     = salesInvoice.data.total;
-                        accountingDocument._reference = $input.settlement._id;
-                        accountingDocument.type       = 'sales-invoice-settlement';
-
-                        // add sales account to accounting document as credit
-                        let salesAccount = await AccountsController.item({
-                            type       : 'system',
-                            description: 'cash sales'
-                        });
-                        accountingDocument.accountsInvolved.push({
-                            _account   : salesAccount.data._id,
-                            description: '',
-                            debit      : 0,
-                            credit     : (salesInvoice.data.sum - $input.payment.credit)
-                        });
-
-                        // read bank accounts and add to accounting document as credit
-                        $input.settlement.payment.bankAccounts.forEach((bankAccount) => {
-                            if (bankAccount.amount) {
-                                accountingDocument.accountsInvolved.push({
-                                    _account   : bankAccount._account,
-                                    description: '',
-                                    debit      : bankAccount.amount,
-                                    credit     : 0
-                                });
-                            }
-                        });
-
-                        // read cash accounts and add to accounting document as credit
-                        $input.settlement.payment.cashAccounts.forEach((cashAccount) => {
-                            if (cashAccount.amount) {
-                                accountingDocument.accountsInvolved.push({
-                                    _account   : cashAccount._account,
-                                    description: '',
-                                    debit      : cashAccount.amount,
-                                    credit     : 0
-                                });
-                            }
-                        });
-
-                        // add credit amount (account)
-                        if ($input.settlement.payment.credit) {
-                            // debit the credit purchase account
-                            let creditPurchaseAccount = await AccountsController.item({
-                                type       : 'system',
-                                description: 'credit purchase',
-                            });
-                            accountingDocument.accountsInvolved.push({
-                                _account   : creditPurchaseAccount.data._id,
-                                description: '',
-                                debit      : 0,
-                                credit     : $input.settlement.payment.credit
-                            });
-
-                            // credit the user account in purchase-invoice
-                            let customerAccount = await AccountsController.getUserAccount(salesInvoice.data._customer);
-                            accountingDocument.accountsInvolved.push({
-                                _account   : customerAccount.data._id,
-                                description: '',
-                                debit      : $input.settlement.payment.credit,
-                                credit     : 0
-                            });
-                        }
-
-                        // add addAndSub accounts (subtract Operation)
-                        salesInvoice.data.AddAndSub.forEach((addAndSub) => {
-                            if (addAndSub._reason.operation === 'add') {
-                                accountingDocument.accountsInvolved.push({
-                                    _account   : addAndSub._reason._account,
-                                    description: '',
-                                    debit      : 0,
-                                    credit     : addAndSub.amount
-                                })
-                            } else if (addAndSub._reason.operation === 'subtract') {
-                                accountingDocument.accountsInvolved.push({
-                                    _account   : addAndSub._reason._account,
-                                    description: '',
-                                    debit      : addAndSub.amount,
-                                    credit     : 0
-                                })
-                            }
-                        });
-                        break;
-                }
-
+                // insert to db
                 let response = await this.model.insertOne(accountingDocument);
 
                 // create output
                 response = await this.outputBuilder(response.toObject());
 
+                // return result
                 return resolve({
                     code: 200,
                     data: response
@@ -707,60 +723,94 @@ class AccountingDocumentsController extends Controllers {
         });
     }
 
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // get the accounting document
-            this.model.get($id).then(
-                async (accountingDocument) => {
-                    // update last accounts balance (reverse)
-                    let accountsInvolved = accountingDocument.accountsInvolved;
-                    // update balance of accounts
-                    for (const account of accountsInvolved) {
-                        if (!account.checked) {
-                            // sum account debit and credit
-                            let sum = 0;
-                            accountsInvolved.filter(i => i._account === account._account)
-                                .forEach((sameAccount) => {
-                                    // debit has plus balance
-                                    if (account.debit > 0 && account.credit === 0) {
-                                        sum += account.debit;
+    static updateBySettlement($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // create the accounting document
+                let accountingDocument = await this.createDocumentBySettlement($input)
 
-                                        // credit has minus balance
-                                    } else if (account.credit > 0 && account.debit === 0) {
-                                        sum -= account.credit;
-                                    }
-                                    sameAccount.checked = true;
-                                });
-                            // check is debit or credit
-                            if (sum > 0) {
-                                account.debit  = sum;
-                                account.credit = 0;
-                            } else {
-                                account.debit  = 0;
-                                account.credit = Math.abs(sum);
-                            }
+                // update in db
+                let response = await this.model.updateOne($input._accountingDocument,accountingDocument);
 
-                            // debit has plus balance
-                            if (account.debit > 0 && account.credit === 0) {
-                                // update account balance
-                                await AccountsController.updateAccountBalance(account._account, -account.debit);
-                                // credit has minus balance
-                            } else if (account.credit > 0 && account.debit === 0) {
-                                await AccountsController.updateAccountBalance(account._account, +account.credit);
-                            }
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                console.log(error);
+                return reject(error);
+            }
+        })
+    }
+
+    static deleteOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                });
+
+                // get the acconting document
+                let document = await this.model.get($input._id, {
+                    select: '_id accountsInvolved'
+                });
+
+                // update last accounts balance (reverse)
+                let accountsInvolved = document.accountsInvolved;
+
+                // update balance of accounts
+                for (const account of accountsInvolved) {
+                    if (!account.checked) {
+                        // sum account debit and credit
+                        let sum = 0;
+                        accountsInvolved.filter(i => i._account === account._account)
+                            .forEach((sameAccount) => {
+                                // debit has plus balance
+                                if (account.debit > 0 && account.credit === 0) {
+                                    sum += account.debit;
+
+                                    // credit has minus balance
+                                } else if (account.credit > 0 && account.debit === 0) {
+                                    sum -= account.credit;
+                                }
+                                sameAccount.checked = true;
+                            });
+
+                        // check is debit or credit
+                        if (sum > 0) {
+                            account.debit  = sum;
+                            account.credit = 0;
+                        } else {
+                            account.debit  = 0;
+                            account.credit = Math.abs(sum);
+                        }
+
+                        // debit has plus balance
+                        if (account.debit > 0 && account.credit === 0) {
+                            // update account balance
+                            await AccountsController.updateAccountBalance(account._account, -account.debit);
+                            // credit has minus balance
+                        } else if (account.credit > 0 && account.debit === 0) {
+                            await AccountsController.updateAccountBalance(account._account, +account.credit);
                         }
                     }
+                }
 
-                    await accountingDocument.deleteOne();
+                // delete the accounting document
+                await document.deleteOne();
 
-                    // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject(response);
+                // return result
+                return resolve({
+                    code: 200
                 });
+            } catch (e) {
+                return reject(e);
+            }
         });
     }
 
