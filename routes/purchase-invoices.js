@@ -34,7 +34,7 @@ router.get(
         // create clean input
         let $input = InputsController.clearInput(req.query);
 
-        PurchaseInvoicesController.list($input).then(
+        PurchaseInvoicesController.invoices($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
@@ -65,7 +65,7 @@ router.get(
 );
 
 router.put(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res, next) {
@@ -79,7 +79,10 @@ router.put(
         // add author to created purchase-invoice
         $input.user = req.user;
 
-        PurchaseInvoicesController.updateOne($params.id, $input).then(
+        // add _id to $input
+        $input._id = $params._id;
+
+        PurchaseInvoicesController.updateOne($input).then(
             (response) => {
                 return res.status(response.code).json(response.data ?? {});
             },
@@ -91,7 +94,7 @@ router.put(
 );
 
 router.delete(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res, next) {
@@ -99,7 +102,7 @@ router.delete(
         // get id from params and put into Input
         let $params = InputsController.clearInput(req.params);
 
-        PurchaseInvoicesController.deleteOne($params.id).then(
+        PurchaseInvoicesController.deleteOne($params).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
