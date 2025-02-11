@@ -1,13 +1,11 @@
 import Controllers                   from '../core/Controllers.js';
 import SettlementsModel              from '../models/SettlementsModel.js';
-import AccountsController            from '../controllers/AccountsController.js';
 import AccountingDocumentsController from '../controllers/AccountingDocumentsController.js';
 import PurchaseInvoicesController    from '../controllers/PurchaseInvoicesController.js';
 import persianDate                   from 'persian-date';
 import SalesInvoicesController       from './SalesInvoicesController.js';
 import InventoriesController         from "./InventoriesController.js";
 import InputsController              from "./InputsController.js";
-import {Schema}                      from "mongoose";
 
 class SettlementsController extends Controllers {
     static model = new SettlementsModel();
@@ -218,33 +216,25 @@ class SettlementsController extends Controllers {
                     payment   : {
                         type      : 'object',
                         properties: {
-                            payment: {
-                                cash           : {type: 'number', required: true},
-                                cashAccounts   : {
-                                    type : 'array',
-                                    items: {
-                                        type      : 'object',
-                                        properties: {
-                                            _account: {type: 'mongoId', required: true,},
-                                            amount  : {type: 'number', required: true}
-                                        }
-                                    }
-                                },
-                                distributedCash: {type: 'boolean', required: true},
-                                bank           : {type: 'number', required: true},
-                                bankAccounts   : {
-                                    type : 'array',
-                                    items: {
-                                        type      : 'object',
-                                        properties: {
-                                            _account: {type: 'mongoId', required: true,},
-                                            amount  : {type: 'number', required: true}
-                                        }
-                                    }
-                                },
-                                distributedBank: {type: 'boolean', required: true},
-                                credit         : {type: 'number', required: true},
-                            }
+                            cash           : {type: 'number', required: true},
+                            cashAccounts   : {
+                                type : 'array',
+                                items: {
+                                    _account: {type: 'mongoId', required: true,},
+                                    amount  : {type: 'number', required: true}
+                                }
+                            },
+                            distributedCash: {type: 'boolean', required: true},
+                            bank           : {type: 'number', required: true},
+                            bankAccounts   : {
+                                type : 'array',
+                                items: {
+                                    _account: {type: 'mongoId', required: true,},
+                                    amount  : {type: 'number', required: true}
+                                }
+                            },
+                            distributedBank: {type: 'boolean', required: true},
+                            credit         : {type: 'number', required: true},
                         }
                     }
                 });
@@ -259,7 +249,7 @@ class SettlementsController extends Controllers {
                 // create accounting document of settlement
                 let accountingDocument = await AccountingDocumentsController.insertBySettlement({
                     settlement: response,
-                    user: $input.user
+                    user      : $input.user
                 });
 
                 // add accounting document to settlement
@@ -267,24 +257,24 @@ class SettlementsController extends Controllers {
                 response.save();
 
                 // update reference and add the settlement _id
-                switch($input.type) {
-                    case 'purchase-invoices':
+                switch ($input.type) {
+                    case 'purchase-invoice':
                         // add the settlement _id
                         await PurchaseInvoicesController.setSettlement({
-                            _id        : $input._id,
+                            _id        : $input._reference,
                             _settlement: response._id
                         });
                         break;
-                    case 'sales-invoices':
+                    case 'sales-invoice':
                         // add the settlement _id
                         await SalesInvoicesController.setSettlement({
-                            _id        : $input._id,
+                            _id        : $input._reference,
                             _settlement: response._id
                         });
 
                         // sale the products and update inventories
                         await InventoriesController.stockSalesBySalesInvoice({
-                            _id        : $input._id,
+                            _id: $input._reference,
                         });
                         break;
                 }
@@ -390,78 +380,93 @@ class SettlementsController extends Controllers {
         });
     }
 
-    static updateOne($id, $input) {
+    static updateOne($input) {
         return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.get($id).then(
-                async (settlement) => {
-                    // update settlement
-                    settlement.type       = $input.type;
-                    settlement._reference = $input._id;
-                    settlement.payment    = $input.payment;
-                    await settlement.save();
-
-                    // create accounting document
-                    // match settlement Id with accounting document
-                    $input.settlementId    = $id;
-                    let accountingDocument = await this.createAccountingDocument($input);
-
-                    // find and update accounting document
-                    AccountingDocumentsController.updateOne(settlement._accountingDocument, {
-                        dateTime        : accountingDocument.dateTime,
-                        description     : accountingDocument.description,
-                        accountsInvolved: accountingDocument.accountsInvolved,
-                        amount          : accountingDocument.amount
-                    }).then(
-                        (response) => {
-                            return resolve({
-                                code: 200,
-                                data: settlement.toObject()
-                            });
-                        },
-                        (response) => {
-                            return reject(response);
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id    : {type: 'mongoId', required: true},
+                    payment: {
+                        type      : 'object',
+                        properties: {
+                            cash           : {type: 'number', required: true},
+                            cashAccounts   : {
+                                type : 'array',
+                                items: {
+                                    _account: {type: 'mongoId', required: true,},
+                                    amount  : {type: 'number', required: true}
+                                }
+                            },
+                            distributedCash: {type: 'boolean', required: true},
+                            bank           : {type: 'number', required: true},
+                            bankAccounts   : {
+                                type : 'array',
+                                items: {
+                                    _account: {type: 'mongoId', required: true,},
+                                    amount  : {type: 'number', required: true}
+                                }
+                            },
+                            distributedBank: {type: 'boolean', required: true},
+                            credit         : {type: 'number', required: true},
                         }
-                    );
-                },
-                (response) => {
-                    return reject(response);
-                }
-            );
+                    }
+                });
+
+                let response = await this.model.updateOne($input._id, {
+                    payment: $input.payment
+                });
+
+                // update accounting document
+                await AccountingDocumentsController.updateBySettlement({
+                    _id                : $input._id,
+                    _accountingDocument: response._accountingDocument,
+                    settlement         : response,
+                    user               : $input.user
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                console.log(error);
+                return reject(error);
+            }
         });
     }
 
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // get info
-            this.model.get($id).then(
-                (settlement) => {
-                    // check has accounting document
-                    if (settlement._accountingDocument) {
-                        // delete accounting document
-                        AccountingDocumentsController.deleteOne(settlement._accountingDocument).then(
-                            (responseDeleteAccountingDocument) => {
-                                // delete the settlement
-                                settlement.deleteOne().then(
-                                    (responseDeleteSettlement) => {
-                                        return resolve({
-                                            code: 200
-                                        });
-                                    }
-                                );
-                            },
-                            (response) => {
-                                return reject(response);
-                            }
-                        );
-                    }
-                },
-                (response) => {
-                    return reject(response);
+    static deleteOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                });
+
+                // get settlement
+                let settlement = await this.model.get($input._id, {
+                    select: '_id _accountingDocument'
+                });
+
+                // check had accounting document
+                if(settlement._accountingDocument) {
+                    // delete accounting document
+                    await AccountingDocumentsController.deleteOne({
+                        _id: settlement._accountingDocument.toString()
+                    });
                 }
-            );
+
+                // return result
+                return resolve({
+                    code: 200
+                });
+            } catch (e) {
+                return reject(e);
+            }
         });
     }
 

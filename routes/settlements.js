@@ -65,7 +65,7 @@ router.get(
 );
 
 router.put(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res, next) {
@@ -79,7 +79,10 @@ router.put(
         // add author to created purchase-invoice
         $input.user = req.user;
 
-        SettlementsController.updateOne($params.id, $input).then(
+        // add _id to $input
+        $input._id = $params._id;
+
+        SettlementsController.updateOne($input).then(
             (response) => {
                 return res.status(response.code).json(response.data ?? {});
             },
