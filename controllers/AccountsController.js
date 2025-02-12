@@ -1,7 +1,8 @@
-import Controllers      from '../core/Controllers.js';
-import AccountsModel    from '../models/AccountsModel.js';
-import InputsController from "./InputsController.js";
-import persianDate      from "persian-date";
+import Controllers                   from '../core/Controllers.js';
+import AccountsModel                 from '../models/AccountsModel.js';
+import InputsController              from "./InputsController.js";
+import persianDate                   from "persian-date";
+import AccountingDocumentsController from "./AccountingDocumentsController.js";
 
 class AccountsController extends Controllers {
     static model = new AccountsModel();
@@ -146,7 +147,8 @@ class AccountsController extends Controllers {
                         type       : 'system',
                         description: account.description
                     }).then(
-                        (foundedAccount) => {},
+                        (foundedAccount) => {
+                        },
                         async (error) => {
                             if (error.code === 404) {
                                 // insert the account
@@ -402,6 +404,186 @@ class AccountsController extends Controllers {
                 return reject(error);
             }
         });
+    }
+
+    // update the balance by accounting document
+    static updateBalanceByAccountingDocument($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // get the document if not passed
+                if (!$input.accountingDocument) {
+                    // get the accounting document
+                    $input.accountingDocument = await AccountingDocumentsController.get(
+                        {_id: $input._id},
+                        {select: '_id accountsInvolved'}
+                    );
+                    // get the data of accounting document
+                    $input.accountingDocument = $input.accountingDocument.data;
+                }
+
+                // init the variable
+                let accountsInvolved = $input.accountingDocument.accountsInvolved;
+                let accountsIds = [];
+
+                // create the list of accounts ids
+                for (const account of accountsInvolved) {
+                    if(!accountsIds.includes(account._account)) {
+                        accountsIds.push(account._account);
+                    }
+                }
+
+                // get the accounts model
+                let accounts = await this.model.list(
+                    {_id: {$in: accountsIds}},
+                    {select: '_id balance'}
+                );
+
+                // update balance of accounts
+                for (const account of accountsInvolved) {
+                    if (!account.checked) {
+                        // sum account debit and credit
+                        let sum = 0;
+                        accountsInvolved
+                            .filter(i => i._account === account._account)
+                            .forEach((sameAccount) => {
+                                // debit has plus balance
+                                if (account.debit > 0 && account.credit === 0) {
+                                    sum += account.debit;
+
+                                    // credit has minus balance
+                                } else if (account.credit > 0 && account.debit === 0) {
+                                    sum -= account.credit;
+                                }
+                                sameAccount.checked = true;
+                            });
+
+
+                        // check is debit or credit
+                        if (sum > 0) {
+                            account.debit  = sum;
+                            account.credit = 0;
+                        } else {
+                            account.debit  = 0;
+                            account.credit = Math.abs(sum);
+                        }
+
+                        // find the account model
+                        let accountModel = accounts.find(i => i._id.toString() === account._account.toString());
+
+                        // debit has plus balance
+                        if (account.debit > 0 && account.credit === 0) {
+                            // update account balance
+                            accountModel.balance += account.debit;
+
+                            // credit has minus balance
+                        } else if (account.credit > 0 && account.debit === 0) {
+                            // update account balance
+                            accountModel.balance -= account.credit;
+                        }
+
+                        // save the account balance
+                        await accountModel.save();
+                    }
+                }
+
+                return resolve({
+                    code: 200
+                })
+            }
+            catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    // update the balance by accounting document and remove the balance from accounts
+    static removeBalanceByAccountingDocument($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // get the document if not passed
+                if (!$input.accountingDocument) {
+                    // get the accounting document
+                    $input.accountingDocument = await AccountingDocumentsController.get(
+                        {_id: $input._id},
+                        {select: '_id accountsInvolved'}
+                    );
+                    // get the data of accounting document
+                    $input.accountingDocument = $input.accountingDocument.data;
+                }
+
+                // init the variable
+                let accountsInvolved = $input.accountingDocument.accountsInvolved;
+                let accountsIds = [];
+
+                // create the list of accounts ids
+                for (const account of accountsInvolved) {
+                    if(!accountsIds.includes(account._account)) {
+                        accountsIds.push(account._account);
+                    }
+                }
+
+                // get the accounts model
+                let accounts = await this.model.list(
+                    {_id: {$in: accountsIds}},
+                    {select: '_id balance'}
+                );
+
+                // update balance of accounts
+                for (const account of accountsInvolved) {
+                    if (!account.checked) {
+                        // sum account debit and credit
+                        let sum = 0;
+                        accountsInvolved
+                            .filter(i => i._account === account._account)
+                            .forEach((sameAccount) => {
+                                // debit has plus balance
+                                if (account.debit > 0 && account.credit === 0) {
+                                    sum += account.debit;
+
+                                    // credit has minus balance
+                                } else if (account.credit > 0 && account.debit === 0) {
+                                    sum -= account.credit;
+                                }
+                                sameAccount.checked = true;
+                            });
+
+
+                        // check is debit or credit
+                        if (sum > 0) {
+                            account.debit  = sum;
+                            account.credit = 0;
+                        } else {
+                            account.debit  = 0;
+                            account.credit = Math.abs(sum);
+                        }
+
+                        // find the account model
+                        let accountModel = accounts.find(i => i._id.toString() === account._account.toString());
+
+                        // debit has plus balance
+                        if (account.debit > 0 && account.credit === 0) {
+                            // update account balance
+                            accountModel.balance -= account.debit;
+
+                            // credit has minus balance
+                        } else if (account.credit > 0 && account.debit === 0) {
+                            // update account balance
+                            accountModel.balance += account.credit;
+                        }
+
+                        // save the account balance
+                        await accountModel.save();
+                    }
+                }
+
+                return resolve({
+                    code: 200
+                })
+            }
+            catch (error) {
+                return reject(error);
+            }
+        })
     }
 
     static deleteOne($input) {

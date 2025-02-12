@@ -12,6 +12,7 @@ import SettlementsController      from "./SettlementsController.js";
 import PurchaseInvoicesController from "./PurchaseInvoicesController.js";
 import SalesInvoicesController    from "./SalesInvoicesController.js";
 import InputsController           from "./InputsController.js";
+import {Schema}                   from "mongoose";
 
 // config upload service
 const filesPath            = 'storage/files/accounting-documents/';
@@ -90,6 +91,20 @@ class AccountingDocumentsController extends Controllers {
         // }
 
         return query;
+    }
+
+    static createTheStoragePath() {
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!fs.existsSync(filesPath)) {
+                    // create the path
+                    fs.mkdirSync(filesPath, {recursive: true});
+                    console.log(`Accounting Documents Storage Path was created successfully.`);
+                }
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
     static createDocumentBySettlement($input) {
@@ -299,210 +314,195 @@ class AccountingDocumentsController extends Controllers {
         })
     }
 
-    static uploadFile($id, $input) {
-        return new Promise((resolve, reject) => {
-            this.get($id).then(
-                (document) => {
-                    document = document.data;
+    static uploadFile($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                });
 
-                    // upload files with multer
-                    uploadDocumentsFiles($input.req, $input.res, (err) => {
-                        if (err) {
-                            return reject({
-                                code: 500,
-                                data: err
-                            });
-                        }
+                let document = await this.model.get($input._id, {select: '_id files'});
 
-
-                        // create array of files
-                        if (!document.files) {
-                            document.files = [];
-                        }
-
-                        // add file Names to the list
-                        $input.req.files.forEach((file) => {
-                            document.files.push(file.filename);
+                // upload files with multer
+                uploadDocumentsFiles($input.req, $input.res, async (err) => {
+                    if (err) {
+                        return reject({
+                            code: 500,
+                            data: err
                         });
+                    }
 
-                        document.save().then(
-                            (responseSave) => {
-                                return resolve({
-                                    code: 200
-                                });
-                            },
-                            (error) => {
-                                Logger.systemError('accounting-documents-saveFilesName', error);
-                                return reject({
-                                    code: 500
-                                });
-                            },
-                        );
+                    // create array of files
+                    if (!document.files) {
+                        document.files = [];
+                    }
 
-                    })
-                },
-                (error) => {
-                    return reject(error);
-                }
-            );
+                    // add file Names to the list
+                    $input.req.files.forEach((file) => {
+                        document.files.push(file.filename);
+                    });
+
+                    // save the document
+                    await document.save();
+
+                    return resolve({
+                        code: 200
+                    });
+                })
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
-    static deleteFile($id, $input) {
-        return new Promise((resolve, reject) => {
-            this.get($id).then(
-                (document) => {
-                    document = document.data;
-                    // check file is exiting
-                    if (document.files.length && document.files.includes($input.fileName)) {
-                        // delete File
-                        fs.unlink(filesPath + $input.fileName, (error) => {
-                            if (error) return reject({code: 500});
+    static deleteFile($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id     : {type: 'mongoId', required: true},
+                    fileName: {type: 'string', required: true},
+                });
 
-                            document.files.splice(document.files.indexOf($input.fileName), 1);
+                let document = await this.model.get($input._id, {select: '_id files'});
 
-                            document.save().then(
-                                (responseSave) => {
-                                    return resolve({
-                                        code: 200
-                                    });
-                                },
-                                (errorSave) => {
-                                    Logger.systemError('SaveAccountingDocuments-deleteFile');
-                                }
-                            );
-                        });
-                    } else {
-                        return reject({
-                            code: 404
-                        });
-                    }
-                },
-                (error) => {
-                    return reject(error);
+                // check file is exiting
+                if (document.files.length && document.files.includes($input.fileName)) {
+                    // delete File
+                    await fs.unlinkSync(filesPath + $input.fileName);
+
+                    // delete from files array
+                    document.files.splice(document.files.indexOf($input.fileName), 1);
+
+                    // save the document
+                    await document.save();
+
+                    return resolve({
+                        code: 200
+                    });
+
+                } else {
+                    return reject({
+                        code: 404
+                    });
                 }
-            );
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
-    static getFile($id, $input) {
-        return new Promise((resolve, reject) => {
-            this.get($id).then(
-                (document) => {
-                    document = document.data;
-                    // check file is exiting on db
-                    if (document.files.length && document.files.includes($input.fileName)) {
-                        // check file exists
-                        fs.access(filesPath + $input.fileName, fs.constants.F_OK, (err) => {
-                            if (err) {
-                                return reject({code: 404});
-                            }
-                        });
+    static getFile($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id     : {type: 'mongoId', required: true},
+                    fileName: {type: 'string', required: true},
+                });
 
-                        // delete File
-                        fs.readFile(filesPath + $input.fileName, (error, buffer) => {
-                            if (error) return reject({code: 500});
+                // get the document
+                let document = await this.model.get($input._id);
 
-                            // get mimetype
-                            const fileExtension = path.extname($input.fileName);
-                            let contentType     = 'text/plain';
-                            switch (fileExtension) {
-                                case '.jpg':
-                                case '.jpeg':
-                                    contentType = 'image/jpeg';
-                                    break;
-                                case '.png':
-                                    contentType = 'image/png';
-                                    break;
-                                case '.gif':
-                                    contentType = 'image/gif';
-                                    break;
-                            }
+                // check file is exiting on db
+                if (document.files.length && document.files.includes($input.fileName)) {
+                    // check file exists
+                    await fs.accessSync(filesPath + $input.fileName, fs.constants.F_OK);
 
-                            return resolve({
-                                code       : 200,
-                                data       : buffer,
-                                contentType: contentType
-                            })
-
-                        });
-                    } else {
-                        return reject({
-                            code: 404
-                        });
+                    // delete File
+                    let buffer          = await fs.readFileSync(filesPath + $input.fileName);
+                    // get mimetype
+                    const fileExtension = path.extname($input.fileName);
+                    let contentType     = 'text/plain';
+                    switch (fileExtension) {
+                        case '.jpg':
+                        case '.jpeg':
+                            contentType = 'image/jpeg';
+                            break;
+                        case '.png':
+                            contentType = 'image/png';
+                            break;
+                        case '.gif':
+                            contentType = 'image/gif';
+                            break;
                     }
-                },
-                (error) => {
-                    return reject(error);
+
+                    return resolve({
+                        code       : 200,
+                        data       : buffer,
+                        contentType: contentType
+                    });
+
+                } else {
+                    return reject({
+                        code: 404
+                    });
                 }
-            );
+            } catch (error) {
+                console.log(error);
+                return reject(error);
+            }
         });
     }
 
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
-            let code = await CountersController.increment('accounting-documents');
-
-            // filter
-            this.model.insertOne({
-                code            : code,
-                dateTime        : $input.dateTime,
-                description     : $input.description,
-                accountsInvolved: $input.accountsInvolved,
-                amount          : $input.amount,
-                _reference      : $input._reference,
-                type            : $input.type,
-                status          : 'active',
-                _user           : $input.user.data._id
-            }).then(
-                async (response) => {
-                    let accountsInvolved = response.accountsInvolved;
-                    // update balance of accounts
-                    for (const account of accountsInvolved) {
-                        if (!account.checked) {
-                            // sum account debit and credit
-                            let sum = 0;
-                            accountsInvolved.filter(i => i._account === account._account)
-                                .forEach((sameAccount) => {
-                                    // debit has plus balance
-                                    if (account.debit > 0 && account.credit === 0) {
-                                        sum += account.debit;
-
-                                        // credit has minus balance
-                                    } else if (account.credit > 0 && account.debit === 0) {
-                                        sum -= account.credit;
-                                    }
-                                    sameAccount.checked = true;
-                                });
-                            // check is debit or credit
-                            if (sum > 0) {
-                                account.debit  = sum;
-                                account.credit = 0;
-                            } else {
-                                account.debit  = 0;
-                                account.credit = Math.abs(sum);
-                            }
-
-                            // debit has plus balance
-                            if (account.debit > 0 && account.credit === 0) {
-                                // update account balance
-                                await AccountsController.updateAccountBalance(account._account, +account.debit);
-                                // credit has minus balance
-                            } else if (account.credit > 0 && account.debit === 0) {
-                                await AccountsController.updateAccountBalance(account._account, -account.credit);
-                            }
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    dateTime        : {type: 'date', required: true},
+                    description     : {type: 'string'},
+                    accountsInvolved: {
+                        type : 'array',
+                        items: {
+                            _account   : {type: 'mongoId', required: true},
+                            description: {type: 'string'},
+                            debit      : {type: 'number', required: true},
+                            credit     : {type: 'number', required: true},
                         }
-                    }
-
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
+                    },
+                    amount          : {type: 'number', required: true},
+                    _reference      : {type: 'mongoId'},
+                    type            : {
+                        type         : 'string',
+                        allowedValues: ['purchase-invoice-settlement', 'sales-invoice-settlement']
+                    },
                 });
+
+                // init code
+                let code = await CountersController.increment('accounting-documents');
+
+                // filter
+                let response = await this.model.insertOne({
+                    code            : code,
+                    dateTime        : $input.dateTime,
+                    description     : $input.description,
+                    accountsInvolved: $input.accountsInvolved,
+                    amount          : $input.amount,
+                    _reference      : $input._reference,
+                    type            : $input.type,
+                    status          : 'active',
+                    _user           : $input.user.data._id
+                });
+
+                await AccountsController.updateBalanceByAccountingDocument({
+                    _id               : response._id,
+                    accountingDocument: response
+                });
+
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -531,22 +531,28 @@ class AccountingDocumentsController extends Controllers {
         })
     }
 
-    static get($id) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.get($id).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static get($input, $options) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
                 });
+
+                // get from db
+                let response = await this.model.get($input._id, $options);
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -610,116 +616,62 @@ class AccountingDocumentsController extends Controllers {
         });
     }
 
-    static updateOne($id, $input) {
+    static updateOne($input) {
         return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
-
-            this.model.get($id).then(
-                async (accountingDocument) => {
-                    // update last accounts balance (reverse)
-                    let lastAccountsInvolved = accountingDocument.accountsInvolved;
-                    // update balance of accounts
-                    for (const account of lastAccountsInvolved) {
-                        if (!account.checked) {
-                            // sum account debit and credit
-                            let sum = 0;
-                            lastAccountsInvolved.filter(i => i._account === account._account)
-                                .forEach((sameAccount) => {
-                                    // debit has plus balance
-                                    if (account.debit > 0 && account.credit === 0) {
-                                        sum += account.debit;
-
-                                        // credit has minus balance
-                                    } else if (account.credit > 0 && account.debit === 0) {
-                                        sum -= account.credit;
-                                    }
-                                    sameAccount.checked = true;
-                                });
-                            // check is debit or credit
-                            if (sum > 0) {
-                                account.debit  = sum;
-                                account.credit = 0;
-                            } else {
-                                account.debit  = 0;
-                                account.credit = Math.abs(sum);
-                            }
-
-                            // debit has plus balance
-                            if (account.debit > 0 && account.credit === 0) {
-                                // update account balance
-                                await AccountsController.updateAccountBalance(account._account, -account.debit);
-                                // credit has minus balance
-                            } else if (account.credit > 0 && account.debit === 0) {
-                                await AccountsController.updateAccountBalance(account._account, +account.credit);
-                            }
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    dateTime        : {type: 'date', required: true},
+                    description     : {type: 'string'},
+                    accountsInvolved: {
+                        type : 'array',
+                        items: {
+                            _account   : {type: 'mongoId', required: true},
+                            description: {type: 'string'},
+                            debit      : {type: 'number', required: true},
+                            credit     : {type: 'number', required: true},
                         }
-                    }
+                    },
+                    amount          : {type: 'number', required: true},
+                    _reference      : {type: 'mongoId'},
+                    type            : {
+                        type         : 'string',
+                        allowedValues: ['purchase-invoice-settlement', 'sales-invoice-settlement']
+                    },
+                });
 
+                // get the document
+                let response = await this.model.get($input._id);
 
-                    // update accounting document
-                    accountingDocument.dateTime         = $input.dateTime;
-                    accountingDocument.description      = $input.description;
-                    accountingDocument.accountsInvolved = $input.accountsInvolved;
-                    accountingDocument.amount           = $input.amount;
-                    accountingDocument.save().then(
-                        async (responseSave) => {
+                // remove the balance of last document
+                await AccountsController.removeBalanceByAccountingDocument({
+                    _id               : $input._id,
+                    accountingDocument: response
+                });
 
-                            let accountsInvolved = responseSave.accountsInvolved;
+                // update accounting document
+                response.dateTime         = $input.dateTime;
+                response.description      = $input.description;
+                response.accountsInvolved = $input.accountsInvolved;
+                response.amount           = $input.amount;
+                await response.save();
 
-                            // update balance of accounts
-                            for (const account of accountsInvolved) {
-                                if (!account.checked) {
-                                    // sum account debit and credit
-                                    let sum = 0;
-                                    accountsInvolved.filter(i => i._account === account._account)
-                                        .forEach((sameAccount) => {
-                                            // debit has plus balance
-                                            if (account.debit > 0 && account.credit === 0) {
-                                                sum += account.debit;
+                // update the to new balance
+                await AccountsController.updateBalanceByAccountingDocument({
+                    _id               : $input._id,
+                    accountingDocument: response
+                });
 
-                                                // credit has minus balance
-                                            } else if (account.credit > 0 && account.debit === 0) {
-                                                sum -= account.credit;
-                                            }
-                                            sameAccount.checked = true;
-                                        });
-                                    // check is debit or credit
-                                    if (sum > 0) {
-                                        account.debit  = sum;
-                                        account.credit = 0;
-                                    } else {
-                                        account.debit  = 0;
-                                        account.credit = Math.abs(sum);
-                                    }
+                // create output
+                response = await this.outputBuilder(response.toObject());
 
-                                    // debit has plus balance
-                                    if (account.debit > 0 && account.credit === 0) {
-                                        // update account balance
-                                        await AccountsController.updateAccountBalance(account._account, +account.debit);
-                                        // credit has minus balance
-                                    } else if (account.credit > 0 && account.debit === 0) {
-                                        await AccountsController.updateAccountBalance(account._account, -account.credit);
-                                    }
-                                }
-                            }
-
-                            return resolve({
-                                code: 200,
-                                data: accountingDocument
-                            });
-
-
-                        },
-                        (response) => {
-                            return reject(response)
-                        }
-                    );
-
-                },
-                (response) => {
-                    return reject(response);
-                }
-            );
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -730,7 +682,7 @@ class AccountingDocumentsController extends Controllers {
                 let accountingDocument = await this.createDocumentBySettlement($input)
 
                 // update in db
-                let response = await this.model.updateOne($input._accountingDocument,accountingDocument);
+                let response = await this.model.updateOne($input._accountingDocument, accountingDocument);
 
                 // create output
                 response = await this.outputBuilder(response.toObject());
@@ -755,54 +707,12 @@ class AccountingDocumentsController extends Controllers {
                     _id: {type: 'mongoId', required: true}
                 });
 
-                // get the acconting document
-                let document = await this.model.get($input._id, {
-                    select: '_id accountsInvolved'
+                await AccountsController.removeBalanceByAccountingDocument({
+                    _id: $input._id,
                 });
 
-                // update last accounts balance (reverse)
-                let accountsInvolved = document.accountsInvolved;
-
-                // update balance of accounts
-                for (const account of accountsInvolved) {
-                    if (!account.checked) {
-                        // sum account debit and credit
-                        let sum = 0;
-                        accountsInvolved.filter(i => i._account === account._account)
-                            .forEach((sameAccount) => {
-                                // debit has plus balance
-                                if (account.debit > 0 && account.credit === 0) {
-                                    sum += account.debit;
-
-                                    // credit has minus balance
-                                } else if (account.credit > 0 && account.debit === 0) {
-                                    sum -= account.credit;
-                                }
-                                sameAccount.checked = true;
-                            });
-
-                        // check is debit or credit
-                        if (sum > 0) {
-                            account.debit  = sum;
-                            account.credit = 0;
-                        } else {
-                            account.debit  = 0;
-                            account.credit = Math.abs(sum);
-                        }
-
-                        // debit has plus balance
-                        if (account.debit > 0 && account.credit === 0) {
-                            // update account balance
-                            await AccountsController.updateAccountBalance(account._account, -account.debit);
-                            // credit has minus balance
-                        } else if (account.credit > 0 && account.debit === 0) {
-                            await AccountsController.updateAccountBalance(account._account, +account.credit);
-                        }
-                    }
-                }
-
                 // delete the accounting document
-                await document.deleteOne();
+                await this.model.deleteOne($input._id);
 
                 // return result
                 return resolve({
