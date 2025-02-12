@@ -421,6 +421,9 @@ class PurchaseInvoicesController extends Controllers {
                     });
                 }
 
+                // delete the invoice
+                await invoice.deleteOne();
+
                 // return result
                 return resolve({
                     code: 200

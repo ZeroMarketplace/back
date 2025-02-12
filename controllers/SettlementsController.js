@@ -460,6 +460,9 @@ class SettlementsController extends Controllers {
                     });
                 }
 
+                // delete the settlement
+                await settlement.deleteOne();
+
                 // return result
                 return resolve({
                     code: 200
