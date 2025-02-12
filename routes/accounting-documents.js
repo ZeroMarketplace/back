@@ -46,14 +46,14 @@ router.get(
 );
 
 router.get(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res) {
         // create clean input
         let $input = InputsController.clearInput(req.params);
 
-        AccountingDocumentsController.get($input.id).then(
+        AccountingDocumentsController.get($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
@@ -65,7 +65,7 @@ router.get(
 );
 
 router.put(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res, next) {
@@ -79,7 +79,10 @@ router.put(
         // add author to created purchase-invoice
         $input.user = req.user;
 
-        AccountingDocumentsController.updateOne($params.id, $input).then(
+        // add _id to $input
+        $input._id = $params._id;
+
+        AccountingDocumentsController.updateOne($input).then(
             (response) => {
                 return res.status(response.code).json(response.data ?? {});
             },
@@ -91,7 +94,7 @@ router.put(
 );
 
 router.delete(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res, next) {
@@ -99,7 +102,7 @@ router.delete(
         // get id from params and put into Input
         let $params = InputsController.clearInput(req.params);
 
-        AccountingDocumentsController.deleteOne($params.id).then(
+        AccountingDocumentsController.deleteOne($params).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
@@ -111,14 +114,14 @@ router.delete(
 );
 
 router.get(
-    '/:id/files/:fileName',
+    '/:_id/files/:fileName',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res) {
         // get id from params and put into Input
         let $params = InputsController.clearInput(req.params);
 
-        AccountingDocumentsController.getFile($params.id, $params).then(
+        AccountingDocumentsController.getFile($params).then(
             (response) => {
                 res.setHeader('content-type', response.contentType);
                 return res.send(response.data);
@@ -132,7 +135,7 @@ router.get(
 
 
 router.post(
-    '/:id/files',
+    '/:_id/files',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res) {
@@ -146,7 +149,10 @@ router.post(
         // get id from params and put into Input
         let $params = InputsController.clearInput(req.params);
 
-        AccountingDocumentsController.uploadFile($params.id, $input).then(
+        // add _id to $params
+        $input._id = $params._id;
+
+        AccountingDocumentsController.uploadFile($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
@@ -158,14 +164,14 @@ router.post(
 );
 
 router.delete(
-    '/:id/files/:fileName',
+    '/:_id/files/:fileName',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res) {
         // get id from params and put into Input
         let $params = InputsController.clearInput(req.params);
 
-        AccountingDocumentsController.deleteFile($params.id, $params).then(
+        AccountingDocumentsController.deleteFile($params).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

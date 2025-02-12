@@ -3,9 +3,6 @@ import InputsController   from '../controllers/InputsController.js';
 import AccountsController from '../controllers/AccountsController.js';
 import AuthController     from '../controllers/AuthController.js';
 
-// init the Global Accounts
-AccountsController.initGlobalAccounts();
-
 let router = express.Router();
 
 /**

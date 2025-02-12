@@ -42,6 +42,21 @@ class ProductsController extends Controllers {
         super();
     }
 
+    static createTheStoragePath() {
+        return new Promise((resolve, reject) => {
+            try {
+                if (!fs.existsSync(filesPath)) {
+                    // create the path
+                    fs.mkdirSync(filesPath, { recursive: true });
+                    console.log(`Products Storage Path was created successfully.`);
+                }
+            }
+            catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
     static setVariantsTitleBasedOnProperty($propertyId) {
         return new Promise((resolve, reject) => {
             // update every product has variant with this property
@@ -162,7 +177,7 @@ class ProductsController extends Controllers {
                 const product = await this.model.get($input._id);
 
                 // upload product files
-                uploadProductFiles($input.req, $input.res, (err) => {
+                uploadProductFiles($input.req, $input.res, async (err) => {
                     if (err) {
                         return reject({
                             code: 500,
@@ -181,7 +196,7 @@ class ProductsController extends Controllers {
                     });
 
                     // save product
-                    product.save();
+                    await product.save();
 
                     return resolve({
                         code: 200

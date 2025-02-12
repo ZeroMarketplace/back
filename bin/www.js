@@ -6,6 +6,7 @@ import http from 'http';
 import app              from '../app.js';
 import SocketConnection from "../core/Socket/SocketConnection.js";
 import RedisConnection  from "../core/RedisConnection.js";
+import ServerSetupController from "../controllers/ServerSetupController.js";
 
 // init app and requirement
 let server;
@@ -31,6 +32,9 @@ await SocketConnection.createServer(server);
 server.listen(port);
 server.on('error', onError);
 server.on('listening', onListening);
+
+// initialize the requirements
+await ServerSetupController.initializeRequirements();
 
 //Normalize a port into a number, string, or false.
 function normalizePort(val) {
