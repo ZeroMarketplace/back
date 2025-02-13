@@ -23,4 +23,6 @@
  *     description: APIs for managing Users
  *   - name: Accounting Documents
  *     description: APIs for managing Accounting Documents
+ *   - name: Purchase Invoices
+ *     description: APIs for managing Purchase Invoices
  */
