@@ -139,8 +139,7 @@ class PurchaseInvoicesController extends Controllers {
                                     consumer: {type: 'number', required: true},
                                     store   : {type: 'number', required: true}
                                 }
-                            },
-                            total: {type: 'number', required: true}
+                            }
                         },
                         required: true
                     },
@@ -148,7 +147,6 @@ class PurchaseInvoicesController extends Controllers {
                         type : 'array',
                         items: {
                             _reason: {type: 'mongoId', required: true},
-                            amount : {type: 'number', required: true},
                             value  : {type: 'number', required: true},
                         }
                     }
@@ -325,8 +323,8 @@ class PurchaseInvoicesController extends Controllers {
                     dateTime   : {type: 'date', required: true},
                     description: {type: 'string'},
                     products   : {
-                        type : 'array',
-                        items: {
+                        type    : 'array',
+                        items   : {
                             _id  : {type: 'mongoId', required: true},
                             count: {type: 'number', required: true},
                             price: {
@@ -336,15 +334,14 @@ class PurchaseInvoicesController extends Controllers {
                                     consumer: {type: 'number', required: true},
                                     store   : {type: 'number', required: true}
                                 }
-                            },
-                            total: {type: 'number', required: true}
-                        }
+                            }
+                        },
+                        required: true
                     },
                     AddAndSub  : {
                         type : 'array',
                         items: {
                             _reason: {type: 'mongoId', required: true},
-                            amount : {type: 'number', required: true},
                             value  : {type: 'number', required: true},
                         }
                     }
