@@ -159,40 +159,23 @@ class InventoriesController extends Controllers {
     static insertByPurchaseInvoice($input) {
         return new Promise(async (resolve, reject) => {
             try {
-                // validate input
-                await InputsController.validateInput($input, {
-                    _id : {type: 'mongoId', required: true},
-                    user: {
-                        type      : 'object',
-                        properties: {
-                            data: {
-                                type      : 'object',
-                                properties: {
-                                    _id: {type: 'mongoId', required: true},
-                                },
-                                required  : true
-                            }
-                        },
-                        required  : true
-                    }
-                });
 
-                // get purchase invoice
-                let purchaseInvoice = await PurchaseInvoicesController.get({
-                    _id: $input._id
-                });
-                // get data of purchase invoice
-                purchaseInvoice     = purchaseInvoice.data;
+                if (!$input.purchaseInvoice) {
+                    $input.purchaseInvoice = PurchaseInvoicesController.get(
+                        {_id: $input._id},
+                        {select: '_id products dateTime _warehouse'}
+                    );
+                }
 
                 // for each product in invoice
-                for (const product of purchaseInvoice.products) {
+                for (const product of $input.purchaseInvoice.products) {
                     // insert an inventory for product
                     await this.model.insertOne({
-                        dateTime        : purchaseInvoice.dateTime,
+                        dateTime        : $input.purchaseInvoice.dateTime,
                         _product        : product._id,
                         count           : product.count,
-                        _warehouse      : purchaseInvoice._warehouse,
-                        _purchaseInvoice: purchaseInvoice._id,
+                        _warehouse      : $input.purchaseInvoice._warehouse,
+                        _purchaseInvoice: $input.purchaseInvoice._id,
                         price           : {
                             purchase: product.price.purchase,
                             consumer: product.price.consumer,
@@ -350,7 +333,7 @@ class InventoriesController extends Controllers {
                 // products of purchase invoice
                 let lastProducts = purchaseInvoice.products;
                 // new products
-                let newProducts = structuredClone($input.products);
+                let newProducts  = structuredClone($input.products);
 
                 // for each inventory
                 for (let inventory of inventories) {
@@ -830,6 +813,34 @@ class InventoriesController extends Controllers {
                     return reject(response);
                 });
         });
+    }
+
+    static deleteByPurchaseInvoice($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // delete all inventories created by purchase-invoice
+                let response = await this.model.delete({
+                    _purchaseInvoice : $input._id
+                });
+
+                // check the deleted count
+                if(response.deletedCount) {
+                    return resolve({
+                        code: 200
+                    });
+                } else {
+                    return reject({
+                        code: 500,
+                        data: {
+                            message: 'Error Deleting Inventories of purchase invoice'
+                        }
+                    });
+                }
+            }
+            catch (error) {
+                return reject(error);
+            }
+        })
     }
 
     static delete($input) {
