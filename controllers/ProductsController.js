@@ -47,11 +47,14 @@ class ProductsController extends Controllers {
             try {
                 if (!fs.existsSync(filesPath)) {
                     // create the path
-                    fs.mkdirSync(filesPath, { recursive: true });
+                    fs.mkdirSync(filesPath, {recursive: true});
                     console.log(`Products Storage Path was created successfully.`);
                 }
-            }
-            catch (error) {
+
+                return resolve({
+                    code: 200
+                });
+            } catch (error) {
                 return reject(error);
             }
         })
