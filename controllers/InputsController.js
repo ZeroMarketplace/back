@@ -1,5 +1,6 @@
 import Controllers from '../core/Controllers.js';
 import validator   from 'validator';
+import mongoose    from 'mongoose';
 
 class InputsController extends Controllers {
     static clearInput($input) {
@@ -53,7 +54,7 @@ class InputsController extends Controllers {
                                     }
                                     break;
                                 case 'mongoId':
-                                    if (!validator.isMongoId(value)) {
+                                    if (!mongoose.isValidObjectId(value)) {
                                         errors.push(`${fieldPath} must be an Object Id`);
                                     }
                                     break;
@@ -61,6 +62,9 @@ class InputsController extends Controllers {
                                     value = Number(value);
                                     if (typeof value !== 'number' || isNaN(value)) {
                                         errors.push(`${fieldPath} must be a Number`);
+                                    } else {
+                                        // set the number
+                                        $input[field] = value;
                                     }
                                     break;
                                 case 'strongPassword':
@@ -106,7 +110,7 @@ class InputsController extends Controllers {
                                         errors.push(`${fieldPath} must have at most ${rules.maxItemCount} items`);
                                     }
 
-                                    if(rules.allowedValues) {
+                                    if (rules.allowedValues) {
                                         value.forEach((item, index) => {
                                             const itemPath = `${fieldPath}[${index}]`;
 
