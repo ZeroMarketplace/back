@@ -192,7 +192,7 @@ class AccountingDocumentsController extends Controllers {
                             });
 
                             // credit the user account in purchase-invoice
-                            let customerAccount = await AccountsController.getUserAccount(purchaseInvoice.data._customer);
+                            let customerAccount = await AccountsController.getUserAccount(purchaseInvoice.data._supplier);
                             accountingDocument.accountsInvolved.push({
                                 _account   : customerAccount.data._id,
                                 description: '',
