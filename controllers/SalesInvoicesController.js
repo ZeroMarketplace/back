@@ -378,17 +378,10 @@ class SalesInvoicesController extends Controllers {
     static setSettlement($input) {
         return new Promise(async (resolve, reject) => {
             try {
-                await InputsController.validateInput($input, {
-                    _id        : {type: 'mongoId', required: true},
-                    _settlement: {type: 'mongoId', required: true},
-                });
 
                 let response = await this.model.updateOne($input._id, {
                     _settlement: $input._settlement
                 });
-
-                // create output
-                response = await this.outputBuilder(response.toObject());
 
                 return resolve({
                     code: 200,
