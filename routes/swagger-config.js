@@ -25,4 +25,6 @@
  *     description: APIs for managing Accounting Documents
  *   - name: Purchase Invoices
  *     description: APIs for managing Purchase Invoices
+ *   - name: Settlements
+ *     description: APIs for managing Settlements
  */

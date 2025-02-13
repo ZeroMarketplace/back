@@ -62,144 +62,106 @@ class SettlementsController extends Controllers {
         return $query;
     }
 
-    static uploadFile($id, $input) {
-        return new Promise((resolve, reject) => {
-            this.get($id).then(
-                (document) => {
-                    document = document.data;
-
-                    // upload files with multer
-                    uploadDocumentsFiles($input.req, $input.res, (err) => {
-                        if (err) {
-                            return reject({
-                                code: 500,
-                                data: err
-                            });
-                        }
-
-
-                        // create array of files
-                        if (!document.files) {
-                            document.files = [];
-                        }
-
-                        // add file Names to the list
-                        $input.req.files.forEach((file) => {
-                            document.files.push(file.filename);
+    static validatePayment($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // check the cash accounts sum
+                let validCash = true;
+                if ($input.payment.cash) {
+                    let sumCash = 0;
+                    if ($input.payment.cashAccounts.length > 0) {
+                        // Sum the cash accounts payment
+                        $input.payment.cashAccounts.forEach((account) => {
+                            sumCash += account.amount;
                         });
 
-                        document.save().then(
-                            (responseSave) => {
-                                return resolve({
-                                    code: 200
-                                });
-                            },
-                            (error) => {
-                                Logger.systemError('accounting-documents-saveFilesName', error);
-                                return reject({
-                                    code: 500
-                                });
-                            },
+                        if ($input.payment.cash !== sumCash)
+                            validCash = false;
+                    } else {
+                        validCash = false;
+                    }
+                }
+
+                // check the valid cash
+                if (!validCash) {
+                    return reject({
+                        code: 400,
+                        data: {
+                            message: 'Invalid Payment, The total of the Cash Accounts payments ' +
+                                'must be equal to the amount of Cash.'
+                        }
+                    });
+                }
+
+                // check the cash accounts sum
+                let validBank = true;
+                if ($input.payment.bank) {
+                    let sumBank = 0;
+                    if ($input.payment.bankAccounts.length > 0) {
+                        // Sum the cash accounts payment
+                        $input.payment.bankAccounts.forEach((account) => {
+                            sumBank += account.amount;
+                        });
+
+                        if ($input.payment.bank !== sumBank)
+                            validBank = false;
+                    } else {
+                        validBank = false;
+                    }
+                }
+
+                if (!validBank) {
+                    return reject({
+                        code: 400,
+                        data: {
+                            message: 'Invalid Payment, The total of the Bank Accounts payments' +
+                                ' must be equal to the amount of Bank.'
+                        }
+                    });
+                }
+
+                // sum of payments
+                let sumOfPayment = 0;
+                sumOfPayment += $input.payment.cash;
+                sumOfPayment += $input.payment.bank;
+                sumOfPayment += $input.payment.credit;
+
+                // get the reference
+                let reference = undefined;
+                switch ($input.type) {
+                    case 'purchase-invoice':
+                        reference = await PurchaseInvoicesController.get(
+                            {_id: $input._reference,},
+                            {select: '_id total'}
                         );
-
-                    })
-                },
-                (error) => {
-                    return reject(error);
+                        break;
+                    case 'sales-invoice':
+                        reference = await SalesInvoicesController.get(
+                            {_id: $input._reference,},
+                            {select: '_id total'}
+                        );
+                        break;
                 }
-            );
-        });
-    }
 
-    static deleteFile($id, $input) {
-        return new Promise((resolve, reject) => {
-            this.get($id).then(
-                (document) => {
-                    document = document.data;
-                    // check file is exiting
-                    if (document.files.length && document.files.includes($input.fileName)) {
-                        // delete File
-                        fs.unlink(filesPath + $input.fileName, (error) => {
-                            if (error) return reject({code: 500});
-
-                            document.files.splice(document.files.indexOf($input.fileName), 1);
-
-                            document.save().then(
-                                (responseSave) => {
-                                    return resolve({
-                                        code: 200
-                                    });
-                                },
-                                (errorSave) => {
-                                    Logger.systemError('SaveAccountingDocuments-deleteFile');
-                                }
-                            );
-                        });
-                    } else {
-                        return reject({
-                            code: 404
-                        });
-                    }
-                },
-                (error) => {
-                    return reject(error);
+                // check the total and sumOfPayment
+                if(sumOfPayment !== reference.data.total) {
+                    return reject({
+                        code: 400,
+                        data: {
+                            message: 'The total of cash, bank, and credit payments' +
+                                ' must be the same as the total invoice amount.'
+                        }
+                    });
                 }
-            );
-        });
-    }
 
-    static getFile($id, $input) {
-        return new Promise((resolve, reject) => {
-            this.get($id).then(
-                (document) => {
-                    document = document.data;
-                    // check file is exiting on db
-                    if (document.files.length && document.files.includes($input.fileName)) {
-                        // check file exists
-                        fs.access(filesPath + $input.fileName, fs.constants.F_OK, (err) => {
-                            if (err) {
-                                return reject({code: 404});
-                            }
-                        });
+                return resolve({
+                    code: 200
+                });
 
-                        // delete File
-                        fs.readFile(filesPath + $input.fileName, (error, buffer) => {
-                            if (error) return reject({code: 500});
-
-                            // get mimetype
-                            const fileExtension = path.extname($input.fileName);
-                            let contentType     = 'text/plain';
-                            switch (fileExtension) {
-                                case '.jpg':
-                                case '.jpeg':
-                                    contentType = 'image/jpeg';
-                                    break;
-                                case '.png':
-                                    contentType = 'image/png';
-                                    break;
-                                case '.gif':
-                                    contentType = 'image/gif';
-                                    break;
-                            }
-
-                            return resolve({
-                                code       : 200,
-                                data       : buffer,
-                                contentType: contentType
-                            })
-
-                        });
-                    } else {
-                        return reject({
-                            code: 404
-                        });
-                    }
-                },
-                (error) => {
-                    return reject(error);
-                }
-            );
-        });
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
     static insertOne($input) {
@@ -235,9 +197,13 @@ class SettlementsController extends Controllers {
                             },
                             distributedBank: {type: 'boolean', required: true},
                             credit         : {type: 'number', required: true},
-                        }
+                        },
+                        required  : true
                     }
                 });
+
+                // validate the payment
+                await this.validatePayment($input);
 
                 let response = await this.model.insertOne({
                     type      : $input.type,
@@ -248,13 +214,14 @@ class SettlementsController extends Controllers {
 
                 // create accounting document of settlement
                 let accountingDocument = await AccountingDocumentsController.insertBySettlement({
+                    _id       : response._id,
                     settlement: response,
                     user      : $input.user
                 });
 
                 // add accounting document to settlement
                 response._accountingDocument = accountingDocument.data._id;
-                response.save();
+                await response.save();
 
                 // update reference and add the settlement _id
                 switch ($input.type) {
@@ -287,8 +254,6 @@ class SettlementsController extends Controllers {
                     code: 200,
                     data: response
                 });
-
-
             } catch (error) {
                 return reject(error);
             }
@@ -408,7 +373,8 @@ class SettlementsController extends Controllers {
                             },
                             distributedBank: {type: 'boolean', required: true},
                             credit         : {type: 'number', required: true},
-                        }
+                        },
+                        required  : true
                     }
                 });
 
@@ -433,7 +399,6 @@ class SettlementsController extends Controllers {
                 });
 
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         });
@@ -453,7 +418,7 @@ class SettlementsController extends Controllers {
                 });
 
                 // check had accounting document
-                if(settlement._accountingDocument) {
+                if (settlement._accountingDocument) {
                     // delete accounting document
                     await AccountingDocumentsController.deleteOne({
                         _id: settlement._accountingDocument.toString()
@@ -472,7 +437,6 @@ class SettlementsController extends Controllers {
             }
         });
     }
-
 
 }
 
