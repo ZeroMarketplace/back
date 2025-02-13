@@ -159,8 +159,12 @@ class AccountsController extends Controllers {
                         }
                     );
                 }
+
+                return resolve({
+                    code: 200
+                });
             } catch (err) {
-                console.log(error);
+                console.log(err);
                 return reject({
                     code: 500,
                     data: {
