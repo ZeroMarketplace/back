@@ -306,7 +306,6 @@ class PurchaseInvoicesController extends Controllers {
                 });
 
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         })
