@@ -21,4 +21,6 @@
  *     description: APIs for managing Add And Subtract
  *   - name: Users
  *     description: APIs for managing Users
+ *   - name: Accounting Documents
+ *     description: APIs for managing Accounting Documents
  */

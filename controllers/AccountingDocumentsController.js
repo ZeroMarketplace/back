@@ -84,11 +84,16 @@ class AccountingDocumentsController extends Controllers {
             $input.sort = {createdAt: -1};
         }
 
-        // for (const [$index, $value] of Object.entries($input)) {
-        //     switch ($index) {
-        //
-        //     }
-        // }
+        for (const [$index, $value] of Object.entries($input)) {
+            switch ($index) {
+                case 'dateTime':
+                    query[$index] = $value;
+                    break;
+                case '_account':
+                    query['accountsInvolved._account'] = $value;
+                    break;
+            }
+        }
 
         return query;
     }
@@ -441,7 +446,6 @@ class AccountingDocumentsController extends Controllers {
                     });
                 }
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         });
@@ -461,7 +465,8 @@ class AccountingDocumentsController extends Controllers {
                             description: {type: 'string'},
                             debit      : {type: 'number', required: true},
                             credit     : {type: 'number', required: true},
-                        }
+                        },
+                        required: true
                     },
                     amount          : {type: 'number', required: true},
                     _reference      : {type: 'mongoId'},
@@ -491,7 +496,6 @@ class AccountingDocumentsController extends Controllers {
                     _id               : response._id,
                     accountingDocument: response
                 });
-
 
                 // create output
                 response = await this.outputBuilder(response.toObject());
@@ -575,44 +579,54 @@ class AccountingDocumentsController extends Controllers {
         });
     }
 
-    static list($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            let query = this.queryBuilder($input);
-
-            // filter
-            this.model.list(query, {
-                skip : $input.offset,
-                limit: $input.perPage,
-                sort : $input.sort
-            }).then(
-                (response) => {
-                    // get count
-                    this.model.count(query).then((count) => {
-
-                        // create output
-                        response.forEach((row) => {
-                            this.outputBuilder(row._doc);
-                        });
-
-                        // return result
-                        return resolve({
-                            code: 200,
-                            data: {
-                                list : response,
-                                total: count
-                            }
-                        });
-
-                    });
-                },
-                (error) => {
-                    console.log(error);
-                    return reject({
-                        code: 500
-                    });
+    static documents($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate Input
+                await InputsController.validateInput($input, {
+                    dateTime     : {type: "date"},
+                    _account     : {type: 'mongoId'},
+                    perPage      : {type: "number"},
+                    page         : {type: "number"},
+                    sortColumn   : {type: "string"},
+                    sortDirection: {type: "number"},
                 });
+
+
+                // check filter is valid and remove other parameters (just valid query by user role) ...
+                let $query = this.queryBuilder($input);
+                // get list
+                const list = await this.model.list(
+                    $query,
+                    {
+                        skip  : $input.offset,
+                        limit : $input.perPage,
+                        sort  : $input.sort,
+                        select: '_id code dateTime description amount'
+                    }
+                );
+
+                // get the count of properties
+                const count = await this.model.count($query);
+
+                // create output
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row.toObject());
+                }
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : list,
+                        total: count
+                    }
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -707,12 +721,24 @@ class AccountingDocumentsController extends Controllers {
                     _id: {type: 'mongoId', required: true}
                 });
 
-                await AccountsController.removeBalanceByAccountingDocument({
-                    _id: $input._id,
+                // get the document
+                let document = await this.model.get($input._id, {
+                    select: '_id files accountsInvolved'
                 });
 
+                await AccountsController.removeBalanceByAccountingDocument({
+                    _id               : $input._id,
+                    accountingDocument: document
+                });
+
+                // delete files
+                for (const file of document.files) {
+                    // delete File
+                    await fs.unlinkSync(filesPath + file);
+                }
+
                 // delete the accounting document
-                await this.model.deleteOne($input._id);
+                await document.deleteOne();
 
                 // return result
                 return resolve({
