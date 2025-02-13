@@ -13,6 +13,7 @@ import PurchaseInvoicesController from "./PurchaseInvoicesController.js";
 import SalesInvoicesController    from "./SalesInvoicesController.js";
 import InputsController           from "./InputsController.js";
 import {Schema}                   from "mongoose";
+import Settlements                from "../routes/settlements.js";
 
 // config upload service
 const filesPath            = 'storage/files/accounting-documents/';
@@ -106,6 +107,10 @@ class AccountingDocumentsController extends Controllers {
                     fs.mkdirSync(filesPath, {recursive: true});
                     console.log(`Accounting Documents Storage Path was created successfully.`);
                 }
+
+                return resolve({
+                    code: 200
+                });
             } catch (error) {
                 return reject(error);
             }
@@ -115,10 +120,15 @@ class AccountingDocumentsController extends Controllers {
     static createDocumentBySettlement($input) {
         return new Promise(async (resolve, reject) => {
             try {
+                // get the settlement if not passed
                 if (!$input.settlement) {
-                    $input.settlement = await SettlementsController.get({
-                        _id: $input._id
-                    });
+                    // get the settlement from its Controller
+                    $input.settlement = SettlementsController.get(
+                        {_id: $input._id},
+                        {select: '_id type _reference payment'}
+                    );
+                    // get the data of settlement
+                    $input.settlement = $input.settlement.data;
                 }
 
                 // create accounting document
@@ -134,18 +144,21 @@ class AccountingDocumentsController extends Controllers {
                     case 'purchase-invoice':
                         // get purchase-invoice record
                         let purchaseInvoice           = await PurchaseInvoicesController.get(
-                            {_id: $input.settlement._reference.toString()},
-                            {populate: 'AddAndSub._reason'}
+                            {_id: $input.settlement._reference},
+                            {populate: 'AddAndSub._reason', select: '_id sum total _supplier AddAndSub'}
                         );
                         accountingDocument.amount     = purchaseInvoice.data.total;
                         accountingDocument._reference = $input.settlement._id;
                         accountingDocument.type       = 'purchase-invoice-settlement';
 
                         // add purchase account to accounting document as debit
-                        let purchaseAccount = await AccountsController.item({
-                            type       : 'system',
-                            description: 'cash purchase'
-                        });
+                        let purchaseAccount = await AccountsController.item(
+                            {
+                                type       : 'system',
+                                description: 'cash purchase'
+                            },
+                            {select: '_id'}
+                        );
                         accountingDocument.accountsInvolved.push({
                             _account   : purchaseAccount.data._id,
                             description: '',
@@ -180,10 +193,13 @@ class AccountingDocumentsController extends Controllers {
                         // add credit amount (account)
                         if ($input.settlement.payment.credit) {
                             // debit the credit purchase account
-                            let creditPurchaseAccount = await AccountsController.item({
-                                type       : 'system',
-                                description: 'credit purchase',
-                            });
+                            let creditPurchaseAccount = await AccountsController.item(
+                                {
+                                    type       : 'system',
+                                    description: 'credit purchase',
+                                },
+                                {select: '_id'}
+                            );
                             accountingDocument.accountsInvolved.push({
                                 _account   : creditPurchaseAccount.data._id,
                                 description: '',
@@ -224,18 +240,21 @@ class AccountingDocumentsController extends Controllers {
                     case 'sales-invoice':
                         // get sales-invoice record
                         let salesInvoice              = await SalesInvoicesController.get(
-                            {_id: $input.settlement._reference.toString()},
-                            {populate: 'AddAndSub._reason'}
+                            {_id: $input.settlement._reference},
+                            {populate: 'AddAndSub._reason', select: '_id sum total _customer AddAndSub'}
                         );
                         accountingDocument.amount     = salesInvoice.data.total;
                         accountingDocument._reference = $input.settlement._id;
                         accountingDocument.type       = 'sales-invoice-settlement';
 
                         // add sales account to accounting document as credit
-                        let salesAccount = await AccountsController.item({
-                            type       : 'system',
-                            description: 'cash sales'
-                        });
+                        let salesAccount = await AccountsController.item(
+                            {
+                                type       : 'system',
+                                description: 'cash sales'
+                            },
+                            {select: '_id'}
+                        );
                         accountingDocument.accountsInvolved.push({
                             _account   : salesAccount.data._id,
                             description: '',
@@ -270,10 +289,13 @@ class AccountingDocumentsController extends Controllers {
                         // add credit amount (account)
                         if ($input.settlement.payment.credit) {
                             // debit the credit purchase account
-                            let creditPurchaseAccount = await AccountsController.item({
-                                type       : 'system',
-                                description: 'credit purchase',
-                            });
+                            let creditPurchaseAccount = await AccountsController.item(
+                                {
+                                    type       : 'system',
+                                    description: 'credit purchase'
+                                },
+                                {select: '_id'}
+                            );
                             accountingDocument.accountsInvolved.push({
                                 _account   : creditPurchaseAccount.data._id,
                                 description: '',
@@ -459,8 +481,8 @@ class AccountingDocumentsController extends Controllers {
                     dateTime        : {type: 'date', required: true},
                     description     : {type: 'string'},
                     accountsInvolved: {
-                        type : 'array',
-                        items: {
+                        type    : 'array',
+                        items   : {
                             _account   : {type: 'mongoId', required: true},
                             description: {type: 'string'},
                             debit      : {type: 'number', required: true},
@@ -515,18 +537,18 @@ class AccountingDocumentsController extends Controllers {
             try {
 
                 // create the accounting document
-                let accountingDocument = await this.createDocumentBySettlement($input)
+                let accountingDocument = await this.createDocumentBySettlement($input);
+
+                // set user to insert
+                accountingDocument.user = $input.user;
 
                 // insert to db
-                let response = await this.model.insertOne(accountingDocument);
-
-                // create output
-                response = await this.outputBuilder(response.toObject());
+                let response = await this.insertOne(accountingDocument);
 
                 // return result
                 return resolve({
                     code: 200,
-                    data: response
+                    data: response.data
                 });
 
             } catch (error) {
@@ -693,21 +715,20 @@ class AccountingDocumentsController extends Controllers {
         return new Promise(async (resolve, reject) => {
             try {
                 // create the accounting document
-                let accountingDocument = await this.createDocumentBySettlement($input)
+                let accountingDocument = await this.createDocumentBySettlement($input);
+
+                // set _id
+                accountingDocument._id = $input._accountingDocument;
 
                 // update in db
-                let response = await this.model.updateOne($input._accountingDocument, accountingDocument);
-
-                // create output
-                response = await this.outputBuilder(response.toObject());
+                let response = await this.updateOne(accountingDocument);
 
                 // return result
                 return resolve({
                     code: 200,
-                    data: response
+                    data: response.data
                 });
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         })
@@ -732,9 +753,11 @@ class AccountingDocumentsController extends Controllers {
                 });
 
                 // delete files
-                for (const file of document.files) {
-                    // delete File
-                    await fs.unlinkSync(filesPath + file);
+                if(document.files) {
+                    for (const file of document.files) {
+                        // delete File
+                        await fs.unlinkSync(filesPath + file);
+                    }
                 }
 
                 // delete the accounting document
@@ -745,6 +768,7 @@ class AccountingDocumentsController extends Controllers {
                     code: 200
                 });
             } catch (e) {
+                console.log(e);
                 return reject(e);
             }
         });
