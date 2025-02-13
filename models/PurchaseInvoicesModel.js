@@ -6,7 +6,7 @@ class PurchaseInvoicesModel extends Models {
     // const Account = null;
     static schema = new Schema({
             code       : Number,
-            _customer  : {type: Schema.Types.ObjectId, ref: 'users', required: true},
+            _supplier  : {type: Schema.Types.ObjectId, ref: 'users', required: true},
             _warehouse : {type: Schema.Types.ObjectId, ref: 'warehouses', required: true},
             dateTime   : {type: Date, required: true},
             description: String,

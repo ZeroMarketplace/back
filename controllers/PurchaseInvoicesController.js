@@ -123,7 +123,7 @@ class PurchaseInvoicesController extends Controllers {
             try {
                 // validate input
                 await InputsController.validateInput($input, {
-                    _customer  : {type: 'mongoId', required: true},
+                    _supplier  : {type: 'mongoId', required: true},
                     _warehouse : {type: 'mongoId', required: true},
                     dateTime   : {type: 'date', required: true},
                     description: {type: 'string'},
@@ -163,7 +163,7 @@ class PurchaseInvoicesController extends Controllers {
                 // insert to db
                 let response = await this.model.insertOne({
                     code       : code,
-                    _customer  : $input._customer,
+                    _supplier  : $input._supplier,
                     dateTime   : $input.dateTime,
                     _warehouse : $input._warehouse,
                     description: $input.description,
@@ -181,8 +181,9 @@ class PurchaseInvoicesController extends Controllers {
 
                 // insert inventories
                 await InventoriesController.insertByPurchaseInvoice({
-                    _id : response._id.toString(),
-                    user: $input.user
+                    _id            : response._id,
+                    purchaseInvoice: response,
+                    user           : $input.user
                 });
 
                 return resolve({
@@ -252,21 +253,20 @@ class PurchaseInvoicesController extends Controllers {
                     sortDirection: {type: "number"},
                 });
 
-
                 // check filter is valid and remove other parameters (just valid query by user role) ...
                 let $query = this.queryBuilder($input);
                 // get list
                 const list = await this.model.list(
                     $query,
                     {
-                        select: '_id dateTime total _warehouse _customer',
+                        select  : '_id code dateTime total _warehouse _supplier',
                         populate: [
                             {path: '_warehouse', select: '_id title'},
-                            {path: '_customer', select: '_id firstName lastName'},
+                            {path: '_supplier', select: '_id firstName lastName'},
                         ],
-                        skip : $input.offset,
-                        limit: $input.perPage,
-                        sort : $input.sort
+                        skip    : $input.offset,
+                        limit   : $input.perPage,
+                        sort    : $input.sort
                     }
                 );
 
@@ -291,20 +291,6 @@ class PurchaseInvoicesController extends Controllers {
             } catch (error) {
                 return reject(error);
             }
-        });
-    }
-
-    static update($id, $input) {
-        return new Promise(async (resolve, reject) => {
-            // filter
-            this.model.updateOne($id, $input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
-                },
-                (response) => {
-                    return reject(response);
-                });
         });
     }
 
@@ -334,7 +320,7 @@ class PurchaseInvoicesController extends Controllers {
                 // validate input
                 await InputsController.validateInput($input, {
                     _id        : {type: 'mongoId', required: true},
-                    _customer  : {type: 'mongoId', required: true},
+                    _supplier  : {type: 'mongoId', required: true},
                     _warehouse : {type: 'mongoId', required: true},
                     dateTime   : {type: 'date', required: true},
                     description: {type: 'string'},
@@ -368,7 +354,7 @@ class PurchaseInvoicesController extends Controllers {
                 await this.calculateInvoice($input);
 
                 // update inventories
-                let inventories = await InventoriesController.updateByPurchaseInvoice({
+                await InventoriesController.updateByPurchaseInvoice({
                     _id       : $input._id,
                     products  : $input.products,
                     _warehouse: $input._warehouse,
@@ -378,7 +364,7 @@ class PurchaseInvoicesController extends Controllers {
 
                 // update in db
                 let response = await this.model.updateOne($input._id, {
-                    _customer  : $input._customer,
+                    _supplier  : $input._supplier,
                     dateTime   : $input.dateTime,
                     _warehouse : $input._warehouse,
                     description: $input.description,
@@ -415,11 +401,16 @@ class PurchaseInvoicesController extends Controllers {
                     select: '_id _settlement'
                 });
 
-                if(invoice._settlement) {
-                    await SettlementsController.deleteOne( {
+                if (invoice._settlement) {
+                    await SettlementsController.deleteOne({
                         _id: invoice._settlement.toString()
                     });
                 }
+
+                // delete the inventories
+                await InventoriesController.deleteByPurchaseInvoice({
+                    _id: invoice._id
+                });
 
                 // delete the invoice
                 await invoice.deleteOne();
@@ -433,7 +424,6 @@ class PurchaseInvoicesController extends Controllers {
             }
         });
     }
-
 
 }
 
