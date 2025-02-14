@@ -118,16 +118,17 @@ class ProductsController extends Controllers {
                     break;
                 case '_id':
                     // set price of product
-                    let priceOfProduct = await InventoriesController.getProductPrice($value);
+                    let priceOfProduct = await InventoriesController.getProductPrice({_id: $value});
                     if (priceOfProduct.data.consumer)
                         $row['price'] = priceOfProduct.data;
                     break;
                 case 'variants':
                     for (const variant of $value) {
                         // set price of variant
-                        let priceOfVariant = await InventoriesController.getProductPrice(variant._id);
-                        if (priceOfVariant.data.consumer)
+                        let priceOfVariant = await InventoriesController.getProductPrice({_id: variant._id});
+                        if (priceOfVariant.data.consumer) {
                             variant.price = priceOfVariant.data;
+                        }
                     }
                     break;
             }
@@ -454,7 +455,7 @@ class ProductsController extends Controllers {
                     sortColumn   : {type: "string"},
                     sortDirection: {type: "number"},
                 });
-
+                
 
                 // check filter is valid and remove other parameters (just valid query by user role) ...
                 let $query = this.queryBuilder($input);
