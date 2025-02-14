@@ -88,7 +88,7 @@ class Models {
         });
     }
 
-    list($conditions, $options = {}) {
+    list($conditions = {}, $options = {}) {
         return new Promise((resolve, reject) => {
             // select
             if (!$options.select)
