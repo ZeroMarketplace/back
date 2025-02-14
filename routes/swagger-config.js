@@ -27,4 +27,6 @@
  *     description: APIs for managing Purchase Invoices
  *   - name: Settlements
  *     description: APIs for managing Settlements
+ *   - name: Settings
+ *     description: APIs for managing Settings
  */
