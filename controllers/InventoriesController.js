@@ -8,6 +8,7 @@ import InputsController           from "./InputsController.js";
 import PurchaseInvoices           from "../routes/purchase-invoices.js";
 import PurchaseInvoicesController from "./PurchaseInvoicesController.js";
 import SalesInvoicesController    from "./SalesInvoicesController.js";
+import SettingsController         from "./SettingsController.js";
 
 class InventoriesController extends Controllers {
     static model = new InventoriesModel();
@@ -16,36 +17,198 @@ class InventoriesController extends Controllers {
         super();
     }
 
-    static getProductPrice($productId, $type = 'consumer') {
+    static getProductPriceByLifoMethod($input) {
         return new Promise(async (resolve, reject) => {
-            // get latest inventory (LIFO method)
-            this.model.getLatestInventory({
-                _product: $productId
-            }).then(
-                (inventory) => {
-                    inventory = inventory.data;
-                    return resolve({
-                        code: 200,
-                        data: {
-                            consumer: inventory.price.consumer,
-                            store   : inventory.price.store
-                        }
-                    });
-                },
-                (response) => {
-                    if (response.code === 404) {
-                        return resolve({
-                            code: 200,
-                            data: {
-                                consumer: undefined,
-                                store   : undefined
-                            }
-                        });
-                    } else {
-                        return reject(response);
+            try {
+
+                // get the latest inventory of product
+                await this.model.item(
+                    {
+                        _product: $input._id,
+                        count   : {$gt: 0}
+                    },
+                    {
+                        sort  : {dateTime: -1},
+                        select: '_id price'
                     }
+                ).then(
+                    (response) => {
+                        return resolve({
+                            consumer: response.price.consumer,
+                            store   : response.price.store,
+                        });
+                    },
+                    (error) => {
+                        if (error.code && error.code === 404) {
+                            // price not founded is 0
+                            return resolve({
+                                consumer: 0,
+                                store   : 0
+                            });
+                        } else {
+                            return reject(error);
+                        }
+                    }
+                );
+
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    static getProductPriceByFifoMethod($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                // get the latest inventory of product
+                await this.model.item(
+                    {
+                        _product: $input._id,
+                        count   : {$gt: 0}
+                    },
+                    {
+                        sort  : {dateTime: 1},
+                        select: '_id price'
+                    }
+                ).then(
+                    (response) => {
+                        return resolve({
+                            consumer: response.price.consumer,
+                            store   : response.price.store,
+                        });
+                    },
+                    (error) => {
+                        if (error.code && error.code === 404) {
+                            // price not founded is 0
+                            return resolve({
+                                consumer: 0,
+                                store   : 0
+                            });
+                        } else {
+                            return reject(error);
+                        }
+                    }
+                );
+
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    static getProductPriceByMaxMethod($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                // get the highest purchase price inventory of product
+                await this.model.item(
+                    {
+                        _product: $input._id,
+                        count   : {$gt: 0}
+                    },
+                    {
+                        sort  : {'price.purchase': -1},
+                        select: '_id price'
+                    }
+                ).then(
+                    (response) => {
+                        return resolve({
+                            consumer: response.price.consumer,
+                            store   : response.price.store,
+                        });
+                    },
+                    (error) => {
+                        if (error.code && error.code === 404) {
+                            // price not founded is 0
+                            return resolve({
+                                consumer: 0,
+                                store   : 0
+                            });
+                        } else {
+                            return reject(error);
+                        }
+                    }
+                );
+
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    static getProductPriceByWeightedAverageMethod($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                // get the highest purchase price inventory of product
+                let inventories = await this.model.list(
+                    {_product: $input._id},
+                    {select: '_id price count', sort: {dateTime: -1}}
+                );
+
+                let sumOfCounts = 0;
+                let sumOfPrice  = 0;
+
+                inventories.forEach(inventory => {
+                    sumOfPrice += (inventory.count * inventory.price.consumer);
+                    sumOfCounts += inventory.count;
+                });
+
+
+                if (sumOfCounts > 0) {
+                    let price = Math.ceil((sumOfPrice / sumOfCounts));
+                    return resolve({
+                        consumer: price,
+                        store   : price
+                    })
+                } else {
+                    return resolve({
+                        consumer: 0,
+                        store   : 0
+                    })
                 }
-            );
+
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    static getProductPrice($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                // get pricing method
+                let pricingMethod = await SettingsController.get({
+                    key: 'pricingMethod'
+                });
+
+                let price = undefined;
+
+                // switch for pricing method value
+                switch (pricingMethod.data.value) {
+                    case 'lifo':
+                        price = await this.getProductPriceByLifoMethod($input);
+                        break;
+                    case 'fifo':
+                        price = await this.getProductPriceByFifoMethod($input);
+                        break;
+                    case 'max':
+                        price = await this.getProductPriceByMaxMethod($input);
+                        break;
+                    case 'weightedAverage':
+                        price = await this.getProductPriceByWeightedAverageMethod($input);
+                        break;
+                }
+
+                return resolve({
+                    code: 200,
+                    data: price
+                });
+            } catch (error) {
+                return reject(error);
+            }
         })
     }
 
@@ -84,20 +247,20 @@ class InventoriesController extends Controllers {
     static queryBuilder($input) {
         let query = {};
 
-        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
-
         // pagination
-        $input.perPage = Number($input.perPage) ?? 10;
+        $input.perPage = $input.perPage ?? 10;
         $input.page    = $input.page ?? 1;
         $input.offset  = ($input.page - 1) * $input.perPage;
 
         // sort
         if ($input.sortColumn && $input.sortDirection) {
             $input.sort                    = {};
-            $input.sort[$input.sortColumn] = Number($input.sortDirection);
+            $input.sort[$input.sortColumn] = $input.sortDirection;
         } else {
             $input.sort = {createdAt: -1};
         }
+        $input.sort = {createdAt: -1};
+
 
         for (const [$index, $value] of Object.entries($input)) {
             switch ($index) {
@@ -116,8 +279,8 @@ class InventoriesController extends Controllers {
                 // validate input
                 await InputsController.validateInput($input, {
                     dateTime        : {type: 'date', required: true},
-                    count           : {type: 'number', required: true},
                     _product        : {type: 'mongoId', required: true},
+                    count           : {type: 'number', required: true},
                     _warehouse      : {type: 'mongoId', required: true},
                     _purchaseInvoice: {type: 'mongoId', required: true},
                     price           : {
@@ -133,8 +296,8 @@ class InventoriesController extends Controllers {
                 // insert to db
                 let response = await this.model.insertOne({
                     dateTime        : $input.dateTime,
-                    count           : $input.count,
                     _product        : $input._product,
+                    count           : $input.count,
                     _warehouse      : $input._warehouse,
                     _purchaseInvoice: $input._purchaseInvoice,
                     price           : $input.price,
@@ -156,21 +319,29 @@ class InventoriesController extends Controllers {
         });
     }
 
+    // insert inventories when purchase invoice inserted (Increase the inventory of products)
     static insertByPurchaseInvoice($input) {
         return new Promise(async (resolve, reject) => {
             try {
 
+                // get purchase invoice
                 if (!$input.purchaseInvoice) {
-                    $input.purchaseInvoice = PurchaseInvoicesController.get(
+                    // get invoice from its Controller
+                    $input.purchaseInvoice = await PurchaseInvoicesController.get(
                         {_id: $input._id},
-                        {select: '_id products dateTime _warehouse'}
+                        {select: '_id products'}
                     );
+                    // get the data of purchase invoice
+                    $input.purchaseInvoice = $input.purchaseInvoice.data;
                 }
+
+                // init inserted inventories list
+                let inventories = [];
 
                 // for each product in invoice
                 for (const product of $input.purchaseInvoice.products) {
                     // insert an inventory for product
-                    await this.model.insertOne({
+                    let response = await this.insertOne({
                         dateTime        : $input.purchaseInvoice.dateTime,
                         _product        : product._id,
                         count           : product.count,
@@ -181,13 +352,17 @@ class InventoriesController extends Controllers {
                             consumer: product.price.consumer,
                             store   : product.price.store
                         },
-                        status          : 'active',
-                        _user           : $input.user.data._id
+                        user           : $input.user
                     });
+
+                    // add to inserted inventories
+                    inventories.push(response.data);
                 }
 
+                // return result of insert inventories
                 return resolve({
-                    code: 200
+                    code: 200,
+                    data: inventories
                 });
 
             } catch (error) {
@@ -252,92 +427,85 @@ class InventoriesController extends Controllers {
         });
     }
 
-    static get($id, $options) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.get($id, $options).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static get($input, $options = {}, $resultType = 'object') {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
                 });
-        });
-    }
 
-    static getInventoryByProductId($params, $query) {
-        return new Promise((resolve, reject) => {
-            // Type of sales
-            // - retail
-            // - onlineSales
-            $params._product = new ObjectId($params._product);
-            this.model.getInventoryByProductId($params._product, $query.typeOfSales).then(
-                async (response) => {
-                    // return result
-                    return resolve({
-                        code: 200,
-                        data: response.data
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                },
-            );
-        });
-    }
+                // get from db
+                let response = await this.model.get($input._id, $options);
 
-    static updateOne($id, $input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.updateOne($id, {
-                title: {
-                    en: $input.title.en,
-                    fa: $input.title.fa
+                // create output
+                if ($resultType === 'object') {
+                    response = await this.outputBuilder(response.toObject());
                 }
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
-                },
-                (response) => {
-                    return reject(response);
+
+                return resolve({
+                    code: 200,
+                    data: response
                 });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
+    static getInventoryByProductId($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate Input
+                await InputsController.validateInput($input, {
+                    _id        : {type: 'mongoId', required: true},
+                    typeOfSales: {
+                        type         : 'string',
+                        allowedValues: ['retail', 'onlineSales']
+                    }
+                });
+                let response = await this.model.getInventoryByProductId($input);
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    // update inventories info when purchase invoice updated
     static updateByPurchaseInvoice($input) {
         return new Promise(async (resolve, reject) => {
             try {
                 // get purchase invoice
-                let purchaseInvoice = await PurchaseInvoicesController.get(
-                    {_id: $input._id},
-                    {select: '_id products'}
-                );
-                // get data of purchase invoice
-                purchaseInvoice     = purchaseInvoice.data;
+                if (!$input.purchaseInvoice) {
+                    // get invoice from its Controller
+                    $input.purchaseInvoice = await PurchaseInvoicesController.get(
+                        {_id: $input._id},
+                        {select: '_id products'}
+                    );
+                    // get the data of purchase invoice
+                    $input.purchaseInvoice = $input.purchaseInvoice.data;
+                }
 
 
                 // get inventories created by this purchase invoice
                 let inventories = await this.model.list({
-                    _purchaseInvoice: purchaseInvoice._id,
+                    _purchaseInvoice: $input._id,
                 });
 
                 // products of purchase invoice
-                let lastProducts = purchaseInvoice.products;
+                let lastProducts = $input.purchaseInvoice.products;
                 // new products
                 let newProducts  = structuredClone($input.products);
 
                 // for each inventory
                 for (let inventory of inventories) {
-                    // find product in purchase invoice products
+                    // find product in purchase invoice new products
                     let product = newProducts.find(
                         i => i._id === inventory._product.toString()
                     );
@@ -374,17 +542,17 @@ class InventoriesController extends Controllers {
                         );
 
                     } else {
-                        // delete inventory because the product was deleted from invoice
+                        // delete inventory because the product was deleted from updated info of invoice
                         await inventory.deleteOne();
                     }
                 }
 
                 // add inventory of new products
                 for (const product of newProducts) {
-                    await this.model.insertOne({
+                    await this.insertOne({
                         dateTime        : $input.dateTime,
-                        count           : product.count,
                         _product        : product._id,
+                        count           : product.count,
                         _warehouse      : $input._warehouse,
                         _purchaseInvoice: $input._id,
                         price           : {
@@ -392,8 +560,7 @@ class InventoriesController extends Controllers {
                             consumer: product.price.consumer,
                             store   : product.price.store
                         },
-                        status          : 'active',
-                        _user           : $input.user.data._id
+                        _user           : $input.user
                     });
                 }
 
@@ -820,11 +987,11 @@ class InventoriesController extends Controllers {
             try {
                 // delete all inventories created by purchase-invoice
                 let response = await this.model.delete({
-                    _purchaseInvoice : $input._id
+                    _purchaseInvoice: $input._id
                 });
 
                 // check the deleted count
-                if(response.deletedCount) {
+                if (response.deletedCount) {
                     return resolve({
                         code: 200
                     });
@@ -836,8 +1003,7 @@ class InventoriesController extends Controllers {
                         }
                     });
                 }
-            }
-            catch (error) {
+            } catch (error) {
                 return reject(error);
             }
         })
