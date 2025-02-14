@@ -4,6 +4,7 @@ import Controllers                   from "../core/Controllers.js";
 import AccountsController            from "./AccountsController.js";
 import ProductsController            from "./ProductsController.js";
 import PermissionsController         from "./PermissionsController.js";
+import SettingsController            from "./SettingsController.js";
 
 class ServerSetupController extends Controllers {
     constructor() {
@@ -23,6 +24,9 @@ class ServerSetupController extends Controllers {
 
             // create the storage path of products
             await ProductsController.createTheStoragePath();
+
+            // create the settings
+            await SettingsController.initSystemSettings();
 
         } catch (error) {
             console.log(error);
