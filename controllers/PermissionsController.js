@@ -16,7 +16,7 @@ class PermissionsController extends Controllers {
                 "type" : "collective",
                 "label": "admins",
                 "urls" : {
-                    "/api/users": {
+                    "/api/users"               : {
                         "POST"  : true,
                         "GET"   : true,
                         "PUT"   : true,
@@ -94,13 +94,19 @@ class PermissionsController extends Controllers {
                         "PUT"   : true,
                         "DELETE": true
                     },
-                    "/api/inventories"      : {
+                    "/api/inventories"         : {
                         "POST"  : true,
                         "GET"   : true,
                         "PUT"   : true,
                         "DELETE": true
                     },
-                    "/api/stock-transfers"      : {
+                    "/api/stock-transfers"     : {
+                        "POST"  : true,
+                        "GET"   : true,
+                        "PUT"   : true,
+                        "DELETE": true
+                    },
+                    "/api/settings"            : {
                         "POST"  : true,
                         "GET"   : true,
                         "PUT"   : true,
@@ -114,16 +120,16 @@ class PermissionsController extends Controllers {
                 "type" : "collective",
                 "label": "users",
                 "urls" : {
-                    "/api/contacts": {
+                    "/api/contacts"     : {
                         "POST"  : true,
                         "GET"   : true,
                         "PUT"   : true,
                         "DELETE": true
                     },
                     "/api/conversations": {
-                        "POST": true,
-                        "GET": true,
-                        "PUT": true,
+                        "POST"  : true,
+                        "GET"   : true,
+                        "PUT"   : true,
                         "DELETE": true
                     },
                 },
