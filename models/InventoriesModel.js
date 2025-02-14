@@ -255,7 +255,7 @@ class InventoriesModel extends Models {
         });
     }
 
-    getInventoryByProductId($productId, $typeOfSales, $options) {
+    getInventoryByProductId($input) {
         return new Promise(async (resolve, reject) => {
             let aggregationQuery = [
                 {
