@@ -10,7 +10,19 @@ class StockTransfersModel extends Models {
             _product             : {type: Schema.Types.ObjectId, ref: 'products'},
             count                : Number,
             _inventoryChanges    : {type: Schema.Types.ObjectId, ref: 'inventory-changes'},
-            status               : {type: String, enum: ['active', 'inactive']},
+            status               : {
+                type: String,
+                enum: [
+                    'Draft',
+                    'Pending Approval',
+                    'Approved',
+                    'Dispatched',
+                    'In Transit',
+                    'Received',
+                    'Completed',
+                    'Cancelled',
+                ]
+            },
             _user                : {type: Schema.Types.ObjectId, ref: 'users'}
         },
         {timestamps: true});
