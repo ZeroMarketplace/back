@@ -9,6 +9,7 @@ import PurchaseInvoices           from "../routes/purchase-invoices.js";
 import PurchaseInvoicesController from "./PurchaseInvoicesController.js";
 import SalesInvoicesController    from "./SalesInvoicesController.js";
 import SettingsController         from "./SettingsController.js";
+import StockTransfersController   from "./StockTransfersController.js";
 
 class InventoriesController extends Controllers {
     static model = new InventoriesModel();
@@ -585,114 +586,121 @@ class InventoriesController extends Controllers {
         })
     }
 
-    static stockTransfer($input) {
-        return new Promise((resolve, reject) => {
-            // get list of product in source warehouse
-            this.model.list({
-                _warehouse: $input._sourceWarehouse,
-                _product  : $input._product,
-            }, {
-                sort: {
-                    count: 1
+    static updateByStockTransfer($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+
+                // get stock transfer
+                if (!$input.stockTransfer) {
+                    // get the stock transfer from its Controller
+                    $input.stockTransfer = await StockTransfersController.get(
+                        {_id: $input._id},
+                        {select: '_id'}
+                    );
+                    // get the data of stock transfer
+                    $input.stockTransfer = $input.stockTransfer.data;
                 }
-            }).then(
-                async (inventories) => {
-                    let remainingCount = $input.count;
-                    let changes        = [];
-                    // change or add new inventory
-                    for (const inventory of inventories) {
-                        if (remainingCount > 0) {
-                            if (remainingCount >= inventory.count) {
-                                // add to changes
-                                changes.push({
-                                    operation : 'update',
-                                    field     : '_warehouse',
-                                    oldValue  : inventory._warehouse,
-                                    newValue  : new ObjectId($input._destinationWarehouse),
-                                    _inventory: inventory._id
-                                });
 
-                                // change the _warehouse
-                                inventory._warehouse = $input._destinationWarehouse;
-                                await inventory.save();
-
-                                remainingCount -= inventory.count;
-                            } else {
-                                // add to changes
-                                changes.push({
-                                    operation : 'update',
-                                    field     : 'count',
-                                    oldValue  : inventory.count,
-                                    newValue  : (inventory.count - remainingCount),
-                                    _inventory: inventory._id
-                                });
-
-                                // minus count of inventory
-                                await this.updateCount({_id: inventory._id}, -remainingCount)
-
-                                let lastInventoryOfProduct = await this.model.getLatestInventory({
-                                    _product: $input._product,
-                                });
-
-                                // add new inventory of remaining count
-                                let newInventory = await this.model.insertOne({
-                                    dateTime        : new Date(),
-                                    count           : remainingCount,
-                                    _product        : $input._product,
-                                    _warehouse      : $input._destinationWarehouse,
-                                    _purchaseInvoice: inventory._purchaseInvoice,
-                                    price           : {
-                                        purchase: inventory.price.purchase,
-                                        consumer: lastInventoryOfProduct.data.price.consumer,
-                                        store   : lastInventoryOfProduct.data.price.store,
-                                    },
-                                    status          : 'active',
-                                    _user           : $input.user.data._id
-                                });
-
-                                // add to changes (insert)
-                                changes.push({
-                                    operation : 'insert',
-                                    _inventory: newInventory._id
-                                });
-
-                                remainingCount = 0;
-                            }
-                        } else {
-                            break;
+                // get the list of product in source warehouse
+                let inventories = await this.model.list(
+                    {
+                        _warehouse: $input._sourceWarehouse,
+                        _product  : $input._product,
+                        count     : {$gt: 0}
+                    },
+                    {
+                        sort: {
+                            count: 1
                         }
                     }
+                );
 
-                    // add changes to inventoryChanges
-                    let _inventoryChanges = '';
-                    await InventoryChangesController.insertOne({
-                        type   : 'stock-transfer',
-                        changes: changes
-                    }).then(
-                        (response) => {
-                            _inventoryChanges = response.data._id;
-                        },
-                        (response) => {
-                            return reject({
-                                code: 500,
-                                data: {
-                                    message: 'Error Insert Inventory Changes'
-                                }
-                            });
-                        }
-                    );
+                // init the remaining counter and change logger
+                let remainingCount = $input.count;
+                let changes        = [];
 
-                    return resolve({
-                        code: 200,
-                        data: {
-                            _inventoryChanges: _inventoryChanges
-                        }
-                    });
-                },
-                (response) => {
-                    return reject(response);
+                // change or add new inventory
+                for (const inventory of inventories) {
+                    // check all the products transferred
+                    if (remainingCount < 1) {
+                        break;
+                    }
+
+                    if (remainingCount >= inventory.count) {
+                        // add to changes
+                        changes.push({
+                            operation : 'update',
+                            field     : '_warehouse',
+                            oldValue  : inventory._warehouse,
+                            newValue  : new ObjectId($input._destinationWarehouse),
+                            _inventory: inventory._id
+                        });
+
+                        // change the _warehouse
+                        inventory._warehouse = $input._destinationWarehouse;
+                        await inventory.save();
+
+                        remainingCount -= inventory.count;
+                    } else {
+                        // add to changes
+                        changes.push({
+                            operation : 'update',
+                            field     : 'count',
+                            oldValue  : inventory.count,
+                            newValue  : (inventory.count - remainingCount),
+                            _inventory: inventory._id
+                        });
+
+                        // minus count of inventory
+                        inventory.count -= remainingCount;
+                        await inventory.save();
+
+                        let productPrice = await this.getProductPrice({
+                            _id: $input._id
+                        });
+
+                        // add new inventory of remaining count
+                        let newInventory = await this.insertOne({
+                            dateTime        : new Date(),
+                            count           : remainingCount,
+                            _product        : $input._product,
+                            _warehouse      : $input._destinationWarehouse,
+                            _purchaseInvoice: inventory._purchaseInvoice,
+                            price           : {
+                                purchase: inventory.price.purchase,
+                                consumer: productPrice.data.consumer,
+                                store   : productPrice.data.store,
+                            },
+                            status          : 'active',
+                            user            : $input.user
+                        });
+
+                        // add to changes (insert)
+                        changes.push({
+                            operation : 'insert',
+                            _inventory: newInventory.data._id
+                        });
+
+                        remainingCount = 0;
+                    }
                 }
-            );
+
+                // add changes to inventoryChanges
+                let inventoryChangesResponse = await InventoryChangesController.insertOne({
+                    type      : 'stock-transfer',
+                    changes   : changes,
+                    _reference: $input._id
+                });
+
+                return resolve({
+                    code: 200,
+                    data: {
+                        _inventoryChanges: inventoryChangesResponse.data._id
+                    }
+                });
+            } catch (error) {
+                return reject(error);
+            }
         })
     }
 
