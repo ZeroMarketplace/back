@@ -3,6 +3,7 @@ import StockTransfersModel        from '../models/StockTransfersModel.js';
 import persianDate                from "persian-date";
 import InventoriesController      from './InventoriesController.js';
 import InventoryChangesController from "./InventoryChangesController.js";
+import InputsController           from "./InputsController.js";
 
 class StockTransfersController extends Controllers {
     static model = new StockTransfersModel();
@@ -15,8 +16,12 @@ class StockTransfersController extends Controllers {
         for (const [$index, $value] of Object.entries($row)) {
             switch ($index) {
                 case 'updatedAt':
-                    let dateTimeJalali      = new persianDate($value);
-                    $row[$index + 'Jalali'] = dateTimeJalali.toLocale('fa').format();
+                    let updatedAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
+                    break;
+                case 'createdAt':
+                    let createdAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
                     break;
                 case 'productDetails':
                     // check if is variant of original product
@@ -31,6 +36,8 @@ class StockTransfersController extends Controllers {
                     break;
             }
         }
+
+        return $row;
     }
 
     static queryBuilder($input) {
@@ -60,44 +67,104 @@ class StockTransfersController extends Controllers {
         return query;
     }
 
+    static async validateProductInventory($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let productInventory = await InventoriesController.getInventoryOfProduct({
+                    _id: $input._product
+                });
+
+                // check the total of inventory
+                if (productInventory.data.total < $input.count) {
+                    return reject({
+                        code: 400,
+                        data: {
+                            message: 'The transferable count is less than your input'
+                        }
+                    });
+                }
+
+                // get the source warehouse count
+                let sourceWarehouseCount = productInventory.data.warehouses.find(
+                    warehouse => warehouse._id.toString() === $input._sourceWarehouse
+                );
+
+                // check the count of source warehouse
+                if (
+                    !sourceWarehouseCount ||
+                    (sourceWarehouseCount && sourceWarehouseCount.count < $input.count)
+                ) {
+                    return reject({
+                        code: 400,
+                        data: {
+                            message: 'The inventory inventory is less than your input'
+                        }
+                    });
+                }
+
+                // return resolve if passed all validation
+                return resolve({
+                    code: 200,
+                });
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
-
-            await InventoriesController.stockTransfer({
-                _sourceWarehouse     : $input._sourceWarehouse,
-                count                : $input.count,
-                _product             : $input._product,
-                _destinationWarehouse: $input._destinationWarehouse,
-                user                 : $input.user
-            }).then(
-                (response) => {
-                    $input._inventoryChanges = response.data._inventoryChanges
-                },
-                (response) => {
-                    return reject(response);
-                }
-            );
-
-            // filter
-            this.model.insertOne({
-                _sourceWarehouse     : $input._sourceWarehouse,
-                _destinationWarehouse: $input._destinationWarehouse,
-                _product             : $input._product,
-                count                : $input.count,
-                _inventoryChanges    : $input._inventoryChanges,
-                status               : 'active',
-                _user                : $input.user.data._id
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _sourceWarehouse     : {type: 'mongoId', required: true},
+                    _destinationWarehouse: {type: 'mongoId', required: true},
+                    _product             : {type: 'mongoId', required: true},
+                    count                : {type: 'number', required: true},
                 });
+
+                // validate inventory of product
+                await this.validateProductInventory($input);
+
+                // insert to db
+                let response = await this.model.insertOne({
+                    _sourceWarehouse     : $input._sourceWarehouse,
+                    count                : $input.count,
+                    _product             : $input._product,
+                    _destinationWarehouse: $input._destinationWarehouse,
+                    _inventoryChanges    : $input._inventoryChanges,
+                    status               : 'Draft',
+                    _user                : $input.user.data._id
+                });
+
+                // transfer the stock
+                let stockTransferResponse = await InventoriesController.updateByStockTransfer({
+                    _id                  : response._id,
+                    stockTransfer        : response,
+                    _sourceWarehouse     : $input._sourceWarehouse,
+                    count                : $input.count,
+                    _product             : $input._product,
+                    _destinationWarehouse: $input._destinationWarehouse,
+                    user                 : $input.user
+                });
+
+                // update stock transfer and add inventory change _id
+                response._inventoryChanges = stockTransferResponse.data._inventoryChanges;
+                response.status = 'Completed';
+                await response.save();
+
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
