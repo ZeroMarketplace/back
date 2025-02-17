@@ -10,24 +10,23 @@ class InventoryChangesController extends Controllers {
     }
 
     static insertOne($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.insertOne({
-                type   : $input.type,
-                changes: $input.changes
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
+        return new Promise(async (resolve, reject) => {
+            try {
+                // insert to db
+                let response = await this.model.insertOne({
+                    type      : $input.type,
+                    changes   : $input.changes,
+                    _reference: $input._reference,
                 });
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
