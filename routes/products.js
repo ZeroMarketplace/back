@@ -2,6 +2,7 @@ import express            from "express";
 import InputsController   from '../controllers/InputsController.js';
 import ProductsController from '../controllers/ProductsController.js';
 import AuthController     from '../controllers/AuthController.js';
+import InventoriesController from "../controllers/InventoriesController.js";
 
 let router = express.Router();
 
@@ -901,6 +902,83 @@ router.delete(
         let $params = InputsController.clearInput(req.params);
 
         ProductsController.deleteVariant($params).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+/**
+ * @swagger
+ * /api/products/{id}/inventory:
+ *   get:
+ *     summary: Get Product inventory by id
+ *     tags:
+ *       - Inventories
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         description: if of product
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: typeOfSales
+ *         description: "['retail', 'onlineSales']"
+ *         schema:
+ *           type: string
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
+ *       200:
+ *         description: Successful get
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 _id:
+ *                   type: string
+ *                 total:
+ *                   type: number
+ *                 warehouses:
+ *                   type: array
+ *                   items:
+ *                     _id:
+ *                       type: string
+ *                     count:
+ *                       type: number
+ *                     title:
+ *                       type: string
+ */
+router.get(
+    '/:_id/inventory',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res) {
+
+        // create clean input
+        let $params = InputsController.clearInput(req.params);
+        let $query  = InputsController.clearInput(req.query);
+
+        // create the $input object
+        let $input = Object.assign({}, $params, $query);
+
+        InventoriesController.getInventoryOfProduct($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
