@@ -352,7 +352,7 @@ class InventoriesController extends Controllers {
                             consumer: product.price.consumer,
                             store   : product.price.store
                         },
-                        user           : $input.user
+                        user            : $input.user
                     });
 
                     // add to inserted inventories
@@ -371,59 +371,69 @@ class InventoriesController extends Controllers {
         });
     }
 
-    static item($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
+    static item($input, $options = {}, $resultType = 'object') {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let response = await this.model.item($input, $options);
 
-            // filter
-            this.model.item($input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
+                // create output
+                if ($resultType === 'object') {
+                    response = await this.outputBuilder(response.toObject());
+                }
+
+                return resolve({
+                    code: 200,
+                    data: response
                 });
+            } catch (error) {
+                return reject(error)
+            }
         });
     }
 
-    static list($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
+    static inventories($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate Input
+                await InputsController.validateInput($input, {
+                    perPage      : {type: "number"},
+                    page         : {type: "number"},
+                    sortColumn   : {type: "string"},
+                    sortDirection: {type: "number"},
+                });
 
-            let query = this.queryBuilder($input);
+                // check filter is valid and remove other parameters (just valid query by user role) ...
+                let $query = this.queryBuilder($input);
 
-            this.model.listOfInventories(query, {
-                sort : $input.sort,
-                limit: $input.perPage,
-                skip : $input.offset,
-            }).then(
-                async (response) => {
-                    let total = response.data.total;
-                    response  = response.data.list;
-
-                    // create output
-                    for (const row of response) {
-                        const index     = response.indexOf(row);
-                        response[index] = await this.outputBuilder(row);
+                // exec the query
+                let response = await this.model.inventories(
+                    $query,
+                    {
+                        skip : $input.offset,
+                        limit: $input.perPage,
+                        sort : $input.sort
                     }
+                );
 
-                    // return result
-                    return resolve({
-                        code: 200,
-                        data: {
-                            list : response,
-                            total: total
-                        }
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                },
-            );
+                // create output
+                for (const row of response.list) {
+                    const index          = response.list.indexOf(row);
+                    response.list[index] = await this.outputBuilder(row);
+                }
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : response.list,
+                        total: response.count
+                    }
+                });
+
+            } catch (error) {
+                console.log(error);
+                return reject(error);
+            }
         });
     }
 
@@ -454,7 +464,7 @@ class InventoriesController extends Controllers {
         });
     }
 
-    static getInventoryByProductId($input) {
+    static getInventoryOfProduct($input) {
         return new Promise(async (resolve, reject) => {
             try {
                 // validate Input
@@ -465,7 +475,8 @@ class InventoriesController extends Controllers {
                         allowedValues: ['retail', 'onlineSales']
                     }
                 });
-                let response = await this.model.getInventoryByProductId($input);
+
+                let response = await this.model.getInventoryOfProduct($input);
 
                 return resolve({
                     code: 200,
@@ -572,38 +583,6 @@ class InventoriesController extends Controllers {
                 return reject(error);
             }
         })
-    }
-
-    static updateCount($filter, $value) {
-        return new Promise((resolve, reject) => {
-            // update account balance
-            this.model.updateCount($filter, $value).then(
-                (response) => {
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject({
-                        code: 500
-                    });
-                },
-            );
-        })
-    }
-
-    static update($filter, $input) {
-        return new Promise(async (resolve, reject) => {
-            // filter
-            this.model.update($filter, $input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
     }
 
     static stockTransfer($input) {
@@ -964,24 +943,6 @@ class InventoriesController extends Controllers {
         });
     }
 
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.deleteOne($id).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
     static deleteByPurchaseInvoice($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -1007,27 +968,6 @@ class InventoriesController extends Controllers {
                 return reject(error);
             }
         })
-    }
-
-    static delete($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.delete($input).then(
-                (response) => {
-                    if (response.deletedCount) {
-                        return resolve({
-                            code: 200
-                        });
-                    } else {
-                        return reject(response);
-                    }
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
     }
 
 }
