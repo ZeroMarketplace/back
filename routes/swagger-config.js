@@ -29,4 +29,6 @@
  *     description: APIs for managing Settlements
  *   - name: Settings
  *     description: APIs for managing Settings
+ *   - name: Inventories
+ *     description: APIs for managing Inventories
  */
