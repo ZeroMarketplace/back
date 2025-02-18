@@ -624,7 +624,6 @@ class MessagesController extends Controllers {
                     );
                 }
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         });
