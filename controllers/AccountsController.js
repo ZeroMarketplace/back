@@ -164,7 +164,6 @@ class AccountsController extends Controllers {
                     code: 200
                 });
             } catch (err) {
-                console.log(err);
                 return reject({
                     code: 500,
                     data: {
@@ -404,7 +403,6 @@ class AccountsController extends Controllers {
                 });
 
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         });
