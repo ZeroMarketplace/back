@@ -31,166 +31,162 @@ class StockTransfersModel extends Models {
         super('stock-transfers', StockTransfersModel.schema);
     }
 
-    listOfStockTransfers($filter, $options) {
-        return new Promise((resolve, reject) => {
-            const aggregationQuery = [
-                {
-                    $match: $filter
-                },
-                {
-                    $sort: $options.sort
-                },
-                {
-                    $skip: $options.skip
-                },
-                {
-                    $limit: $options.limit
-                },
-                {
-                    $project: {
-                        _id                  : 1,
-                        _sourceWarehouse     : 1,
-                        _destinationWarehouse: 1,
-                        _product             : 1,
-                        count                : 1,
-                        updatedAt            : 1
-                    }
-                },
-                {
-                    $lookup: {
-                        from    : 'products',
-                        let     : {productId: '$_product'},
-                        pipeline: [
-                            {
-                                $match: {
-                                    $expr: {
-                                        $or: [
-                                            {$eq: ['$_id', '$$productId']},
-                                            {$in: ['$$productId', '$variants._id']}
-                                        ]
+    transfers($filter, $options) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const aggregationQuery = [
+                    {
+                        $match: $filter
+                    },
+                    {
+                        $sort: $options.sort
+                    },
+                    {
+                        $skip: $options.skip
+                    },
+                    {
+                        $limit: $options.limit
+                    },
+                    {
+                        $project: {
+                            _id                  : 1,
+                            _sourceWarehouse     : 1,
+                            _destinationWarehouse: 1,
+                            _product             : 1,
+                            count                : 1,
+                            updatedAt            : 1,
+                            createdAt            : 1,
+                            status               : 1,
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from    : 'products',
+                            let     : {productId: '$_product'},
+                            pipeline: [
+                                {
+                                    $match: {
+                                        $expr: {
+                                            $or: [
+                                                {$eq: ['$_id', '$$productId']},
+                                                {$in: ['$$productId', '$variants._id']}
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    $project: {
+                                        _id     : 1,
+                                        title   : 1,
+                                        variants: 1,
+                                        code    : 1,
+                                        _unit   : 1
                                     }
                                 }
-                            },
-                            {
-                                $project: {
-                                    _id     : 1,
-                                    title   : 1,
-                                    variants: 1,
-                                    code    : 1,
-                                    _unit   : 1
-                                }
-                            }
-                        ],
-                        as      : 'productDetails'
+                            ],
+                            as      : 'productDetails'
+                        },
+
                     },
-
-                },
-                {
-                    $unwind: '$productDetails'
-                },
-                {
-                    $lookup: {
-                        from        : 'units',
-                        localField  : 'productDetails._unit',
-                        foreignField: '_id',
-                        as          : 'productDetails._unitDetails'
-                    }
-                },
-                {
-                    $unwind: {
-                        path                      : '$productDetails._unitDetails',
-                        preserveNullAndEmptyArrays: true
-                    }
-                },
-                {
-                    $addFields: {
-                        'productDetails._unit': {
-                            _id  : '$productDetails._unitDetails._id',
-                            title: '$productDetails._unitDetails.title'
+                    {
+                        $unwind: '$productDetails'
+                    },
+                    {
+                        $lookup: {
+                            from        : 'units',
+                            localField  : 'productDetails._unit',
+                            foreignField: '_id',
+                            as          : 'productDetails._unitDetails'
+                        }
+                    },
+                    {
+                        $unwind: {
+                            path                      : '$productDetails._unitDetails',
+                            preserveNullAndEmptyArrays: true
+                        }
+                    },
+                    {
+                        $addFields: {
+                            'productDetails._unit': {
+                                _id  : '$productDetails._unitDetails._id',
+                                title: '$productDetails._unitDetails.title'
+                            }
+                        }
+                    },
+                    {
+                        $project: {
+                            'productDetails._unitDetails': 0
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from        : 'warehouses',
+                            localField  : '_sourceWarehouse',
+                            foreignField: '_id',
+                            as          : '_sourceWarehouse'
+                        }
+                    },
+                    {
+                        $unwind: {
+                            path                      : '$_sourceWarehouse',
+                            preserveNullAndEmptyArrays: true
+                        }
+                    },
+                    {
+                        $addFields: {
+                            '_sourceWarehouse': {
+                                _id  : '$_sourceWarehouse._id',
+                                title: '$_sourceWarehouse.title'
+                            }
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from        : 'warehouses',
+                            localField  : '_destinationWarehouse',
+                            foreignField: '_id',
+                            as          : '_destinationWarehouse'
+                        }
+                    },
+                    {
+                        $unwind: {
+                            path                      : '$_destinationWarehouse',
+                            preserveNullAndEmptyArrays: true
+                        }
+                    },
+                    {
+                        $addFields: {
+                            '_destinationWarehouse': {
+                                _id  : '$_destinationWarehouse._id',
+                                title: '$_destinationWarehouse.title'
+                            }
+                        }
+                    },
+                    {
+                        $project: {
+                            _id                          : 1,
+                            '_sourceWarehouse.title'     : 1,
+                            '_sourceWarehouse._id'       : 1,
+                            '_destinationWarehouse.title': 1,
+                            '_destinationWarehouse._id'  : 1,
+                            count                        : 1,
+                            productDetails               : 1,
+                            _product                     : 1,
+                            updatedAt                    : 1,
+                            createdAt                    : 1,
+                            status                       : 1
                         }
                     }
-                },
-                {
-                    $project: {
-                        'productDetails._unitDetails': 0
-                    }
-                },
-                {
-                    $lookup: {
-                        from        : 'warehouses',
-                        localField  : '_sourceWarehouse',
-                        foreignField: '_id',
-                        as          : '_sourceWarehouse'
-                    }
-                },
-                {
-                    $unwind: {
-                        path                      : '$_sourceWarehouse',
-                        preserveNullAndEmptyArrays: true
-                    }
-                },
-                {
-                    $addFields: {
-                        '_sourceWarehouse': {
-                            _id  : '$_sourceWarehouse._id',
-                            title: '$_sourceWarehouse.title'
-                        }
-                    }
-                },
-                {
-                    $lookup: {
-                        from        : 'warehouses',
-                        localField  : '_destinationWarehouse',
-                        foreignField: '_id',
-                        as          : '_destinationWarehouse'
-                    }
-                },
-                {
-                    $unwind: {
-                        path                      : '$_destinationWarehouse',
-                        preserveNullAndEmptyArrays: true
-                    }
-                },
-                {
-                    $addFields: {
-                        '_destinationWarehouse': {
-                            _id  : '$_destinationWarehouse._id',
-                            title: '$_destinationWarehouse.title'
-                        }
-                    }
-                },
-                {
-                    $project: {
-                        _id                          : 1,
-                        '_sourceWarehouse.title'     : 1,
-                        '_sourceWarehouse._id'       : 1,
-                        '_destinationWarehouse.title': 1,
-                        '_destinationWarehouse._id'  : 1,
-                        count                        : 1,
-                        productDetails               : 1,
-                        _product                     : 1,
-                        updatedAt                    : 1
-                    }
-                }
-            ];
+                ];
 
-            this.collectionModel.aggregate(aggregationQuery).then(
-                (response) => {
-                    if (response) {
-                        return resolve({
-                            code: 200,
-                            data: response
-                        });
-                    }
-                },
-                (response) => {
-                    console.log(response);
-                    return reject({
-                        code: 500
-                    });
-                },
-            );
+                // exec the aggregation
+                let response = await this.collectionModel.aggregate(aggregationQuery);
 
+                // return resolve
+                return resolve(response);
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
