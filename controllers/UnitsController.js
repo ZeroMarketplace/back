@@ -116,7 +116,6 @@ class UnitsController extends Controllers {
                     sortDirection: {type: "number"},
                 });
 
-
                 // check filter is valid and remove other parameters (just valid query by user role) ...
                 let $query = this.queryBuilder($input);
                 // get list
