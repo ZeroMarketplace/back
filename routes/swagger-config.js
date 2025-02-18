@@ -31,4 +31,6 @@
  *     description: APIs for managing Settings
  *   - name: Inventories
  *     description: APIs for managing Inventories
+ *   - name: Stock Transfers
+ *     description: APIs for managing Stock Transfers
  */
