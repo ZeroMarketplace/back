@@ -146,7 +146,6 @@ class ConversationsController extends Controllers {
                     });
                 },
                 (error) => {
-                    console.log(error);
                     return reject({
                         code: 500
                     });
@@ -256,7 +255,6 @@ class ConversationsController extends Controllers {
                         _message     : message._id.toString(),
                         user         : $input.user
                     },'system').catch((error) => {
-                        console.log(error);
                         return reject({
                             code: 500,
                             data: {
@@ -275,7 +273,6 @@ class ConversationsController extends Controllers {
                             });
                         },
                         (error) => {
-                            console.log(error);
                             return reject(error);
                         }
                     );
@@ -288,14 +285,12 @@ class ConversationsController extends Controllers {
                             })
                         },
                         (error) => {
-                            console.log(error);
                             return reject(error);
                         }
                     );
                 }
 
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         });
