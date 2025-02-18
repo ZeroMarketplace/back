@@ -121,7 +121,7 @@ class CategoriesModel extends Models {
             } catch (error) {
                 return reject({
                     code: 500,
-                    data: {error: error}
+                    data: {errors: [error]}
                 });
             }
         });
