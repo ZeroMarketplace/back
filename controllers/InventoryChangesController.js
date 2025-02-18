@@ -1,6 +1,7 @@
 import Controllers           from '../core/Controllers.js';
 import InventoryChangesModel from '../models/InventoryChangesModel.js';
 import InventoriesController from "./InventoriesController.js";
+import InputsController      from "./InputsController.js";
 
 class InventoryChangesController extends Controllers {
     static model = new InventoryChangesModel();
@@ -72,6 +73,33 @@ class InventoryChangesController extends Controllers {
         });
     }
 
+    static get($input, $options = {}, $resultType = 'object') {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                });
+
+                // get from db
+                let response = await this.model.get($input._id, $options);
+
+                // create output
+                if ($resultType === 'object') {
+                    response = await this.outputBuilder(response.toObject());
+                }
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
     static updateOne($id, $input) {
         return new Promise((resolve, reject) => {
             // check filter is valid ...
@@ -93,35 +121,33 @@ class InventoryChangesController extends Controllers {
         });
     }
 
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // get inventory Changes
-            this.model.get($id).then(
-                async (inventoryChanges) => {
+    static deleteOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                });
 
-                    for (const change of inventoryChanges.changes) {
-                        switch (change.operation) {
-                            case 'update':
-                                let setValue           = {};
-                                setValue[change.field] = change.oldValue;
-                                await InventoriesController.update({_id: change._inventory}, setValue);
-                                break
-                            case 'insert':
-                                await InventoriesController.deleteOne(change._inventory);
-                                break;
-                        }
-                    }
+                // get inventory Changes
+                let inventoryChanges = await this.model.get($input._id);
 
-                    await inventoryChanges.deleteOne();
+                // return updates in inventories
+                await InventoriesController.returnUpdatesByInventoryChanges({
+                    _id: $input._id,
+                    inventoryChanges: inventoryChanges
+                });
 
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                }
-            );
+                // delete the inventory change
+                await inventoryChanges.deleteOne();
+
+                return resolve({
+                    code: 200
+                });
+            }
+            catch (error) {
+                return reject(error);
+            }
         });
     }
 
