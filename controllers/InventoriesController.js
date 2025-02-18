@@ -432,7 +432,6 @@ class InventoriesController extends Controllers {
                 });
 
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         });
@@ -698,6 +697,61 @@ class InventoriesController extends Controllers {
                         _inventoryChanges: inventoryChangesResponse.data._id
                     }
                 });
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    static returnUpdatesByInventoryChanges($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // get inventory Changes
+                if (!$input.inventoryChanges) {
+                    // get inventory Changes from its Controller
+                    $input.inventoryChanges = await InventoryChangesController.get(
+                        {_id: $input._id},
+                        {select: '_id changes'}
+                    );
+                    // get the data of inventory Changes
+                    $input.inventoryChanges = $input.inventoryChanges.data;
+                }
+
+                // get the ids of inventories
+                let inventories = await this.model.list({
+                    _id: {$in: $input.inventoryChanges.changes.map(i => i._inventory)}
+                });
+
+
+                // for each change
+                for (const change of $input.inventoryChanges.changes) {
+                    // get the related inventory
+                    let inventory = inventories.find(i => i._id.toString() === change._inventory.toString());
+                    // switch the change operation
+                    switch (change.operation) {
+                        case 'update':
+                            // check the count changes (exception)
+                            if (change.field === 'count') {
+                                inventory.count -= change.newValue;
+                                inventory.count += change.oldValue;
+                            } else {
+                                // update the inventory and set the old value to related field
+                                inventory[change.field] = change.oldValue;
+                            }
+                            await inventory.save();
+                            break
+                        case 'insert':
+                            // delete the new inventory
+                            inventory.deleteOne();
+                            break;
+                    }
+                }
+
+                // return result
+                return resolve({
+                    code: 200
+                });
+
             } catch (error) {
                 return reject(error);
             }
