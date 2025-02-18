@@ -28,10 +28,17 @@ class StockTransfersController extends Controllers {
                     if ($row['_product'].toString() !== $value._id.toString()) {
                         let variant  = $value.variants.find(variant => variant._id.toString() === $row['_product'].toString());
                         $value.title = variant.title;
+                        $value.code  = variant.code;
+                        $value._id   = variant._id;
                     }
 
                     // delete variants from output
                     $value['variants'] = undefined;
+
+                    // set the _product to productDetails
+                    $row['_product']       = $row['productDetails'];
+                    // delete productDetails from output
+                    $row['productDetails'] = undefined;
 
                     break;
             }
@@ -58,11 +65,40 @@ class StockTransfersController extends Controllers {
             $input.sort = {createdAt: -1};
         }
 
-        // for (const [$index, $value] of Object.entries($input)) {
-        //     switch ($index) {
-        //
-        //     }
-        // }
+        for (const [$index, $value] of Object.entries($input)) {
+            switch ($index) {
+                case 'createdAt':
+                    const requestedDate = new Date($value);
+
+                    // Calculate startDate (beginning of the day)
+                    const startDate = new Date(requestedDate);
+                    startDate.setHours(0, 0, 0, 0); // Set time to 00:00:00.000
+
+                    // Calculate endDate (end of the day)
+                    const endDate = new Date(requestedDate);
+                    endDate.setHours(23, 59, 59, 999); // Set time to 23:59:59.999
+
+                    // set the query
+                    query['createdAt'] = {
+                        $gte: startDate,
+                        $lte: endDate
+                    };
+
+                    break;
+                case '_sourceWarehouse':
+                    query[$index] = $value;
+                    break;
+                case '_destinationWarehouse':
+                    query[$index] = $value;
+                    break;
+                case '_product':
+                    query[$index] = $value;
+                    break;
+                case 'status':
+                    query[$index] = $value;
+                    break;
+            }
+        }
 
         return query;
     }
@@ -132,7 +168,6 @@ class StockTransfersController extends Controllers {
                     count                : $input.count,
                     _product             : $input._product,
                     _destinationWarehouse: $input._destinationWarehouse,
-                    _inventoryChanges    : $input._inventoryChanges,
                     status               : 'Draft',
                     _user                : $input.user.data._id
                 });
@@ -150,7 +185,7 @@ class StockTransfersController extends Controllers {
 
                 // update stock transfer and add inventory change _id
                 response._inventoryChanges = stockTransferResponse.data._inventoryChanges;
-                response.status = 'Completed';
+                response.status            = 'Completed';
                 await response.save();
 
 
@@ -168,118 +203,120 @@ class StockTransfersController extends Controllers {
         });
     }
 
-    static item($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
+    static item($input, $options = {}, $resultType = 'object') {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let response = await this.model.item($input, $options);
 
-            // filter
-            this.model.item($input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
-    static list($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            let query = this.queryBuilder($input);
-
-            // filter
-            this.model.listOfStockTransfers(query, {
-                skip : $input.offset,
-                limit: $input.perPage,
-                sort : $input.sort
-            }).then(
-                (response) => {
-                    response = response.data;
-
-                    // get count
-                    this.model.count(query).then((count) => {
-
-                        // create output
-                        response.forEach((row) => {
-                            this.outputBuilder(row);
-                        });
-
-                        // return result
-                        return resolve({
-                            code: 200,
-                            data: {
-                                list : response,
-                                total: count
-                            }
-                        });
-
-                    });
-                },
-                (error) => {
-                    console.log(error);
-                    return reject({
-                        code: 500
-                    });
-                });
-        });
-    }
-
-    static updateOne($id, $input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.updateOne($id, {
-                title: {
-                    en: $input.title.en,
-                    fa: $input.title.fa
+                // create output
+                if ($resultType === 'object') {
+                    response = await this.outputBuilder(response.toObject());
                 }
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
-                },
-                (response) => {
-                    return reject(response);
+
+                return resolve({
+                    code: 200,
+                    data: response
                 });
+            } catch (error) {
+                return reject(error)
+            }
         });
     }
 
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-
-            // filter
-            this.model.get($id).then(
-                (stockTransfer) => {
-                    // return inventory that was changed
-                    InventoryChangesController.deleteOne(stockTransfer._inventoryChanges).then(
-                        (response) => {
-                            // delete the stock transfer
-                            stockTransfer.deleteOne().then(
-                                (response) => {
-                                    return resolve({
-                                        code: 200
-                                    });
-                                },
-                                (response) => {
-                                    return reject(response);
-                                }
-                            );
-                        },
-                        (response) => {
-                            return reject(response);
-                        }
-                    );
-                },
-                (response) => {
-                    return reject(response);
+    static transfers($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate Input
+                await InputsController.validateInput($input, {
+                    createdAt            : {type: "date"},
+                    _sourceWarehouse     : {type: "mongoId"},
+                    _destinationWarehouse: {type: "mongoId"},
+                    _product             : {type: "mongoId"},
+                    status               : {
+                        type        : "string",
+                        allowedValue: [
+                            'Draft',
+                            'Pending Approval',
+                            'Approved',
+                            'Dispatched',
+                            'In Transit',
+                            'Received',
+                            'Completed',
+                            'Cancelled',
+                        ]
+                    },
+                    perPage              : {type: "number"},
+                    page                 : {type: "number"},
+                    sortColumn           : {type: "string"},
+                    sortDirection        : {type: "number"},
                 });
+
+                // check filter is valid and remove other parameters (just valid query by user role) ...
+                let $query = this.queryBuilder($input);
+
+                // get list
+                const list = await this.model.transfers(
+                    $query,
+                    {
+                        skip : $input.offset,
+                        limit: $input.perPage,
+                        sort : $input.sort
+                    }
+                );
+
+                // get the count of properties
+                const count = await this.model.count($query);
+
+                // create output
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row);
+                }
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : list,
+                        total: count
+                    }
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    static deleteOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                });
+
+                // get the stock transfer
+                let stockTransfer = await this.model.get($input._id, {
+                    select: '_id _inventoryChanges'
+                });
+
+                // check its has the active inventory changes
+                if (stockTransfer._inventoryChanges) {
+                    // delete the inventory changes (stock return)
+                    await InventoryChangesController.deleteOne(stockTransfer._inventoryChanges);
+                }
+
+                // delete the stockTransfer
+                await stockTransfer.deleteOne();
+
+                // return result
+                return resolve({
+                    code: 200
+                });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
