@@ -208,7 +208,6 @@ class ProductsController extends Controllers {
                 })
 
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         });
@@ -419,7 +418,6 @@ class ProductsController extends Controllers {
                     data: response
                 });
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         });
