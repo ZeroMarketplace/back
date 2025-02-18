@@ -768,7 +768,6 @@ class AccountingDocumentsController extends Controllers {
                     code: 200
                 });
             } catch (e) {
-                console.log(e);
                 return reject(e);
             }
         });
