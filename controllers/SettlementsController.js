@@ -255,6 +255,7 @@ class SettlementsController extends Controllers {
                     data: response
                 });
             } catch (error) {
+                console.log(error);
                 return reject(error);
             }
         });
