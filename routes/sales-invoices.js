@@ -34,7 +34,7 @@ router.get(
         // create clean input
         let $input = InputsController.clearInput(req.query);
 
-        SalesInvoicesController.list($input).then(
+        SalesInvoicesController.invoices($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
@@ -46,14 +46,14 @@ router.get(
 );
 
 router.get(
-    '/:id',
+    '/:_id',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res) {
         // create clean input
         let $input = InputsController.clearInput(req.params);
 
-        SalesInvoicesController.get($input.id).then(
+        SalesInvoicesController.get($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

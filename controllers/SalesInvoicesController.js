@@ -33,12 +33,12 @@ class SalesInvoicesController extends Controllers {
                     break;
             }
         }
+
+        return $row;
     }
 
     static queryBuilder($input) {
         let query = {};
-
-        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
 
         // pagination
         $input.perPage = $input.perPage ?? 10;
@@ -80,7 +80,9 @@ class SalesInvoicesController extends Controllers {
         // calc subtracts in addAndSub
         for (const addAndSub of $input.AddAndSub) {
             // get add and subtract
-            let detailAddAndSubtract = await AddAndSubtractController.get(addAndSub._reason);
+            let detailAddAndSubtract = await AddAndSubtractController.get({
+                _id: addAndSub._reason
+            });
             detailAddAndSubtract     = detailAddAndSubtract.data;
 
             // save detail for using in add operations
@@ -116,71 +118,114 @@ class SalesInvoicesController extends Controllers {
         }
     }
 
-    static insertOne($input) {
+    static async validateProductInventory($input) {
         return new Promise(async (resolve, reject) => {
+            try {
+                // get the product inventory
+                let productInventory = await InventoriesController.getInventoryOfProduct({
+                    _id        : $input._id,
+                    typeOfSales: 'retail'
+                });
 
-            // check inventory of products
-            for (const product of $input.products) {
-                // get inventory of product
-                let inventory = await InventoriesController.getInventoryByProductId(
-                    {_product: product._product},
-                    {typeOfSales: 'retail'}
-                );
-
-                // find inventory warehouse
-                let warehouse = inventory.data.warehouses.find(
-                    warehouse => warehouse._id.toString() === product._warehouse
-                );
-                if (warehouse) {
-                    // check required count of warehouse
-                    if (product.count > warehouse.count) {
-                        // set error for no inventory
-                        return reject({
-                            code: 400,
-                            data: {
-                                message   : 'Insufficient stock',
-                                _product  : product._id,
-                                _warehouse: product._warehouse
-                            }
-                        });
-                    }
-                } else {
-                    // there is no inventory for warehouse
+                // check the total of inventories
+                if (productInventory.data.total < $input.count) {
                     return reject({
                         code: 400,
                         data: {
-                            message   : 'Insufficient stock',
-                            _product  : product._id,
-                            _warehouse: product._warehouse
+                            message: 'The number of products available for sale is less than the count you requested.'
                         }
                     });
                 }
-            }
 
-            let code = await CountersController.increment('sales-invoices');
-            await this.calculateInvoice($input);
+                // Get the number of selected warehouse inventories items for sale
+                let warehouseCount = productInventory.data.warehouses.find(
+                    warehouse => warehouse._id.toString() === $input._warehouse
+                );
 
-            this.model.insertOne({
-                code       : code,
-                _customer  : $input.customer,
-                dateTime   : $input.dateTime,
-                description: $input.description,
-                products   : $input.products,
-                AddAndSub  : $input.AddAndSub,
-                total      : $input.total,
-                sum        : $input.sum,
-                status     : 'Unpaid',
-                _user      : $input.user.data._id
-            }).then(
-                (response) => {
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
+                // check the count of source warehouse
+                if (
+                    !warehouseCount ||
+                    (warehouseCount && warehouseCount.count < $input.count)
+                ) {
+                    return reject({
+                        code: 400,
+                        data: {
+                            message: 'The inventory is less than your input'
+                        }
                     });
-                },
-                (response) => {
-                    return reject(response);
+                }
+
+                // return resolve if passed all validation
+                return resolve({
+                    code: 200,
                 });
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    static insertOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _customer  : {type: 'mongoId', required: true},
+                    dateTime   : {type: 'date', required: true},
+                    description: {type: 'string'},
+                    products   : {
+                        type : 'array',
+                        items: {
+                            _id       : {type: 'mongoId', required: true},
+                            count     : {type: 'number', required: true},
+                            price     : {type: 'number', required: true},
+                            _warehouse: {type: 'mongoId', required: true},
+                        }
+                    },
+                    AddAndSub  : {
+                        type : 'array',
+                        items: {
+                            _reason: {type: 'mongoId', required: true},
+                            value  : {type: 'number', required: true},
+                        }
+                    }
+                });
+
+                // validate inventory of products
+                for (let product of $input.products) {
+                    await this.validateProductInventory(product);
+                }
+
+                // create the code of invoice
+                let code = await CountersController.increment('sales-invoices');
+
+                // calculate the invoice numbers
+                await this.calculateInvoice($input);
+
+                let response = await this.model.insertOne({
+                    code       : code,
+                    _customer  : $input._customer,
+                    dateTime   : $input.dateTime,
+                    description: $input.description,
+                    products   : $input.products,
+                    AddAndSub  : $input.AddAndSub,
+                    total      : $input.total,
+                    sum        : $input.sum,
+                    status     : 'Unpaid',
+                    _user      : $input.user.data._id
+                });
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -196,7 +241,7 @@ class SalesInvoicesController extends Controllers {
                 let response = await this.model.get($input._id, $options);
 
                 // create output
-                if($resultType === 'object') {
+                if ($resultType === 'object') {
                     response = await this.outputBuilder(response.toObject());
                 }
 
@@ -230,47 +275,54 @@ class SalesInvoicesController extends Controllers {
         });
     }
 
-    static list($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            let query = this.queryBuilder($input);
-
-            // filter
-            this.model.list(query, {
-                populate: [
-                    {path: '_customer', select: 'phone'}
-                ],
-                skip    : $input.offset,
-                limit   : $input.perPage,
-                sort    : $input.sort
-            }).then(
-                (response) => {
-                    // get count
-                    this.model.count(query).then((count) => {
-
-                        // create output
-                        response.forEach((row) => {
-                            this.outputBuilder(row._doc);
-                        });
-
-                        // return result
-                        return resolve({
-                            code: 200,
-                            data: {
-                                list : response,
-                                total: count
-                            }
-                        });
-
-                    });
-                },
-                (error) => {
-                    console.log(error);
-                    return reject({
-                        code: 500
-                    });
+    static invoices($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate Input
+                await InputsController.validateInput($input, {
+                    perPage      : {type: "number"},
+                    page         : {type: "number"},
+                    sortColumn   : {type: "string"},
+                    sortDirection: {type: "number"},
                 });
+
+                // check filter is valid and remove other parameters (just valid query by user role) ...
+                let $query = this.queryBuilder($input);
+                // get list
+                const list = await this.model.list(
+                    $query,
+                    {
+                        select  : '_id code dateTime total _customer',
+                        populate: [
+                            {path: '_customer', select: '_id firstName lastName'},
+                        ],
+                        skip    : $input.offset,
+                        limit   : $input.perPage,
+                        sort    : $input.sort
+                    }
+                );
+
+                // get the count of properties
+                const count = await this.model.count($query);
+
+                // create output
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row.toObject());
+                }
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : list,
+                        total: count
+                    }
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
