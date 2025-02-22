@@ -795,173 +795,149 @@ class InventoriesController extends Controllers {
 
     static stockSales($input) {
         return new Promise(async (resolve, reject) => {
-            // create query
-            let query = {
-                _product: $input._product
-            };
+            try {
+                // create query
+                let query = {
+                    _product: $input._product
+                };
 
-            // get inventory of product
-            let inventoryOfProduct = await this.getInventoryByProductId(
-                {_product: $input._product},
-                {typeOfSales: $input.typeOfSales}
-            );
-
-            // check total count of inventory
-            if ($input.count > inventoryOfProduct.data.total) {
-                return reject({
-                    code: 400,
-                    data: {
-                        message : 'Insufficient stock',
-                        _product: $input._product
-                    }
-                });
-            }
-
-            // check warehouse count
-            if ($input._warehouse) {
-                // add _warehouse to query
-                query._warehouse = $input._warehouse;
-
-                // find inventory warehouse
-                let warehouse = inventoryOfProduct.data.warehouses.find(
-                    warehouse => warehouse._id.toString() === $input._warehouse
+                // get inventory of product
+                let inventoryOfProduct = await this.getInventoryOfProduct(
+                    {
+                        _id        : $input._product,
+                        typeOfSales: $input.typeOfSales
+                    },
                 );
-                if (warehouse) {
-                    // check required count of warehouse
-                    if ($input.count > warehouse.count) {
-                        // set error for no inventory
-                        return reject({
-                            code: 400,
-                            data: {
-                                message   : 'Insufficient stock',
-                                _product  : $input._product,
-                                _warehouse: $input._warehouse
-                            }
-                        });
-                    }
-                } else {
-                    // there is no inventory for warehouse
+
+                // check total count of inventory
+                if ($input.count > inventoryOfProduct.data.total) {
                     return reject({
                         code: 400,
                         data: {
-                            message   : 'Insufficient stock',
-                            _product  : $input._product,
-                            _warehouse: $input._warehouse
+                            message : 'The number of products available for sale is less than the count you requested.',
+                            _product: $input._product
                         }
                     });
                 }
-            }
 
-            // minus inventory count
-            let inventoryChanges = [];
-            await this.model.list(query, {
-                sort: {dateTime: 1}
-            }).then(
-                async (inventories) => {
-                    let remainingCount = $input.count;
-                    // minus remaining count from inventories
-                    for (const inventory of inventories) {
-                        // The check of the remaining count is not finished
-                        if (remainingCount > 0) {
-                            if (remainingCount >= inventory.count) {
+                // check warehouse count
+                if ($input._warehouse) {
+                    // add _warehouse to query
+                    query._warehouse = $input._warehouse;
 
-                                // add to changes
-                                inventoryChanges.push({
-                                    operation : 'update',
-                                    field     : 'count',
-                                    oldValue  : inventory.count,
-                                    newValue  : 0,
-                                    _inventory: inventory._id
-                                });
 
-                                // add commodity profit
-                                await CommodityProfitsController.insertOne({
-                                    typeOfSales: $input.typeOfSales,
-                                    _reference : $input._reference,
-                                    _inventory : inventory._id,
-                                    price      : $input.price,
-                                    count      : inventory.count
-                                }).catch(error => {
-                                    return reject(error);
-                                });
+                    // Get the number of selected warehouse inventories items for sale
+                    let warehouseCount = inventoryOfProduct.data.warehouses.find(
+                        warehouse => warehouse._id.toString() === $input._warehouse.toString()
+                    );
 
-                                // minus inventory count
-                                await this.updateCount({_id: inventory._id}, -inventory.count)
-                                    .catch(error => {
-                                        return reject(error);
-                                    });
-
-                                // minus remaining count
-                                remainingCount -= inventory.count;
-
-                            } else {
-
-                                // add to changes
-                                inventoryChanges.push({
-                                    operation : 'update',
-                                    field     : 'count',
-                                    oldValue  : inventory.count,
-                                    newValue  : (inventory.count - remainingCount),
-                                    _inventory: inventory._id
-                                });
-
-                                // add commodity profit
-                                await CommodityProfitsController.insertOne({
-                                    typeOfSales: $input.typeOfSales,
-                                    _reference : $input._reference,
-                                    _inventory : inventory._id,
-                                    price      : $input.price,
-                                    count      : remainingCount
-                                }).catch(error => {
-                                    return reject(error);
-                                });
-
-                                // minus inventory count
-                                await this.updateCount({_id: inventory._id}, -remainingCount)
-                                    .catch(error => {
-                                        return reject(error);
-                                    });
-
-                                // minus remaining count
-                                remainingCount -= remainingCount;
+                    // check the count of source warehouse
+                    if (
+                        !warehouseCount ||
+                        (warehouseCount && warehouseCount.count < $input.count)
+                    ) {
+                        return reject({
+                            code: 400,
+                            data: {
+                                message: 'The inventory is less than your input'
                             }
-                        } else {
-                            break;
-                        }
+                        });
                     }
-                },
-                (response) => {
-                    return reject(response);
                 }
-            );
 
-            // add changes to inventoryChanges
-            let _inventoryChanges = '';
-            await InventoryChangesController.insertOne({
-                type   : 'stock-sales',
-                changes: inventoryChanges
-            }).then(
-                (response) => {
-                    _inventoryChanges = response.data._id;
-                },
-                (response) => {
-                    return reject({
-                        code: 500,
-                        data: {
-                            message: 'Error Insert Inventory Changes'
+                // minus inventory count
+                // init the inventory changes variable
+                let inventoryChanges = [];
+
+                // get the inventories from db and sorted by dateTime (old one is first)
+                let inventories = await this.model.list(query, {
+                    sort: {dateTime: 1}
+                });
+
+                let remainingCount = $input.count;
+
+                // minus remaining count from inventories
+                for (const inventory of inventories) {
+                    // The check of the remaining count is not finished
+                    if (remainingCount) {
+                        if (remainingCount >= inventory.count) {
+
+                            // add to changes
+                            inventoryChanges.push({
+                                operation : 'update',
+                                field     : 'count',
+                                oldValue  : inventory.count,
+                                newValue  : 0,
+                                _inventory: inventory._id
+                            });
+
+                            // add commodity profit
+                            let commodityProfit = await CommodityProfitsController.insertOne({
+                                typeOfSales: $input.typeOfSales,
+                                _reference : $input._reference,
+                                _inventory : inventory._id,
+                                price      : $input.price,
+                                count      : inventory.count
+                            });
+
+                            // minus inventory count
+                            inventory.count -= inventory.count;
+                            // save the inventory
+                            await inventory.save();
+
+                            // minus the remaining count
+                            remainingCount -= inventory.count;
+
+                        } else {
+
+                            // add to changes
+                            inventoryChanges.push({
+                                operation : 'update',
+                                field     : 'count',
+                                oldValue  : inventory.count,
+                                newValue  : (inventory.count - remainingCount),
+                                _inventory: inventory._id
+                            });
+
+                            // add commodity profit
+                            let commodityProfit = await CommodityProfitsController.insertOne({
+                                typeOfSales: $input.typeOfSales,
+                                _reference : $input._reference,
+                                _inventory : inventory._id,
+                                price      : $input.price,
+                                count      : remainingCount
+                            });
+
+                            // minus inventory count
+                            inventory.count -= remainingCount;
+                            // save the inventory
+                            await inventory.save();
+
+                            // minus remaining count
+                            remainingCount -= remainingCount;
                         }
-                    });
+                    } else {
+                        break;
+                    }
                 }
-            );
 
-            // return the inventory changes
-            return resolve({
-                code: 200,
-                data: {
-                    _inventoryChanges: _inventoryChanges
-                }
-            });
+                // add changes to inventoryChanges
+                let inventoryChangesInsertion = await InventoryChangesController.insertOne({
+                    type      : 'stock-sales',
+                    changes   : inventoryChanges,
+                    _reference: $input._reference
+                });
 
+                // return the inventory changes
+                return resolve({
+                    code: 200,
+                    data: {
+                        _inventoryChanges: inventoryChangesInsertion._id
+                    }
+                });
+            } catch (error) {
+                return reject(error);
+            }
         })
     }
 
@@ -980,8 +956,8 @@ class InventoriesController extends Controllers {
                 // change inventory counts
                 for (const product of salesInvoice.products) {
                     // update counts
-                    let response = await InventoriesController.stockSales({
-                        _product   : product._product,
+                    let response = await this.stockSales({
+                        _product   : product._id,
                         _warehouse : product._warehouse,
                         count      : product.count,
                         price      : product.price,
