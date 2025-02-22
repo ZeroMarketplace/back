@@ -259,7 +259,7 @@ class AccountingDocumentsController extends Controllers {
                             _account   : salesAccount.data._id,
                             description: '',
                             debit      : 0,
-                            credit     : (salesInvoice.data.sum - $input.payment.credit)
+                            credit     : (salesInvoice.data.sum - $input.settlement.payment.credit)
                         });
 
                         // read bank accounts and add to accounting document as credit
