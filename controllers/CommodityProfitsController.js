@@ -192,6 +192,25 @@ class CommodityProfitsController extends Controllers {
         });
     }
 
+    static deleteBySalesInvoice($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let response = await this.model.delete({
+                    referenceType: 'sales-invoices',
+                    _reference   : $input._id
+                });
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
     static deleteOne($id) {
         return new Promise((resolve, reject) => {
             // check filter is valid ...
