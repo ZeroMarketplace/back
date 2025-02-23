@@ -2,6 +2,7 @@ import Controllers           from '../core/Controllers.js';
 import CommodityProfitsModel from '../models/CommodityProfitsModel.js';
 import InventoriesController from './InventoriesController.js';
 import persianDate           from 'persian-date';
+import InputsController      from "./InputsController.js";
 
 
 class CommodityProfitsController extends Controllers {
@@ -41,72 +42,124 @@ class CommodityProfitsController extends Controllers {
     static outputBuilder($row) {
         for (const [$index, $value] of Object.entries($row)) {
             switch ($index) {
+                case 'createdAt':
+                    let createdAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
+                    break;
                 case 'updatedAt':
-                    let dateTimeJalali      = new persianDate($value);
-                    $row[$index + 'Jalali'] = dateTimeJalali.toLocale('fa').format();
+                    let updatedAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
                     break;
                 case 'productDetails':
                     // check if is variant of original product
                     if ($row['_product'].toString() !== $value._id.toString()) {
                         let variant  = $value.variants.find(variant => variant._id.toString() === $row['_product'].toString());
+                        // set the difference of variant
                         $value.title = variant.title;
+                        $value._id = variant._id;
+                        $value.code = variant.code;
                     }
 
                     // delete variants from output
                     $value['variants'] = undefined;
 
+                    // set the _product field
+                    $row['_product'] = $row['productDetails'];
+
+                    // delete this field
+                    delete $row['productDetails'];
+
                     break;
             }
         }
+
+        return $row;
     }
 
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
-            // create reference type {retail: sales-invoices, onlineSales: orders}
-            let referenceType = $input.typeOfSales === 'retail' ? 'sales-invoices' : 'orders';
-            // get inventory
-            let inventory     = await InventoriesController.get($input._inventory)
-                .catch(error => {
-                    return reject(error);
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    typeOfSales: {
+                        type         : 'string',
+                        allowedValues: ['retail', 'onlineSales'],
+                        required     : true
+                    },
+                    price      : {type: 'number'},
+                    _inventory : {type: 'mongoId', required: true},
+                    _reference : {type: 'mongoId', required: true},
+                    count      : {type: 'number', required: true},
                 });
-            // create price of product
-            let price         = undefined;
-            if ($input.price) {
-                price = $input.price;
-            } else {
-                // price is consumer price (retail)
-                if ($input.typeOfSales === 'retail') {
-                    price = inventory.data.price.consumer;
-                } else {
-                    // price is store price (onlineSales)
-                    price = inventory.data.price.store;
+
+                // init the variable of commodity profit
+                let commodityProfit = {};
+
+                // create reference type {retail: sales-invoices, onlineSales: orders}
+                switch ($input.typeOfSales) {
+                    case 'retail':
+                        commodityProfit.referenceType = 'sales-invoices';
+                        break;
+                    case 'onlineSales':
+                        commodityProfit.referenceType = 'order';
+                        break;
                 }
-            }
-            // calc profit of product
-            let profitOfProduct = price - inventory.data.price.purchase;
-            // calc total profit
-            let totalProfit     = $input.count * profitOfProduct;
 
+                // set the reference
+                commodityProfit._reference = $input._reference
 
-            // filter
-            await this.model.insertOne({
-                _product     : inventory.data._product,
-                referenceType: referenceType,
-                _reference   : $input._reference,
-                _inventory   : $input._inventory,
-                count        : $input.count,
-                amount       : totalProfit,
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
+                // get the inventory
+                let inventory = await InventoriesController.get(
+                    {_id: $input._inventory},
+                    {select: '_id price _product'}
+                );
+
+                // set the inventory
+                commodityProfit._inventory = $input._inventory;
+
+                // set the product
+                commodityProfit._product = inventory.data._product;
+
+                // set the count
+                commodityProfit.count = $input.count;
+
+                // create price of product
+                let price = undefined;
+                if ($input.price) {
+                    price = $input.price;
+                } else {
+                    switch ($input.typeOfSales) {
+                        case 'retail':
+                            // price is consumer price (retail)
+                            price = inventory.data.price.consumer;
+                            break;
+                        case 'onlineSales':
+                            // price is store price (onlineSales)
+                            price = inventory.data.price.store;
+                            break;
+                    }
+                }
+
+                // calc profit of product
+                let profitOfProduct = price - inventory.data.price.purchase;
+
+                // calc and set the total profit
+                commodityProfit.amount = $input.count * profitOfProduct;
+
+                // insert into db
+                let response = await this.model.insertOne(commodityProfit);
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: response
                 });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -129,45 +182,50 @@ class CommodityProfitsController extends Controllers {
         });
     }
 
-    static list($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            let query = this.queryBuilder($input);
-
-            // filter
-            this.model.listOfCommodityProfits(query, {
-                skip : $input.offset,
-                limit: $input.perPage,
-                sort : $input.sort
-            }).then(
-                (response) => {
-                    response = response.data;
-
-                    // get count
-                    this.model.count(query).then((count) => {
-
-                        // create output
-                        response.forEach((row) => {
-                            this.outputBuilder(row);
-                        });
-
-                        // return result
-                        return resolve({
-                            code: 200,
-                            data: {
-                                list : response,
-                                total: count
-                            }
-                        });
-
-                    });
-                },
-                (error) => {
-                    return reject({
-                        code: 500
-                    });
+    static profits($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate Input
+                await InputsController.validateInput($input, {
+                    perPage      : {type: "number"},
+                    page         : {type: "number"},
+                    sortColumn   : {type: "string"},
+                    sortDirection: {type: "number"},
                 });
+
+                // check filter is valid and remove other parameters (just valid query by user role) ...
+                let $query = this.queryBuilder($input);
+                // get list
+                const list = await this.model.profits(
+                    $query,
+                    {
+                        skip : $input.offset,
+                        limit: $input.perPage,
+                        sort : $input.sort
+                    }
+                );
+
+                // get the count of properties
+                const count = await this.model.count($query);
+
+                // create output
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row);
+                }
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : list,
+                        total: count
+                    }
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -219,23 +277,6 @@ class CommodityProfitsController extends Controllers {
             this.model.deleteOne($id).then(
                 (response) => {
                     // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
-    static delete($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.delete($input).then(
-                (response) => {
                     return resolve({
                         code: 200
                     });
