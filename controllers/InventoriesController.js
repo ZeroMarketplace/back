@@ -932,7 +932,7 @@ class InventoriesController extends Controllers {
                 return resolve({
                     code: 200,
                     data: {
-                        _inventoryChanges: inventoryChangesInsertion._id
+                        _inventoryChanges: inventoryChangesInsertion.data._id
                     }
                 });
             } catch (error) {
@@ -944,17 +944,20 @@ class InventoriesController extends Controllers {
     static stockSalesBySalesInvoice($input) {
         return new Promise(async (resolve, reject) => {
             try {
-                // get sales invoice
-                let salesInvoice = await SalesInvoicesController.get(
-                    {_id: $input._id},
-                    {select: 'products'},
-                    'model'
-                );
-                salesInvoice     = salesInvoice.data;
+
+                // get sales invoice if not passed
+                if (!$input.salesInvoice) {
+                    $input.salesInvoice = await SalesInvoicesController.get(
+                        {_id: $input._id},
+                        {select: 'products'},
+                        'model'
+                    );
+                    $input.salesInvoice = $input.salesInvoice.data;
+                }
 
 
                 // change inventory counts
-                for (const product of salesInvoice.products) {
+                for (const product of $input.salesInvoice.products) {
                     // update counts
                     let response = await this.stockSales({
                         _product   : product._id,
@@ -970,7 +973,7 @@ class InventoriesController extends Controllers {
                 }
 
                 // update the sales invoice
-                await salesInvoice.save();
+                await $input.salesInvoice.save();
 
                 return resolve({
                     code: 200
