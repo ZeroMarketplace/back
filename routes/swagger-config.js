@@ -33,4 +33,6 @@
  *     description: APIs for managing Inventories
  *   - name: Stock Transfers
  *     description: APIs for managing Stock Transfers
+ *   - name: Sales Invoices
+ *     description: APIs for managing Sales Invoices
  */
