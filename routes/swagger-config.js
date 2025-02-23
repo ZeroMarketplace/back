@@ -35,4 +35,6 @@
  *     description: APIs for managing Stock Transfers
  *   - name: Sales Invoices
  *     description: APIs for managing Sales Invoices
+ *   - name: Commodity Profits
+ *     description: APIs for managing Commodity Profits
  */
