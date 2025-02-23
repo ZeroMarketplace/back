@@ -144,7 +144,7 @@ class SettlementsController extends Controllers {
                 }
 
                 // check the total and sumOfPayment
-                if(sumOfPayment !== reference.data.total) {
+                if (sumOfPayment !== reference.data.total) {
                     return reject({
                         code: 400,
                         data: {
@@ -255,7 +255,6 @@ class SettlementsController extends Controllers {
                     data: response
                 });
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         });
@@ -378,9 +377,45 @@ class SettlementsController extends Controllers {
                     }
                 });
 
-                let response = await this.model.updateOne($input._id, {
-                    payment: $input.payment
-                });
+                let response = await this.model.get($input._id);
+
+                console.log('settlement founded');
+
+                // update reference
+                switch (response.type) {
+                    case 'sales-invoice':
+                        // get the sales-invoice model
+                        let invoice = await SalesInvoicesController.get(
+                            {_id: response._reference},
+                            {select: '_id products'},
+                            'model'
+                        );
+                        console.log('invoice founded');
+
+                        // return all changes in inventory for each product
+                        for (let product of invoice.data.products) {
+                            if (product._inventoryChanges)
+                                await InventoriesController.returnUpdatesByInventoryChanges({
+                                    _id: product._inventoryChanges
+                                });
+                        }
+
+                        console.log('inventories update');
+
+                        // sale again the products and update inventories
+                        await InventoriesController.stockSalesBySalesInvoice({
+                            _id         : response._reference,
+                            salesInvoice: invoice.data
+                        });
+
+                        console.log('stock sold');
+                        break;
+                }
+
+                // set the payment
+                response.payment = $input.payment;
+                // save the settlement
+                await response.save();
 
                 // update accounting document
                 await AccountingDocumentsController.updateBySettlement({
@@ -399,6 +434,7 @@ class SettlementsController extends Controllers {
                 });
 
             } catch (error) {
+                console.log(error);
                 return reject(error);
             }
         });
