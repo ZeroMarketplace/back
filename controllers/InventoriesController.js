@@ -849,6 +849,9 @@ class InventoriesController extends Controllers {
                 // init the inventory changes variable
                 let inventoryChanges = [];
 
+                // exception for counting on inventories
+                query.count = {$gt: 0};
+
                 // get the inventories from db and sorted by dateTime (old one is first)
                 let inventories = await this.model.list(query, {
                     sort: {dateTime: 1}
@@ -859,7 +862,7 @@ class InventoriesController extends Controllers {
                 // minus remaining count from inventories
                 for (const inventory of inventories) {
                     // The check of the remaining count is not finished
-                    if (remainingCount) {
+                    if (remainingCount > 0) {
                         if (remainingCount >= inventory.count) {
 
                             // add to changes
