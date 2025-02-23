@@ -379,7 +379,6 @@ class SettlementsController extends Controllers {
 
                 let response = await this.model.get($input._id);
 
-                console.log('settlement founded');
 
                 // update reference
                 switch (response.type) {
@@ -390,7 +389,6 @@ class SettlementsController extends Controllers {
                             {select: '_id products'},
                             'model'
                         );
-                        console.log('invoice founded');
 
                         // return all changes in inventory for each product
                         for (let product of invoice.data.products) {
@@ -400,7 +398,6 @@ class SettlementsController extends Controllers {
                                 });
                         }
 
-                        console.log('inventories update');
 
                         // sale again the products and update inventories
                         await InventoriesController.stockSalesBySalesInvoice({
@@ -408,7 +405,6 @@ class SettlementsController extends Controllers {
                             salesInvoice: invoice.data
                         });
 
-                        console.log('stock sold');
                         break;
                 }
 
@@ -434,7 +430,6 @@ class SettlementsController extends Controllers {
                 });
 
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         });
