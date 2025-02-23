@@ -174,13 +174,14 @@ class SalesInvoicesController extends Controllers {
                     dateTime   : {type: 'date', required: true},
                     description: {type: 'string'},
                     products   : {
-                        type : 'array',
-                        items: {
+                        type    : 'array',
+                        items   : {
                             _id       : {type: 'mongoId', required: true},
                             count     : {type: 'number', required: true},
                             price     : {type: 'number', required: true},
                             _warehouse: {type: 'mongoId', required: true},
-                        }
+                        },
+                        required: true
                     },
                     AddAndSub  : {
                         type : 'array',
@@ -236,6 +237,13 @@ class SalesInvoicesController extends Controllers {
                 await InputsController.validateInput($input, {
                     _id: {type: 'mongoId', required: true}
                 });
+
+                // set select if not passed
+                if (!$options.select) {
+                    $options.select = '_id code _customer dateTime description ' +
+                        'products._id products.count products.price products.total products._warehouse ' +
+                        'AddAndSub status total sum _user createdAt updatedAt _settlement';
+                }
 
                 // get from db
                 let response = await this.model.get($input._id, $options);
@@ -326,104 +334,81 @@ class SalesInvoicesController extends Controllers {
         });
     }
 
-    static update($id, $input) {
+    static updateOne($input) {
         return new Promise(async (resolve, reject) => {
-            // filter
-            this.model.updateOne($id, $input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
-    static updateOne($id, $input) {
-        return new Promise(async (resolve, reject) => {
-            // check filter is valid ...
-            await this.calculateInvoice($input);
-
-            this.model.get($id).then(
-                async (purchaseInvoice) => {
-                    let lastProducts            = purchaseInvoice.products;
-                    let newProducts             = $input.products;
-                    purchaseInvoice._customer   = $input.customer;
-                    purchaseInvoice.dateTime    = $input.dateTime;
-                    purchaseInvoice._warehouse  = $input.warehouse;
-                    purchaseInvoice.description = $input.description;
-                    purchaseInvoice.products    = $input.products;
-                    purchaseInvoice.AddAndSub   = $input.AddAndSub;
-                    purchaseInvoice.total       = $input.total;
-                    await purchaseInvoice.save();
-
-                    // update count of inventories
-                    for (const product of lastProducts) {
-                        let productUpdate = newProducts.find(i => i._id === product._id.toString());
-                        if (productUpdate) {
-                            // minus last product count
-                            await InventoriesController.updateCount({
-                                _product        : product._id,
-                                _purchaseInvoice: purchaseInvoice._id
-                            }, -product.count);
-
-                            // add new product count
-                            await InventoriesController.updateCount({
-                                _product        : product._id,
-                                _purchaseInvoice: purchaseInvoice._id
-                            }, +productUpdate.count);
-
-                            // delete updated product
-                            newProducts.splice(newProducts.indexOf(productUpdate), 1);
-                        } else {
-                            // delete the inventory
-                            await InventoriesController.delete({
-                                _product        : product._id,
-                                _purchaseInvoice: purchaseInvoice._id
-                            });
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id        : {type: 'mongoId', required: true},
+                    _customer  : {type: 'mongoId', required: true},
+                    dateTime   : {type: 'date', required: true},
+                    description: {type: 'string'},
+                    products   : {
+                        type    : 'array',
+                        items   : {
+                            _id       : {type: 'mongoId', required: true},
+                            count     : {type: 'number', required: true},
+                            price     : {type: 'number', required: true},
+                            _warehouse: {type: 'mongoId', required: true},
+                        },
+                        required: true
+                    },
+                    AddAndSub  : {
+                        type : 'array',
+                        items: {
+                            _reason: {type: 'mongoId', required: true},
+                            value  : {type: 'number', required: true},
                         }
                     }
+                });
 
-                    // add inventory of new products
-                    for (const product of newProducts) {
-                        await InventoriesController.insertOne({
-                            dateTime        : new Date(),
-                            count           : product.count,
-                            _product        : product._id,
-                            _warehouse      : purchaseInvoice._warehouse,
-                            _purchaseInvoice: purchaseInvoice._id,
-                            price           : {
-                                purchase: product.price.purchase,
-                                consumer: product.price.consumer,
-                                store   : product.price.store
-                            },
-                            user            : $input.user
+                let response = await this.model.get($input._id);
+
+                // return all changes in inventory for each product
+                for (let product of response.products) {
+                    if (product._inventoryChanges) {
+                        // delete the inventory changes and return inventories
+                        await InventoryChangesController.deleteOne({
+                            _id: product._inventoryChanges
                         });
                     }
+                }
 
-                    // update price of inventory
-                    for (const product of purchaseInvoice.products) {
-                        await InventoriesController.update(
-                            {
-                                _product        : product._id,
-                                _purchaseInvoice: purchaseInvoice._id
-                            }, {
-                                price: product.price
-                            }
-                        );
-                    }
+                // validate inventory of products
+                for (let product of $input.products) {
+                    await this.validateProductInventory(product);
 
-                    return resolve({
-                        code: 200,
-                        data: purchaseInvoice.toObject()
-                    });
+                    // remove inventory changes id if passed
+                    product._inventoryChanges = undefined;
+                }
 
-                },
-                (response) => {
-                    return reject(response);
-                },
-            );
+                // calculate the invoice numbers
+                await this.calculateInvoice($input);
+
+                // update fields
+                response._customer = $input._customer;
+                response.dateTime  = $input.dateTime;
+                response.descripti = $input.description;
+                response.products  = $input.products;
+                response.AddAndSub = $input.AddAndSub;
+                response.total     = $input.total;
+                response.sum       = $input.sum;
+
+                // save the invoice information
+                await response.save();
+
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+            } catch (error) {
+                console.log(error);
+                return reject(error);
+            }
         });
     }
 
@@ -446,41 +431,45 @@ class SalesInvoicesController extends Controllers {
         })
     }
 
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // get info
-            this.model.get($id).then(
-                async (salesInvoice) => {
-                    // check has settlement
-                    if (salesInvoice._settlement) {
-                        // delete settlement
-                        await SettlementsController.deleteOne(salesInvoice._settlement);
+    static deleteOne($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
+                });
 
-                        // restore the inventory counts
-                        for (const product of salesInvoice.products) {
-                            await InventoryChangesController.deleteOne(product._inventoryChanges);
-                        }
+                // get the invoice
+                let invoice = await this.model.get($input._id, {
+                    select: '_id _settlement products'
+                });
 
-                        // delete commodity profits
-                        await CommodityProfitsController.delete({
-                            referenceType: 'sales-invoices',
-                            _reference   : salesInvoice._id
-                        });
+                // check has settlement
+                if (invoice._settlement) {
+                    // delete settlement
+                    await SettlementsController.deleteOne(invoice._settlement);
+
+                    // restore the inventory changes
+                    for (const product of invoice.products) {
+                        await InventoryChangesController.deleteOne(product._inventoryChanges);
                     }
 
-                    // delete the purchaseInvoice
-                    salesInvoice.deleteOne().then(
-                        (responseDeleteSalesInvoice) => {
-                            return resolve({
-                                code: 200
-                            });
-                        }
-                    );
-                },
-                (response) => {
-                    return reject(response);
+                    // delete commodity profits
+                    await CommodityProfitsController.deleteBySalesInvoice({
+                        _id: invoice._id
+                    });
                 }
-            );
+
+                // delete the invoice
+                await invoice.deleteOne();
+
+                // return result
+                return resolve({
+                    code: 200
+                });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
