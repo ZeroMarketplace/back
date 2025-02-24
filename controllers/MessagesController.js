@@ -8,6 +8,8 @@ import {ObjectId}              from 'mongodb';
 import fs                      from 'fs';
 import path                    from 'path';
 import Logger                  from "../core/Logger.js";
+import persianDate             from "persian-date";
+import UsersController         from "./UsersController.js";
 
 // init the redis publisher
 const redisPublisher = await RedisConnection.getPublisherClient();
@@ -51,6 +53,41 @@ class MessagesController extends Controllers {
 
     constructor() {
         super();
+    }
+
+    static createTheStoragePath() {
+        return new Promise((resolve, reject) => {
+            try {
+                if (!fs.existsSync(filesPath)) {
+                    // create the path
+                    fs.mkdirSync(filesPath, {recursive: true});
+                    console.log(`Messages Storage Path was created successfully.`);
+                }
+
+                return resolve({
+                    code: 200
+                });
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
+
+    static outputBuilder($row) {
+        for (const [$index, $value] of Object.entries($row)) {
+            switch ($index) {
+                case 'updatedAt':
+                    let updatedAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
+                    break;
+                case 'createdAt':
+                    let createdAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
+                    break;
+            }
+        }
+
+        return $row;
     }
 
     static queryBuilder($input) {
@@ -102,8 +139,9 @@ class MessagesController extends Controllers {
 
                 // find the conversation
                 const conversation = await ConversationsController.get(
-                    $input._conversation,
-                    {select: '_id updatedAt members'}
+                    {_id: $input._conversation},
+                    {select: '_id updatedAt members'},
+                    'model'
                 );
 
                 // check the user is member of the conversation
@@ -154,29 +192,28 @@ class MessagesController extends Controllers {
                 message._sender = $input.user.data._id;
 
                 // add to db
-                await this.model.insertOne(message).then(
-                    (response) => {
-                        // update conversation updatedAt field
-                        conversation.data.updatedAt = new Date();
-                        conversation.data.save();
+                let response = await this.model.insertOne(message);
 
-                        // publish message
-                        let publishData   = response.toObject();
-                        publishData._user = $input.user.data._id;
-                        redisPublisher.publish('messages', JSON.stringify({
-                            operation: 'insert',
-                            data     : publishData
-                        }));
+                // update conversation updatedAt field
+                conversation.data.updatedAt = new Date();
+                conversation.data.save();
 
-                        // check the result ... and return
-                        return resolve({
-                            code: 200,
-                            data: response.toObject()
-                        });
-                    },
-                    (response) => {
-                        return reject(response);
-                    });
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
+                // publish message
+                let publishData   = response;
+                publishData._user = $input.user.data._id;
+                redisPublisher.publish('messages', JSON.stringify({
+                    operation: 'insert',
+                    data     : publishData
+                }));
+
+                // check the result ... and return
+                return resolve({
+                    code: 200,
+                    data: response
+                });
             } catch (error) {
                 return reject(error);
             }
@@ -193,8 +230,9 @@ class MessagesController extends Controllers {
 
                 // find the conversation
                 const conversation = await ConversationsController.get(
-                    $input._conversation,
-                    {select: '_id members'}
+                    {_id: $input._conversation},
+                    {select: '_id members'},
+                    'model'
                 );
 
                 // check the user is member of the conversation
@@ -243,21 +281,14 @@ class MessagesController extends Controllers {
                         type: $input.req.file.mimetype
                     };
 
-                    await this.insertOne(message, 'system').then(
-                        (response) => {
-                            return resolve({
-                                code: 200,
-                                data: response.data
-                            });
-                        },
-                        (error) => {
-                            return reject(error);
-                        }
-                    );
+                    let response = await this.insertOne(message, 'system');
+
+                    return resolve({
+                        code: 200,
+                        data: response.data
+                    });
 
                 });
-
-
             } catch (error) {
                 return reject(error);
             }
@@ -275,8 +306,9 @@ class MessagesController extends Controllers {
 
                 // find the conversation
                 const conversation = await ConversationsController.get(
-                    $input._conversation,
-                    {select: '_id members'}
+                    {_id: $input._conversation},
+                    {select: '_id members'},
+                    'model'
                 );
 
                 // check the user is member of the conversation
@@ -324,23 +356,31 @@ class MessagesController extends Controllers {
                 // check valid conversation id
                 await InputsController.validateInput($input, {
                     _conversation: {type: 'mongoId', required: true},
-                    _message     : {type: 'mongoId', required: true},
+                    _id          : {type: 'mongoId', required: true},
                 });
 
                 // find the conversation
                 const conversation = await ConversationsController.get(
-                    $input._conversation,
-                    {select: '_id'}
+                    {_id: $input._conversation},
+                    {select: '_id members'},
+                    'model'
                 );
 
+                // check user is member of conversation
+                if (!conversation.data.members.includes($input.user.data._id)) {
+                    return reject({
+                        code: 403
+                    });
+                }
+
                 // find the message
-                const message = await this.get(
-                    $input._message,
+                const message = await this.model.get(
+                    $input._id,
                     {select: '_id _readBy'}
                 );
 
                 // check message read before
-                if (message.data._readBy.includes($input.user.data._id)) {
+                if (message._readBy.includes($input.user.data._id)) {
                     return resolve({
                         code: 400,
                         data: {
@@ -350,25 +390,29 @@ class MessagesController extends Controllers {
                 }
 
                 // add user id to _readBy
-                message.data._readBy.push($input.user.data._id);
+                if (message._readBy) {
+                    message._readBy.push($input.user.data._id);
+                } else {
+                    message._readBy = [$input.user.data._id];
+                }
+
                 // save to db
-                await message.data.save().then(
-                    (response) => {
+                await message.save();
 
-                        // publish read status
-                        redisPublisher.publish('messages', JSON.stringify({
-                            operation: 'read',
-                            data     : {
-                                _id          : $input._message,
-                                _conversation: $input._conversation,
-                                _user        : $input.user.data._id
-                            }
-                        }));
 
-                        return resolve({code: 200});
+                // publish read status
+                redisPublisher.publish('messages', JSON.stringify({
+                    operation: 'read',
+                    data     : {
+                        _id          : $input._id,
+                        _conversation: $input._conversation,
+                        _user        : $input.user.data._id
                     }
-                );
+                }));
 
+                return resolve({
+                    code: 200
+                });
             } catch (error) {
                 return reject(error);
             }
@@ -409,7 +453,7 @@ class MessagesController extends Controllers {
         });
     }
 
-    static listOfMessages($input) {
+    static messages($input) {
         return new Promise(async (resolve, reject) => {
             try {
 
@@ -419,9 +463,11 @@ class MessagesController extends Controllers {
                 });
 
                 // check conversation
-                const conversation = await ConversationsController.get($input._conversation, {
-                    select: 'members'
-                });
+                const conversation = await ConversationsController.get(
+                    {_id: $input._conversation},
+                    {select: 'members'},
+                    'model'
+                );
 
                 // check user is member of conversation
                 if (!conversation.data.members.includes($input.user.data._id)) {
@@ -430,27 +476,29 @@ class MessagesController extends Controllers {
                     });
                 }
 
-                let query = this.queryBuilder($input);
+                // check filter is valid and remove other parameters (just valid query by user role) ...
+                let $query = this.queryBuilder($input);
 
-                let options = {
-                    sort: $input.sort,
-                };
+                // get the list
+                const list = await this.model.list($query);
 
-                if ($input.pagination) {
-                    options.skip  = $input.offset;
-                    options.limit = $input.perPage;
+                // get the count
+                const count = await this.model.count($query);
+
+                // create output
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row.toObject());
                 }
 
-                // filter
-                const messages = await this.model.list(query, options);
-                if (messages) {
-                    return resolve({
-                        code: 200,
-                        data: {
-                            list: messages
-                        }
-                    });
-                }
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : list,
+                        total: count
+                    }
+                });
 
             } catch (error) {
                 return reject(error);
@@ -489,8 +537,9 @@ class MessagesController extends Controllers {
 
                 // find the conversation
                 const conversation = await ConversationsController.get(
-                    $input._conversation,
-                    {select: '_id members'}
+                    {_id: $input._conversation},
+                    {select: '_id members'},
+                    'model'
                 );
 
                 // check the user is member of the conversation
@@ -522,27 +571,23 @@ class MessagesController extends Controllers {
                 message.content  = $input.content;
                 message.isEdited = true;
 
-                message.save().then(
-                    (response) => {
-                        // publish message update
-                        let publishData   = response.toObject();
-                        publishData._user = $input.user.data._id;
-                        redisPublisher.publish('messages', JSON.stringify({
-                            operation: 'update',
-                            data     : publishData
-                        }));
+                let response = await message.save();
 
-                        return reject({
-                            code: 200,
-                            data: response.toObject()
-                        });
-                    },
-                    (error) => {
-                        return reject(error);
-                    }
-                );
+                // create output
+                response = await this.outputBuilder(response.toObject());
 
+                // publish message update
+                let publishData   = response;
+                publishData._user = $input.user.data._id;
+                redisPublisher.publish('messages', JSON.stringify({
+                    operation: 'update',
+                    data     : publishData
+                }));
 
+                return resolve({
+                    code: 200,
+                    data: response
+                });
             } catch (error) {
                 return reject(error);
             }
@@ -555,13 +600,14 @@ class MessagesController extends Controllers {
                 // check valid conversation id
                 await InputsController.validateInput($input, {
                     _conversation: {type: 'mongoId', required: true},
-                    _message     : {type: 'mongoId', required: true}
+                    _id          : {type: 'mongoId', required: true}
                 });
 
                 // find the conversation
                 const conversation = await ConversationsController.get(
-                    $input._conversation,
-                    {select: '_id members'}
+                    {_id: $input._conversation},
+                    {select: '_id members'},
+                    'model'
                 );
 
                 // check the user is member of the conversation
@@ -571,7 +617,7 @@ class MessagesController extends Controllers {
                     });
                 }
 
-                const message = await this.model.get($input._message, {
+                const message = await this.model.get($input._id, {
                     select: '_id attachment _deletedFor'
                 });
 
@@ -585,48 +631,65 @@ class MessagesController extends Controllers {
                 }
 
                 if (message._deletedFor.length === conversation.data.members.length || $input.deleteForEveryone) {
+                    // delete file of the message
+                    if (message.attachment) {
+                        await fs.unlinkSync(filesPath + message.attachment.file);
+                    }
+
                     // delete the message for everyone
-                    await this.model.deleteOne($input._message).then(
-                        async (response) => {
-                            if ($type === 'api') {
-                                redisPublisher.publish('messages', JSON.stringify({
-                                    operation: 'delete',
-                                    data     : {
-                                        _id          : $input._message,
-                                        _user        : $input.user.data._id,
-                                        _conversation: $input._conversation
-                                    }
-                                }));
-                            }
+                    await this.model.deleteOne($input._id);
 
-                            // delete file of the message
-                            if (message.attachment) {
-                                await fs.unlink(filesPath + message.attachment.file, (error) => {
-                                    if (error) {
-                                        Logger.systemError('deleteMessageFile', error);
-                                    }
-                                });
+                    // publish to redis this deletion
+                    if ($type === 'api') {
+                        redisPublisher.publish('messages', JSON.stringify({
+                            operation: 'delete',
+                            data     : {
+                                _id          : $input._message,
+                                _user        : $input.user.data._id,
+                                _conversation: $input._conversation
                             }
-
-                            return resolve({
-                                code: 200
-                            });
-                        }
-                    );
+                        }));
+                    }
                 } else {
                     // save the message _deletedFor
-                    await message.save().then(
-                        (response) => {
-                            return resolve({
-                                code: 200
-                            })
-                        }
-                    );
+                    await message.save();
                 }
+
+                return resolve({
+                    code: 200
+                });
             } catch (error) {
                 return reject(error);
             }
         });
+    }
+
+    static deleteByConversation($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // get all messages of conversation
+                const conversationMessages = await this.model.list({
+                    _conversation: $input._id
+                }, {
+                    select: '_id'
+                });
+
+                // delete the messages for the current user
+                for (const message of conversationMessages) {
+                    await this.deleteOne({
+                        _conversation: $input._id,
+                        _id          : message,
+                        user         : $input.user
+                    }, 'system');
+                }
+
+                return resolve({
+                    code: 200
+                })
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
 }
