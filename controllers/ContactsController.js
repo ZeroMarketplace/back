@@ -18,92 +18,63 @@ class ContactsController extends Controllers {
         return $row;
     }
 
-
     static insertOne($input) {
-        return new Promise((resolve, reject) => {
-            // validate Input
-            InputsController.validateInput($input, {
-                // firstName: {type: 'string', required: true},
-                // lastName : {type: 'string', required: true},
-                phone    : {type: 'string', required: true}
-            }).then(
-                ($input) => {
-                    // query to find user
-                    UsersController.item({
-                        phone: $input.phone
-                    }).then(
-                        (contactUser) => {
-                            contactUser = contactUser.data;
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate Input
+                await InputsController.validateInput($input, {
+                    phone: {type: 'string', required: true}
+                });
 
-                            // check if contact is user self
-                            if (contactUser._id.toString() === $input.user.data._id) {
-                                return reject({
-                                    code: 400,
-                                    data: {
-                                        message: 'You cannot add yourself as a contact'
-                                    }
-                                });
-                            }
+                // search in db to find the contact's user
+                let contactUser = await UsersController.item(
+                    {phone: $input.phone},
+                    {select: '_id'}
+                );
+                // get the data of user
+                contactUser     = contactUser.data;
 
-                            // find the user self
-                            UsersController.get({_id: $input.user.data._id}, {}, 'system').then(
-                                (user) => {
-                                    user = user.data;
-
-                                    // found the contact
-                                    // let foundContact = user.contacts.find(
-                                    //     contact => contact._user.toString() === contactUser._id.toString()
-                                    // );
-
-                                    if (user.contacts.includes(contactUser._id.toString())) {
-                                        return reject({
-                                            code: 400,
-                                            data: {
-                                                message: 'This contact has already been added'
-                                            }
-                                        });
-                                    } else {
-                                        // add the contact
-                                        user.contacts.push(contactUser._id);
-
-                                        user.save().then(
-                                            (responseUserSave) => {
-                                                return resolve({
-                                                    code: 200
-                                                });
-                                            },
-                                            (errorSaveUser) => {
-                                                return reject({
-                                                    code: 500,
-                                                    data: {
-                                                        message: 'Problem saving contacts'
-                                                    }
-                                                });
-                                            }
-                                        );
-                                    }
-                                }
-                            );
-                        },
-                        (contactUserError) => {
-                            // user not founded
-                            if (contactUserError.code === 404) {
-                                return reject({
-                                    code: 400,
-                                    data: {
-                                        message: 'User Not Found'
-                                    }
-                                });
-                            } else {
-                                return reject(contactUserError);
-                            }
+                // check if contact is user self
+                if (contactUser._id.toString() === $input.user.data._id) {
+                    return reject({
+                        code: 400,
+                        data: {
+                            message: 'You cannot add yourself as a contact'
                         }
-                    );
-                },
-                (validationError) => {
-                    return reject(validationError);
+                    });
                 }
-            );
+
+                // find the user self
+                let user = await UsersController.get(
+                    {_id: $input.user.data._id},
+                    {select: '_id contacts'},
+                    'model'
+                );
+                // get the data of user
+                user     = user.data;
+
+                // check the contact is exist
+                if (user.contacts && user.contacts.includes(contactUser._id.toString())) {
+                    return reject({
+                        code: 400,
+                        data: {
+                            message: 'This contact has already been added'
+                        }
+                    });
+                } else {
+                    // add the contact
+                    user.contacts.push(contactUser._id);
+                    // save the user
+                    await user.save()
+
+                    // return result
+                    return resolve({
+                        code: 200
+                    });
+                }
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -126,27 +97,40 @@ class ContactsController extends Controllers {
         });
     }
 
-    static listOfContacts($input) {
-        return new Promise((resolve, reject) => {
-            UsersController.get({_id: $input.user.data._id}, {
-                select  : 'contacts',
-                populate: [
-                    {path: 'contacts', select: '_id name avatars color'},
-                ]
-            }, 'system').then(
-                (user) => {
-                    user = user.data;
-                    return resolve({
-                        code: 200,
-                        data: {
-                            list: user.contacts
-                        }
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static contacts($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // get all contacts
+                let user = await UsersController.get(
+                    {_id: $input.user.data._id},
+                    {
+                        select  : 'contacts',
+                        populate: [
+                            {path: 'contacts', select: '_id firstName lastName avatars color'},
+                        ]
+                    }
+                );
+
+                // get the data of user
+                let list = user.data.contacts;
+
+                // create output
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row);
                 }
-            );
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : list,
+                        total: list.length
+                    }
+                });
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
