@@ -12,9 +12,11 @@ export default (io) => {
         let {operation, data} = JSON.parse(message);
 
         // get the conversation data
-        let conversation = await ConversationsController.get(data._conversation, {
-            select: 'members'
-        }).catch((error) => {
+        let conversation = await ConversationsController.get(
+            {_id: data._conversation},
+            {select: 'members'},
+            'model'
+        ).catch((error) => {
             Logger.systemError('message _conversation', error);
             return false;
         });
@@ -28,7 +30,7 @@ export default (io) => {
                     let memberSockets = await redisClient.lRange(`SocketClient:${member}:sockets`, 0, -1);
                     // send message data to every socket of member
                     memberSockets.forEach((socketId) => {
-                        io.to(socketId).emit(`messages:${operation}`,data);
+                        io.to(socketId).emit(`messages:${operation}`, data);
                     })
                 }
             }
