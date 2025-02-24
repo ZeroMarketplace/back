@@ -199,24 +199,26 @@ class UsersController extends Controllers {
         });
     }
 
-    static item($filter, $options) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
+    static item($input, $options = {}, $resultType = 'object') {
+        return new Promise(async (resolve, reject) => {
+            try {
+                let response = await this.model.item($input, $options);
 
-            // filter
-            this.model.item($filter, $options).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
+                // create output
+                if ($resultType === 'object') {
+                    response = await this.outputBuilder(response.toObject());
+                }
+
+                return resolve({
+                    code: 200,
+                    data: response
                 });
+            } catch (error) {
+                return reject(error)
+            }
         });
     }
+
 
     static list($input, $options) {
         return new Promise((resolve, reject) => {
@@ -287,7 +289,7 @@ class UsersController extends Controllers {
         });
     }
 
-    static get($input, $options = {}, $type = 'api') {
+    static get($input, $options = {}, $resultType = 'object') {
         return new Promise(async (resolve, reject) => {
             try {
                 // validate input
@@ -295,16 +297,19 @@ class UsersController extends Controllers {
                     _id: {type: 'mongoId', required: true}
                 });
 
+                // get from db
                 let response = await this.model.get($input._id, $options);
 
-                // reformat row for output
-                if ($type === 'api')
+                // create output
+                if ($resultType === 'object') {
                     response = await this.outputBuilder(response.toObject());
+                }
 
                 return resolve({
                     code: 200,
                     data: response
                 });
+
             } catch (error) {
                 return reject(error);
             }
