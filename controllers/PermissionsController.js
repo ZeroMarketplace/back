@@ -118,6 +118,12 @@ class PermissionsController extends Controllers {
                         "PUT"   : true,
                         "DELETE": true
                     },
+                    "/api/conversations"            : {
+                        "POST"  : true,
+                        "GET"   : true,
+                        "PUT"   : true,
+                        "DELETE": true
+                    },
                 }
             };
 
