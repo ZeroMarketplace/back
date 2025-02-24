@@ -5,6 +5,8 @@ import {ObjectId}         from "mongodb";
 import RedisConnection    from '../core/RedisConnection.js';
 import MessagesController from "./MessagesController.js";
 import UsersController    from "./UsersController.js";
+import persianDate        from "persian-date";
+import {query}            from "express";
 
 // init the redis publisher
 const redisPublisher = await RedisConnection.getPublisherClient();
@@ -14,6 +16,65 @@ class ConversationsController extends Controllers {
 
     constructor() {
         super();
+    }
+
+    static async outputBuilder($row) {
+        for (const [$index, $value] of Object.entries($row)) {
+            switch ($index) {
+                case 'updatedAt':
+                    let updatedAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
+                    break;
+                case 'createdAt':
+                    let createdAtJalali     = new persianDate($value);
+                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
+                    break;
+                case 'members':
+                    // get the members details
+                    let memberDetails = await UsersController.list({
+                        _id: {$in: $value}
+                    }, {
+                        select: '_id firstName lastName color avatar'
+                    });
+
+                    $row.members = memberDetails.data;
+                    break;
+            }
+        }
+
+        return $row;
+    }
+
+    static queryBuilder($input) {
+        let $query = {};
+
+        // pagination
+        $input.perPage = $input.perPage ?? 10;
+        $input.page    = $input.page ?? 1;
+        $input.offset  = ($input.page - 1) * $input.perPage;
+
+        // sort
+        if ($input.sortColumn && $input.sortDirection) {
+            $input.sort                    = {};
+            $input.sort[$input.sortColumn] = $input.sortDirection;
+        } else {
+            $input.sort = {createdAt: -1};
+        }
+
+        // set the user id to query
+        $query['_user'] = new ObjectId($input.user.data._id);
+
+        Object.entries($input).forEach((field) => {
+            // field [0] => index
+            // field [1] => value
+            switch (field[0]) {
+                case 'name':
+                    $query[field[0]] = {$regex: '.*' + field[1] + '.*'};
+                    break;
+            }
+        });
+
+        return $query;
     }
 
     static insertOne($input) {
@@ -40,7 +101,7 @@ class ConversationsController extends Controllers {
                         });
 
                         // find the conversation between user and contact
-                        const exitingConversation = await this.model.item({
+                        let exitingConversation = await this.model.item({
                             type   : 'private',
                             members: {$all: [$input.contact, $input.user.data._id]}
                         }).catch(() => {
@@ -49,7 +110,10 @@ class ConversationsController extends Controllers {
 
                         if (exitingConversation) {
                             // check if deleted before
-                            if (exitingConversation._deletedFor.includes($input.user.data._id)) {
+                            if (
+                                exitingConversation._deletedFor &&
+                                exitingConversation._deletedFor.includes($input.user.data._id)
+                            ) {
                                 exitingConversation._deletedFor.splice(
                                     exitingConversation._deletedFor.indexOf($input.user.data._id),
                                     1
@@ -59,12 +123,14 @@ class ConversationsController extends Controllers {
                                     exitingConversation._deletedFor = undefined;
                                 }
 
-                                exitingConversation.save();
+                                await exitingConversation.save();
                             }
+
+                            exitingConversation = await this.outputBuilder(exitingConversation.toObject());
 
                             return resolve({
                                 code: 200,
-                                data: exitingConversation.toObject()
+                                data: exitingConversation
                             });
                         }
 
@@ -75,34 +141,21 @@ class ConversationsController extends Controllers {
                 }
 
                 // add to db
-                await this.model.insertOne(conversation).then(
-                    async (response) => {
+                let response = await this.model.insertOne(conversation);
 
-                        // publish conversation
-                        let data = response.toObject();
+                // create output
+                response = await this.outputBuilder(response.toObject());
 
-                        // get the members details
-                        let memberDetails = await UsersController.list({
-                            _id: {$in: conversation.members}
-                        }, {
-                            select: '_id name color avatar'
-                        });
+                redisPublisher.publish('conversations', JSON.stringify({
+                    operation: 'insert',
+                    data     : response
+                }));
 
-                        data.memberDetails = memberDetails.data;
-
-                        data.unreadCount = 0;
-
-                        redisPublisher.publish('conversations', JSON.stringify({
-                            operation: 'insert',
-                            data     : data
-                        }));
-
-                        // check the result ... and return
-                        return resolve({
-                            code: 200,
-                            data: data
-                        });
-                    });
+                // check the result ... and return
+                return resolve({
+                    code: 200,
+                    data: response
+                });
             } catch (error) {
                 return reject(error);
             }
@@ -128,28 +181,40 @@ class ConversationsController extends Controllers {
         });
     }
 
-    static listOfConversations($input) {
-        return new Promise((resolve, reject) => {
-            let query      = {};
-            let userId     = new ObjectId($input.user.data._id);
-            $input.options = {};
+    static conversations($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // check filter is valid and remove other parameters (just valid query by user role) ...
+                let $query = this.queryBuilder($input);
 
-            // filter
-            this.model.listOfConversations(query, $input.options, userId).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: {
-                            list: response
-                        }
-                    });
-                },
-                (error) => {
-                    return reject({
-                        code: 500
-                    });
+                // get list
+                const list = await this.model.conversations(
+                    $query,
+                    {
+                        skip : $input.offset,
+                        limit: $input.perPage,
+                        sort : $input.sort
+                    }
+                );
+
+                // create output
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row);
+                }
+
+                // return result
+                return resolve({
+                    code: 200,
+                    data: {
+                        list : list,
+                        total: list.length
+                    }
                 });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -174,18 +239,30 @@ class ConversationsController extends Controllers {
         });
     }
 
-    static get($id, $options = {}, $type = 'api') {
-        return new Promise((resolve, reject) => {
-            this.model.get($id, $options).then(
-                async (response) => {
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
+    static get($input, $options = {}, $resultType = 'object') {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    _id: {type: 'mongoId', required: true}
                 });
+
+                // get from db
+                let response = await this.model.get($input._id, $options);
+
+                // create output
+                if ($resultType === 'object') {
+                    response = await this.outputBuilder(response.toObject());
+                }
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
         });
     }
 
@@ -215,16 +292,14 @@ class ConversationsController extends Controllers {
             try {
                 // check valid conversation id
                 await InputsController.validateInput($input, {
-                    _conversation: {type: 'mongoId', required: true}
+                    _id: {type: 'mongoId', required: true}
                 });
 
                 // find the conversation
                 const conversation = await this.model.get(
-                    $input._conversation,
+                    $input._id,
                     {select: '_id _deletedFor members'}
-                ).catch((error) => {
-                    return reject(error);
-                });
+                );
 
                 // check the user is member of the conversation
                 if (!conversation.members.includes($input.user.data._id)) {
@@ -242,53 +317,26 @@ class ConversationsController extends Controllers {
                     conversation._deletedFor = [$input.user.data._id];
                 }
 
-                const conversationMessages = await MessagesController.list({
-                    _conversation: $input._conversation
-                }, {
-                    select: '_id'
+                // delete all messages of conversation
+                await MessagesController.deleteByConversation({
+                    _id: $input._id,
+                    user: $input.user
                 });
 
-                // delete the messages for the current user
-                for (const message of conversationMessages.data) {
-                    await MessagesController.deleteOne({
-                        _conversation: $input._conversation,
-                        _message     : message._id.toString(),
-                        user         : $input.user
-                    },'system').catch((error) => {
-                        return reject({
-                            code: 500,
-                            data: {
-                                message: 'Error in delete messages'
-                            }
-                        });
-                    });
-                }
-
+                // check for delete conversation from db
                 if (conversation._deletedFor.length === conversation.members.length) {
                     // delete the conversation
-                    await conversation.deleteOne().then(
-                        (response) => {
-                            return resolve({
-                                code: 200
-                            });
-                        },
-                        (error) => {
-                            return reject(error);
-                        }
-                    );
+                    await conversation.deleteOne();
+
                 } else {
-                    // delete conversation
-                    await conversation.save().then(
-                        (response) => {
-                            return resolve({
-                                code: 200
-                            })
-                        },
-                        (error) => {
-                            return reject(error);
-                        }
-                    );
+                    // save conversation
+                    await conversation.save();
                 }
+
+                // return result
+                return resolve({
+                    code: 200
+                });
 
             } catch (error) {
                 return reject(error);
