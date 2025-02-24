@@ -37,4 +37,6 @@
  *     description: APIs for managing Sales Invoices
  *   - name: Commodity Profits
  *     description: APIs for managing Commodity Profits
+ *   - name: Contacts
+ *     description: APIs for managing Contacts
  */
