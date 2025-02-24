@@ -39,4 +39,6 @@
  *     description: APIs for managing Commodity Profits
  *   - name: Contacts
  *     description: APIs for managing Contacts
+ *   - name: Conversations
+ *     description: APIs for managing Conversations
  */
