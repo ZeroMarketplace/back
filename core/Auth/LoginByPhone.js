@@ -66,7 +66,7 @@ class LoginByPhone extends LoginStrategies {
         return new Promise((resolve, reject) => {
             InputsController.validateInput($input, {
                 phone: {type: 'phone', required: true},
-                code : {type: 'number', minLength: 5, maxLength: 5, required: true},
+                code : {type: 'number', required: true},
             }).then(
                 ($input) => {
                     ValidationsController.item(
@@ -86,8 +86,8 @@ class LoginByPhone extends LoginStrategies {
                                     userQueryResponse = userQueryResponse.data;
 
                                     // add phone validate to validated options
-                                    if(userQueryResponse.validated) {
-                                        if(!userQueryResponse.validated.includes('phone')) {
+                                    if (userQueryResponse.validated) {
+                                        if (!userQueryResponse.validated.includes('phone')) {
                                             userQueryResponse.validated.push('phone');
                                             userQueryResponse.save();
                                         }
@@ -259,8 +259,8 @@ class LoginByPhone extends LoginStrategies {
             token: token,
             user : {
                 _id      : $user._id,
-                firstName: $user.name.first,
-                lastName : $user.name.last,
+                firstName: $user.firstName,
+                lastName : $user.lastName,
                 phone    : $user.phone,
                 avatars  : $user.avatars,
                 color    : $user.color,
