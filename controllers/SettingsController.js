@@ -123,6 +123,33 @@ class SettingsController extends Controllers {
         });
     }
 
+    static get($input, $options = {}, $resultType = 'object') {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate input
+                await InputsController.validateInput($input, {
+                    key: {type: 'string', required: true}
+                });
+
+                // get from db
+                let response = await this.model.item({key: $input.key}, $options);
+
+                // create output
+                if ($resultType === 'object') {
+                    response = await this.outputBuilder(response.toObject());
+                }
+
+                return resolve({
+                    code: 200,
+                    data: response
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
     static updateOne($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -188,6 +215,8 @@ class SettingsController extends Controllers {
             }
         });
     }
+
+
 
 }
 
