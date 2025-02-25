@@ -93,6 +93,7 @@ class InputsController extends Controllers {
                                     // Convert string to array if necessary (e.g., for query parameters)
                                     if (typeof value === 'string') {
                                         value = value.split(',');
+                                        $input[field] = value;
                                     }
 
                                     if (!Array.isArray(value)) {
