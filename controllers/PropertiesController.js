@@ -19,7 +19,7 @@ class PropertiesController extends Controllers {
         this.detectPaginationAndSort($input);
 
         for (const [$index, $value] of Object.entries($input)) {
-            switch (index) {
+            switch ($index) {
                 case 'title':
                     $query[$index] = {$regex: '.*' + $value + '.*'};
                     break;
