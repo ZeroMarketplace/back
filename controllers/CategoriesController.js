@@ -27,18 +27,16 @@ class CategoriesController extends Controllers {
             $input.sort = {createdAt: -1};
         }
 
-        Object.entries($input).forEach((field) => {
-            // field [0] => index
-            // field [1] => value
-            switch (field[0]) {
+        for (const [$index, $value] of Object.entries($input)) {
+            switch ($index) {
                 case 'title':
-                    $query[field[0]] = {$regex: '.*' + field[1] + '.*'};
+                    $query[$index] = {$regex: '.*' + $value + '.*'};
                     break;
                 case 'profitPercent':
-                    $query[field[0]] = field[1];
+                    $query[$index] = $value;
                     break;
             }
-        });
+        }
 
         return $query;
     }

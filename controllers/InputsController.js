@@ -3,6 +3,11 @@ import validator   from 'validator';
 import mongoose    from 'mongoose';
 
 class InputsController extends Controllers {
+
+    constructor() {
+        super();
+    }
+
     static clearInput($input) {
 
         if ($input) {
@@ -182,7 +187,6 @@ class InputsController extends Controllers {
             }
         });
     }
-
 
     checkRequiredFields($input, $requiredFields = []) {
         return new Promise((resolve, reject) => {

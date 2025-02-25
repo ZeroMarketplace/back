@@ -38,7 +38,7 @@ class SalesInvoicesController extends Controllers {
     }
 
     static queryBuilder($input) {
-        let query = {};
+        let $query = {};
 
         // pagination
         $input.perPage = $input.perPage ?? 10;
@@ -59,7 +59,7 @@ class SalesInvoicesController extends Controllers {
         //     }
         // }
 
-        return query;
+        return $query;
     }
 
     static async calculateInvoice($input) {

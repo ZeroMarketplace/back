@@ -68,9 +68,7 @@ class AccountingDocumentsController extends Controllers {
     }
 
     static queryBuilder($input) {
-        let query = {};
-
-        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
+        let $query = {};
 
         // pagination
         $input.perPage = $input.perPage ?? 10;
@@ -88,15 +86,15 @@ class AccountingDocumentsController extends Controllers {
         for (const [$index, $value] of Object.entries($input)) {
             switch ($index) {
                 case 'dateTime':
-                    query[$index] = $value;
+                    $query[$index] = $value;
                     break;
                 case '_account':
-                    query['accountsInvolved._account'] = $value;
+                    $query['accountsInvolved._account'] = $value;
                     break;
             }
         }
 
-        return query;
+        return $query;
     }
 
     static createTheStoragePath() {

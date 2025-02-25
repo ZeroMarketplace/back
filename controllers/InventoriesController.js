@@ -246,7 +246,7 @@ class InventoriesController extends Controllers {
     }
 
     static queryBuilder($input) {
-        let query = {};
+        let $query = {};
 
         // pagination
         $input.perPage = $input.perPage ?? 10;
@@ -266,12 +266,12 @@ class InventoriesController extends Controllers {
         for (const [$index, $value] of Object.entries($input)) {
             switch ($index) {
                 case '_warehouse':
-                    query._warehouse = $value;
+                    $query._warehouse = $value;
                     break;
             }
         }
 
-        return query;
+        return $query;
     }
 
     static insertOne($input) {

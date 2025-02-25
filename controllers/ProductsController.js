@@ -153,19 +153,17 @@ class ProductsController extends Controllers {
             $input.sort = {createdAt: -1};
         }
 
-        Object.entries($input).forEach((field) => {
-            // field [0] => index
-            // field [1] => value
-            switch (field[0]) {
+        for (const [$index, $value] of Object.entries($input)) {
+            switch ($index) {
                 case 'title':
                     $input['$or'] = [
-                        {'title': {$regex: '.*' + field[1] + '.*'}},
-                        {'variants.title': {$regex: '.*' + field[1] + '.*'}}
+                        {'title': {$regex: '.*' + $value + '.*'}},
+                        {'variants.title': {$regex: '.*' + $value + '.*'}}
                     ];
                     delete $input['title'];
                     break;
             }
-        });
+        }
 
         return $query;
     }

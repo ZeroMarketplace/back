@@ -64,15 +64,13 @@ class ConversationsController extends Controllers {
         // set the user id to query
         $query['_user'] = new ObjectId($input.user.data._id);
 
-        Object.entries($input).forEach((field) => {
-            // field [0] => index
-            // field [1] => value
-            switch (field[0]) {
+        for (const [$index, $value] of Object.entries($input)) {
+            switch ($index) {
                 case 'name':
-                    $query[field[0]] = {$regex: '.*' + field[1] + '.*'};
+                    $query[$index] = {$regex: '.*' + $value + '.*'};
                     break;
             }
-        });
+        }
 
         return $query;
     }
@@ -319,7 +317,7 @@ class ConversationsController extends Controllers {
 
                 // delete all messages of conversation
                 await MessagesController.deleteByConversation({
-                    _id: $input._id,
+                    _id : $input._id,
                     user: $input.user
                 });
 

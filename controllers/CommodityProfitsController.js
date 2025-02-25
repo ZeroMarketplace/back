@@ -13,9 +13,7 @@ class CommodityProfitsController extends Controllers {
     }
 
     static queryBuilder($input) {
-        let query = {};
-
-        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
+        let $query = {};
 
         // pagination
         $input.perPage = $input.perPage ? Number($input.perPage) : 10;
@@ -36,7 +34,7 @@ class CommodityProfitsController extends Controllers {
         //     }
         // }
 
-        return query;
+        return $query;
     }
 
     static outputBuilder($row) {

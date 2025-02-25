@@ -32,7 +32,7 @@ class UsersController extends Controllers {
     }
 
     static queryBuilder($input) {
-        let query = {};
+        let $query = {};
 
         // pagination
         $input.perPage = $input.perPage ?? 10;
@@ -50,7 +50,7 @@ class UsersController extends Controllers {
         for (const [$index, $value] of Object.entries($input)) {
             switch ($index) {
                 case 'phone':
-                    query[$index] = {$regex: '.*' + $value + '.*'};
+                    $query[$index] = {$regex: '.*' + $value + '.*'};
                     break;
                 case 'name':
                     // Split the full name into words
@@ -87,12 +87,12 @@ class UsersController extends Controllers {
                         });
                     }
 
-                    query['$or'] = conditions;
+                    $query['$or'] = conditions;
                     break;
             }
         }
 
-        return query;
+        return $query;
     }
 
     static insertOne($input) {
@@ -218,7 +218,6 @@ class UsersController extends Controllers {
             }
         });
     }
-
 
     static list($input, $options) {
         return new Promise((resolve, reject) => {

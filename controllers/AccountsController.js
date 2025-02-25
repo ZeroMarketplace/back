@@ -44,22 +44,19 @@ class AccountsController extends Controllers {
             $input.sort = {createdAt: -1};
         }
 
-        Object.entries($input).forEach((field) => {
-            // field [0] => index
-            // field [1] => value
-            switch (field[0]) {
+        for (const [$index, $value] of Object.entries($input)) {
+            switch ($index) {
                 case 'title':
-                    $query[field[0]] = {$regex: '.*' + field[1] + '.*'};
+                    $query[$index] = {$regex: '.*' + $value + '.*'};
                     break;
                 case 'type':
-                    $query[field[0]] = field[1];
+                    $query[$index] = $value;
                     break;
                 case 'types':
-                    let types      = field[1].split(',');
-                    $query['type'] = {$in: types};
+                    $query['type'] = {$in: $value};
                     break;
             }
-        });
+        }
 
         return $query;
     }
@@ -425,11 +422,11 @@ class AccountsController extends Controllers {
 
                 // init the variable
                 let accountsInvolved = $input.accountingDocument.accountsInvolved;
-                let accountsIds = [];
+                let accountsIds      = [];
 
                 // create the list of accounts ids
                 for (const account of accountsInvolved) {
-                    if(!accountsIds.includes(account._account)) {
+                    if (!accountsIds.includes(account._account)) {
                         accountsIds.push(account._account);
                     }
                 }
@@ -491,8 +488,7 @@ class AccountsController extends Controllers {
                 return resolve({
                     code: 200
                 })
-            }
-            catch (error) {
+            } catch (error) {
                 return reject(error);
             }
         })
@@ -515,11 +511,11 @@ class AccountsController extends Controllers {
 
                 // init the variable
                 let accountsInvolved = $input.accountingDocument.accountsInvolved;
-                let accountsIds = [];
+                let accountsIds      = [];
 
                 // create the list of accounts ids
                 for (const account of accountsInvolved) {
-                    if(!accountsIds.includes(account._account)) {
+                    if (!accountsIds.includes(account._account)) {
                         accountsIds.push(account._account);
                     }
                 }
@@ -581,8 +577,7 @@ class AccountsController extends Controllers {
                 return resolve({
                     code: 200
                 })
-            }
-            catch (error) {
+            } catch (error) {
                 return reject(error);
             }
         })

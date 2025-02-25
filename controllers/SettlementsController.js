@@ -51,13 +51,11 @@ class SettlementsController extends Controllers {
             $input.sort = {createdAt: -1};
         }
 
-        Object.entries($input).forEach((field) => {
-            // field [0] => index
-            // field [1] => value
-            switch (field[0]) {
+        for (const [$index, $value] of Object.entries($input)) {
+            switch ($index) {
 
             }
-        });
+        }
 
         return $query;
     }

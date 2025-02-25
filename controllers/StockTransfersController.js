@@ -48,7 +48,7 @@ class StockTransfersController extends Controllers {
     }
 
     static queryBuilder($input) {
-        let query = {};
+        let $query = {};
 
         // !!!!     after add validator check page and perpage is a number and > 0        !!!!
 
@@ -78,29 +78,29 @@ class StockTransfersController extends Controllers {
                     const endDate = new Date(requestedDate);
                     endDate.setHours(23, 59, 59, 999); // Set time to 23:59:59.999
 
-                    // set the query
-                    query['createdAt'] = {
+                    // set the $query
+                    $query['createdAt'] = {
                         $gte: startDate,
                         $lte: endDate
                     };
 
                     break;
                 case '_sourceWarehouse':
-                    query[$index] = $value;
+                    $query[$index] = $value;
                     break;
                 case '_destinationWarehouse':
-                    query[$index] = $value;
+                    $query[$index] = $value;
                     break;
                 case '_product':
-                    query[$index] = $value;
+                    $query[$index] = $value;
                     break;
                 case 'status':
-                    query[$index] = $value;
+                    $query[$index] = $value;
                     break;
             }
         }
 
-        return query;
+        return $query;
     }
 
     static async validateProductInventory($input) {

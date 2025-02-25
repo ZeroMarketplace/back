@@ -91,9 +91,7 @@ class MessagesController extends Controllers {
     }
 
     static queryBuilder($input) {
-        let query = {};
-
-        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
+        let $query = {};
 
         // pagination
         if ($input.pagination) {
@@ -117,11 +115,11 @@ class MessagesController extends Controllers {
         }
 
         // remove deleted messages from result
-        query['_deletedFor'] = {
+        $query['_deletedFor'] = {
             $nin: [$input.user.data._id]
         };
 
-        return query;
+        return $query;
     }
 
     static insertOne($input, $type = 'api') {
