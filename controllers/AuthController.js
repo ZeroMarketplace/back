@@ -103,7 +103,10 @@ class AuthController extends Controllers {
 
     static async checkAccess(req, res, next) {
         try {
-            const permission = await PermissionsController.get(req.user.data.permissions);
+            const permission = await PermissionsController.get({
+                _id: req.user.data.permissions
+            });
+
             if (
                 permission.data.urls &&
                 permission.data.urls[req.baseUrl] &&
