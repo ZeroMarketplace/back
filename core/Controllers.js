@@ -62,7 +62,7 @@ class Controllers {
         });
     }
 
-    static get($input, $options) {
+    static get($input, $options = {}, $resultType = 'object') {
         return new Promise(async (resolve, reject) => {
             try {
                 // validate input
