@@ -50,20 +50,8 @@ class StockTransfersController extends Controllers {
     static queryBuilder($input) {
         let $query = {};
 
-        // !!!!     after add validator check page and perpage is a number and > 0        !!!!
-
         // pagination
-        $input.perPage = $input.perPage ? Number($input.perPage) : 10;
-        $input.page    = $input.page ? Number($input.page) : 1;
-        $input.offset  = ($input.page - 1) * $input.perPage;
-
-        // sort
-        if ($input.sortColumn && $input.sortDirection) {
-            $input.sort                    = {};
-            $input.sort[$input.sortColumn] = Number($input.sortDirection);
-        } else {
-            $input.sort = {createdAt: -1};
-        }
+        this.detectPaginationAndSort($input);
 
         for (const [$index, $value] of Object.entries($input)) {
             switch ($index) {
@@ -203,26 +191,6 @@ class StockTransfersController extends Controllers {
         });
     }
 
-    static item($input, $options = {}, $resultType = 'object') {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let response = await this.model.item($input, $options);
-
-                // create output
-                if ($resultType === 'object') {
-                    response = await this.outputBuilder(response.toObject());
-                }
-
-                return resolve({
-                    code: 200,
-                    data: response
-                });
-            } catch (error) {
-                return reject(error)
-            }
-        });
-    }
-
     static transfers($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -319,7 +287,6 @@ class StockTransfersController extends Controllers {
             }
         });
     }
-
 
 }
 

@@ -328,7 +328,7 @@ router.get(
         // create clean input
         let $input = InputsController.clearInput(req.query);
 
-        ProductsController.list($input).then(
+        ProductsController.products($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

@@ -73,100 +73,6 @@ class SettingsController extends Controllers {
         });
     }
 
-    static outputBuilder($row) {
-        for (const [$index, $value] of Object.entries($row)) {
-            switch ($index) {
-                case 'updatedAt':
-                    let updatedAtJalali     = new persianDate($value);
-                    $row[$index + 'Jalali'] = updatedAtJalali.toLocale('fa').format();
-                    break;
-                case 'createdAt':
-                    let createdAtJalali     = new persianDate($value);
-                    $row[$index + 'Jalali'] = createdAtJalali.toLocale('fa').format();
-                    break;
-            }
-        }
-
-        return $row;
-    }
-
-    static queryBuilder($input) {
-        let $query = {};
-
-        // pagination
-        $input.perPage = $input.perPage ?? 10;
-        $input.page    = $input.page ?? 1;
-        $input.offset  = ($input.page - 1) * $input.perPage;
-
-        // sort
-        if ($input.sortColumn && $input.sortDirection) {
-            $input.sort                    = {};
-            $input.sort[$input.sortColumn] = $input.sortDirection;
-        } else {
-            $input.sort = {createdAt: -1};
-        }
-
-        Object.entries($input).forEach((field) => {
-            // field [0] => index
-            // field [1] => value
-            switch (field[0]) {
-                case 'title':
-                    $query[field[0]] = {$regex: '.*' + field[1] + '.*'};
-                    break;
-            }
-        });
-
-        return $query;
-    }
-
-    static insertOne($input) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // validate input
-                await InputsController.validateInput($input, {
-                    title: {type: "string", required: true}
-                });
-
-                // insert to db
-                let response = await this.model.insertOne({
-                    title : $input.title,
-                    status: 'active',
-                    _user : $input.user.data._id
-                });
-
-                // create output
-                response = await this.outputBuilder(response.toObject());
-
-                return resolve({
-                    code: 200,
-                    data: response
-                });
-
-            } catch (error) {
-                return reject(error);
-            }
-        });
-    }
-
-    static item($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.item($input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
     static settings($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -209,31 +115,6 @@ class SettingsController extends Controllers {
                         list : list,
                         total: count
                     }
-                });
-
-            } catch (error) {
-                return reject(error);
-            }
-        });
-    }
-
-    static get($input, $options) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // validate input
-                await InputsController.validateInput($input, {
-                    key: {type: 'string', required: true}
-                });
-
-                // get from db
-                let response = await this.model.item({key: $input.key}, $options);
-
-                // create output
-                response = await this.outputBuilder(response.toObject());
-
-                return resolve({
-                    code: 200,
-                    data: response
                 });
 
             } catch (error) {
@@ -304,27 +185,6 @@ class SettingsController extends Controllers {
 
             } catch (error) {
                 return reject(error);
-            }
-        });
-    }
-
-    static deleteOne($input) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // validate $input
-                await InputsController.validateInput($input, {
-                    _id: {type: 'mongoId', required: true}
-                });
-
-                // delete from db
-                await this.model.deleteOne($input._id);
-
-                // return result
-                return resolve({
-                    code: 200
-                });
-            } catch (e) {
-                return reject(e);
             }
         });
     }

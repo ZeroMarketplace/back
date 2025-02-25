@@ -35,31 +35,6 @@ class SettlementsController extends Controllers {
         return $row;
     }
 
-    static queryBuilder($input) {
-        let $query = {};
-
-        // pagination
-        $input.perPage = $input.perPage ?? 10;
-        $input.page    = $input.page ?? 1;
-        $input.offset  = ($input.page - 1) * $input.perPage;
-
-        // sort
-        if ($input.sortColumn && $input.sortDirection) {
-            $input.sort                    = {};
-            $input.sort[$input.sortColumn] = $input.sortDirection;
-        } else {
-            $input.sort = {createdAt: -1};
-        }
-
-        for (const [$index, $value] of Object.entries($input)) {
-            switch ($index) {
-
-            }
-        }
-
-        return $query;
-    }
-
     static validatePayment($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -255,90 +230,6 @@ class SettlementsController extends Controllers {
             } catch (error) {
                 return reject(error);
             }
-        });
-    }
-
-    static get($input, $options) {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // validate input
-                await InputsController.validateInput($input, {
-                    _id: {type: 'mongoId', required: true}
-                });
-
-                // get from db
-                let response = await this.model.get($input._id, $options);
-
-                // create output
-                response = await this.outputBuilder(response.toObject());
-
-                return resolve({
-                    code: 200,
-                    data: response
-                });
-
-            } catch (error) {
-                return reject(error);
-            }
-        });
-    }
-
-    static item($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.item($input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
-    static list($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            let query = this.queryBuilder($input);
-
-            // filter
-            this.model.list(query, {
-                skip : $input.offset,
-                limit: $input.perPage,
-                sort : $input.sort
-            }).then(
-                (response) => {
-                    // get count
-                    this.model.count(query).then((count) => {
-
-                        // create output
-                        response.forEach((row) => {
-                            this.outputBuilder(row._doc);
-                        });
-
-                        // return result
-                        return resolve({
-                            code: 200,
-                            data: {
-                                list : response,
-                                total: count
-                            }
-                        });
-
-                    });
-                },
-                (error) => {
-                    return reject({
-                        code: 500
-                    });
-                });
         });
     }
 

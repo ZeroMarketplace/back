@@ -8,16 +8,6 @@ class ContactsController extends Controllers {
         super();
     }
 
-    static outputBuilder($row) {
-        for (const [$index, $value] of Object.entries($row)) {
-            switch ($index) {
-
-            }
-        }
-
-        return $row;
-    }
-
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -78,25 +68,6 @@ class ContactsController extends Controllers {
         });
     }
 
-    static item($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.item($input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
     static contacts($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -131,60 +102,6 @@ class ContactsController extends Controllers {
             } catch (error) {
                 return reject(error);
             }
-        });
-    }
-
-    static get($id) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.get($id).then(
-                async (response) => {
-                    // reformat row for output
-                    response = await this.outputBuilder(response.toObject());
-
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
-    static updateOne($id, $input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.updateOne($id, {}).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response.toObject()
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
-    static deleteOne($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.deleteOne($input).then(response => {
-                // check the result ... and return
-                return resolve(response);
-            }).catch(response => {
-                return reject(response);
-            });
         });
     }
 

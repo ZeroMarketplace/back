@@ -248,19 +248,8 @@ class InventoriesController extends Controllers {
     static queryBuilder($input) {
         let $query = {};
 
-        // pagination
-        $input.perPage = $input.perPage ?? 10;
-        $input.page    = $input.page ?? 1;
-        $input.offset  = ($input.page - 1) * $input.perPage;
-
-        // sort
-        if ($input.sortColumn && $input.sortDirection) {
-            $input.sort                    = {};
-            $input.sort[$input.sortColumn] = $input.sortDirection;
-        } else {
-            $input.sort = {createdAt: -1};
-        }
-        $input.sort = {createdAt: -1};
+        // pagination and sort
+        this.detectPaginationAndSort($input);
 
 
         for (const [$index, $value] of Object.entries($input)) {
@@ -372,26 +361,6 @@ class InventoriesController extends Controllers {
         });
     }
 
-    static item($input, $options = {}, $resultType = 'object') {
-        return new Promise(async (resolve, reject) => {
-            try {
-                let response = await this.model.item($input, $options);
-
-                // create output
-                if ($resultType === 'object') {
-                    response = await this.outputBuilder(response.toObject());
-                }
-
-                return resolve({
-                    code: 200,
-                    data: response
-                });
-            } catch (error) {
-                return reject(error)
-            }
-        });
-    }
-
     static inventories($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -429,33 +398,6 @@ class InventoriesController extends Controllers {
                         list : response.list,
                         total: response.count
                     }
-                });
-
-            } catch (error) {
-                return reject(error);
-            }
-        });
-    }
-
-    static get($input, $options = {}, $resultType = 'object') {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // validate input
-                await InputsController.validateInput($input, {
-                    _id: {type: 'mongoId', required: true}
-                });
-
-                // get from db
-                let response = await this.model.get($input._id, $options);
-
-                // create output
-                if ($resultType === 'object') {
-                    response = await this.outputBuilder(response.toObject());
-                }
-
-                return resolve({
-                    code: 200,
-                    data: response
                 });
 
             } catch (error) {
@@ -756,41 +698,6 @@ class InventoriesController extends Controllers {
                 return reject(error);
             }
         })
-    }
-
-    static stockReturn($stockTransfer) {
-        return new Promise(async (resolve, reject) => {
-            for (const inventoryChange of $stockTransfer.inventoryChanges) {
-                // Get the inventory that was changed
-                let inventory = undefined;
-                // switch what happened to inventory
-                switch (inventoryChange.operation) {
-                    case 'updateWarehouse':
-                        inventory = await this.model.get(inventoryChange._inventory);
-
-                        // change the warehouse of saved inventory
-                        inventory._warehouse = $stockTransfer._sourceWarehouse;
-                        await inventory.save();
-                        break;
-                    case 'updateCount':
-                        inventory                 = await this.model.get(inventoryChange._inventory);
-                        // get the operation (insert new inventory) for get the count of changes
-                        let newInventoryOperation = $stockTransfer.inventoryChanges.find(
-                            change => change.operation === 'insertInventory'
-                        );
-                        // return every product count remaining from new inventory
-                        let newInventory          = await this.model.get(newInventoryOperation._inventory);
-                        await this.updateCount({_id: inventory._id}, newInventory.count);
-                        // delete the new inventory
-                        await newInventory.deleteOne();
-                        break;
-                }
-            }
-
-            return resolve({
-                code: 200
-            });
-        });
     }
 
     static stockSales($input) {

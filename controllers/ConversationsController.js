@@ -49,17 +49,7 @@ class ConversationsController extends Controllers {
         let $query = {};
 
         // pagination
-        $input.perPage = $input.perPage ?? 10;
-        $input.page    = $input.page ?? 1;
-        $input.offset  = ($input.page - 1) * $input.perPage;
-
-        // sort
-        if ($input.sortColumn && $input.sortDirection) {
-            $input.sort                    = {};
-            $input.sort[$input.sortColumn] = $input.sortDirection;
-        } else {
-            $input.sort = {createdAt: -1};
-        }
+        this.detectPaginationAndSort($input);
 
         // set the user id to query
         $query['_user'] = new ObjectId($input.user.data._id);
@@ -160,25 +150,6 @@ class ConversationsController extends Controllers {
         });
     }
 
-    static item($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.item($input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
     static conversations($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -213,75 +184,6 @@ class ConversationsController extends Controllers {
             } catch (error) {
                 return reject(error);
             }
-        });
-    }
-
-    static list($input, $options) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.list($input, $options).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (error) => {
-                    return reject({
-                        code: 500
-                    });
-                });
-        });
-    }
-
-    static get($input, $options = {}, $resultType = 'object') {
-        return new Promise(async (resolve, reject) => {
-            try {
-                // validate input
-                await InputsController.validateInput($input, {
-                    _id: {type: 'mongoId', required: true}
-                });
-
-                // get from db
-                let response = await this.model.get($input._id, $options);
-
-                // create output
-                if ($resultType === 'object') {
-                    response = await this.outputBuilder(response.toObject());
-                }
-
-                return resolve({
-                    code: 200,
-                    data: response
-                });
-
-            } catch (error) {
-                return reject(error);
-            }
-        });
-    }
-
-    static updateOne($id, $input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.updateOne($id, {
-                title: {
-                    en: $input.title.en,
-                    fa: $input.title.fa
-                }
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
-                },
-                (response) => {
-                    return reject(response);
-                });
         });
     }
 

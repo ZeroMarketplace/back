@@ -192,7 +192,7 @@ router.get(
         // create clean input
         let $input = InputsController.clearInput(req.query);
 
-        AddAndSubtractController.list($input).then(
+        AddAndSubtractController.addAndSubtracts($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

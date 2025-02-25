@@ -184,7 +184,7 @@ router.get(
         // create clean input
         let $input = InputsController.clearInput(req.query);
 
-        WarehousesController.list($input).then(
+        WarehousesController.warehouses($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

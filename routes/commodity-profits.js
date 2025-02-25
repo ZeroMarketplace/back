@@ -99,6 +99,8 @@ let router = express.Router();
  */
 router.get(
     '/',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
     function (req, res) {
         // create clean input
         let $input = InputsController.clearInput(req.params);

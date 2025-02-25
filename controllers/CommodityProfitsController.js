@@ -16,17 +16,7 @@ class CommodityProfitsController extends Controllers {
         let $query = {};
 
         // pagination
-        $input.perPage = $input.perPage ? Number($input.perPage) : 10;
-        $input.page    = $input.page ? Number($input.page) : 1;
-        $input.offset  = ($input.page - 1) * $input.perPage;
-
-        // sort
-        if ($input.sortColumn && $input.sortDirection) {
-            $input.sort                    = {};
-            $input.sort[$input.sortColumn] = Number($input.sortDirection);
-        } else {
-            $input.sort = {createdAt: -1};
-        }
+        this.detectPaginationAndSort($input);
 
         // for (const [$index, $value] of Object.entries($input)) {
         //     switch ($index) {
@@ -161,25 +151,6 @@ class CommodityProfitsController extends Controllers {
         });
     }
 
-    static item($input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid and remove other parameters (just valid query by user role) ...
-
-            // filter
-            this.model.item($input).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200,
-                        data: response
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
     static profits($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -227,27 +198,6 @@ class CommodityProfitsController extends Controllers {
         });
     }
 
-    static updateOne($id, $input) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.updateOne($id, {
-                title: {
-                    en: $input.title.en,
-                    fa: $input.title.fa
-                }
-            }).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve(response);
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
-    }
-
     static deleteBySalesInvoice($input) {
         return new Promise(async (resolve, reject) => {
             try {
@@ -260,29 +210,10 @@ class CommodityProfitsController extends Controllers {
                     code: 200,
                     data: response
                 });
-
             } catch (error) {
                 return reject(error);
             }
         })
-    }
-
-    static deleteOne($id) {
-        return new Promise((resolve, reject) => {
-            // check filter is valid ...
-
-            // filter
-            this.model.deleteOne($id).then(
-                (response) => {
-                    // check the result ... and return
-                    return resolve({
-                        code: 200
-                    });
-                },
-                (response) => {
-                    return reject(response);
-                });
-        });
     }
 
 }

@@ -170,7 +170,7 @@ router.get(
         // create clean input
         let $input = InputsController.clearInput(req.query);
 
-        BrandsController.list($input).then(
+        BrandsController.brands($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
