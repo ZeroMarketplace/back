@@ -140,6 +140,28 @@ router.post(
  *         name: variant
  *         schema:
  *           type: boolean
+ *       - in: query
+ *         name: ids
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: perPage
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: sortColumn
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: sortDirection
+ *         schema:
+ *           type: number
  *     responses:
  *       400:
  *          description: Bad Request (for validation)

@@ -35,11 +35,13 @@ class PropertiesController extends Controllers {
                 case 'title':
                     $query[field[0]] = {$regex: '.*' + field[1] + '.*'};
                     break;
+                case 'variant':
+                    $query[field[0]] = field[1];
+                    break;
                 case 'ids':
-                    let ids = field[1].split(',');
-                    if(ids.length > 1) {
+                    if (field[1].length > 1) {
                         $query['_id'] = {
-                            $in: ids
+                            $in: field[1]
                         };
                     }
                     break;
@@ -143,7 +145,7 @@ class PropertiesController extends Controllers {
                 await InputsController.validateInput($input, {
                     title        : {type: "string"},
                     variant      : {type: "boolean"},
-                    ids          : {type: 'string'},
+                    ids          : {type: 'array'},
                     perPage      : {type: "number"},
                     page         : {type: "number"},
                     sortColumn   : {type: "string"},
