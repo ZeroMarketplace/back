@@ -124,6 +124,12 @@ class PermissionsController extends Controllers {
                         "PUT"   : true,
                         "DELETE": true
                     },
+                    "/api/commodity-profits"            : {
+                        "POST"  : true,
+                        "GET"   : true,
+                        "PUT"   : true,
+                        "DELETE": true
+                    },
                 }
             };
 
