@@ -9,6 +9,7 @@ import UsersController       from "../../controllers/UsersController.js";
 
 
 class LoginByPhone extends LoginStrategies {
+
     static authenticate($input) {
         return new Promise((resolve, reject) => {
             InputsController.validateInput($input, {
@@ -77,10 +78,12 @@ class LoginByPhone extends LoginStrategies {
                         }).then(
                         // validation founded
                         (validationQueryResponse) => {
+                            validationQueryResponse = validationQueryResponse.data;
+
                             // check user exists
                             UserController.item({
                                 phone: $input.phone
-                            }).then(
+                            },{},'model').then(
                                 // user founded
                                 (userQueryResponse) => {
                                     userQueryResponse = userQueryResponse.data;
@@ -106,7 +109,7 @@ class LoginByPhone extends LoginStrategies {
                                     return resolve({
                                         code: 200,
                                         data: {
-                                            validation     : validationQueryResponse.id,
+                                            validation     : validationQueryResponse._id,
                                             userIsExists   : true,
                                             userHasPassword: userHasPassword
                                         }
@@ -117,7 +120,7 @@ class LoginByPhone extends LoginStrategies {
                                     return resolve({
                                         code: 200,
                                         data: {
-                                            validation  : validationQueryResponse.id,
+                                            validation  : validationQueryResponse._id,
                                             userIsExists: false
                                         }
                                     });
