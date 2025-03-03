@@ -78,7 +78,7 @@ class PurchaseInvoicesController extends Controllers {
 
             if (detailAddAndSubtract.operation === 'subtract') {
                 if (addAndSub.value <= 100) {
-                    operationSum = ($input.sum * addAndSub.value / 100)
+                    operationSum = Math.ceil(($input.sum * addAndSub.value / 100));
                     $input.total -= operationSum;
                 } else {
                     operationSum = Number(addAndSub.value);
@@ -95,7 +95,7 @@ class PurchaseInvoicesController extends Controllers {
             let detailAddAndSubtract = addAndSubDetails[addAndSub._reason];
             if (detailAddAndSubtract.operation === 'add') {
                 if (addAndSub.value <= 100) {
-                    operationSum = ($input.total * addAndSub.value / 100)
+                    operationSum = Math.floor(($input.total * addAndSub.value / 100));
                     $input.total += operationSum;
                 } else {
                     operationSum = Number(addAndSub.value);
