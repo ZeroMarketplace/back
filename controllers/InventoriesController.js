@@ -10,6 +10,7 @@ import PurchaseInvoicesController from "./PurchaseInvoicesController.js";
 import SalesInvoicesController    from "./SalesInvoicesController.js";
 import SettingsController         from "./SettingsController.js";
 import StockTransfersController   from "./StockTransfersController.js";
+import purchaseInvoices           from "../routes/purchase-invoices.js";
 
 class InventoriesController extends Controllers {
     static model = new InventoriesModel();
@@ -319,7 +320,8 @@ class InventoriesController extends Controllers {
                     // get invoice from its Controller
                     $input.purchaseInvoice = await PurchaseInvoicesController.get(
                         {_id: $input._id},
-                        {select: '_id products'}
+                        {select: '_id products'},
+                        'model'
                     );
                     // get the data of purchase invoice
                     $input.purchaseInvoice = $input.purchaseInvoice.data;
@@ -348,6 +350,10 @@ class InventoriesController extends Controllers {
                     // add to inserted inventories
                     inventories.push(response.data);
                 }
+
+                // change purchase-invoice status to Complete
+                $input.purchaseInvoice.status = 'Completed';
+                await $input.purchaseInvoice.save();
 
                 // return result of insert inventories
                 return resolve({
