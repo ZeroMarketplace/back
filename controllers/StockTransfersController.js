@@ -147,6 +147,16 @@ class StockTransfersController extends Controllers {
                     count                : {type: 'number', required: true},
                 });
 
+                // validate transfer different _warehouses
+                if($input._sourceWarehouse === $input._destinationWarehouse) {
+                    return reject({
+                        code: 400,
+                        data: {
+                            message: '_sourceWarehouse & _destinationWarehouse must be unique and different'
+                        }
+                    });
+                }
+
                 // validate inventory of product
                 await this.validateProductInventory($input);
 
