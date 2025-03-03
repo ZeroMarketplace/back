@@ -157,13 +157,9 @@ class PurchaseInvoicesController extends Controllers {
                     AddAndSub  : $input.AddAndSub,
                     total      : $input.total,
                     sum        : $input.sum,
-                    status     : 'active',
+                    status     : 'Draft',
                     _user      : $input.user.data._id
                 });
-
-                // create output
-                response = await this.outputBuilder(response.toObject());
-
 
                 // insert inventories
                 await InventoriesController.insertByPurchaseInvoice({
@@ -172,11 +168,15 @@ class PurchaseInvoicesController extends Controllers {
                     user           : $input.user
                 });
 
+                // create output
+                response = await this.outputBuilder(response.toObject());
+
                 return resolve({
                     code: 200,
                     data: response
                 });
             } catch (error) {
+                console.log(error);
                 return reject(error);
             }
         });
@@ -199,7 +199,7 @@ class PurchaseInvoicesController extends Controllers {
                 const list = await this.model.list(
                     $query,
                     {
-                        select  : '_id code dateTime total _warehouse _supplier',
+                        select  : '_id code dateTime total _warehouse _supplier status',
                         populate: [
                             {path: '_warehouse', select: '_id title'},
                             {path: '_supplier', select: '_id firstName lastName'},
@@ -240,7 +240,8 @@ class PurchaseInvoicesController extends Controllers {
 
                 // set the settlement _id
                 await this.model.updateOne($input._id, {
-                    _settlement: $input._settlement
+                    _settlement: $input._settlement,
+                    status: 'Paid'
                 });
 
                 return resolve({
