@@ -33,7 +33,24 @@ class PurchaseInvoicesModel extends Models {
                     value  : {type: Number, required: true},
                 }
             ],
-            status     : {type: String, enum: ['active', 'inactive'], required: true},
+            status     : {
+                type: String,
+                enum: [
+                    'Draft',
+                    'Pending Approval',
+                    'Approved',
+                    'Processing',
+                    'Partially Received',
+                    'Completed',
+                    'Unpaid',
+                    'Partially Paid',
+                    'Paid',
+                    'Cancelled',
+                    'Returned',
+                    'On Hold'
+                ],
+                required: true
+            },
             total      : {type: Number, required: true},
             sum        : {type: Number, required: true},
             _settlement: {type: Schema.Types.ObjectId, ref: 'settlements'},
