@@ -7,6 +7,7 @@ class Models {
     schema          = null;
 
     constructor($collectionName, $schema, $options = {}) {
+        this.collectionName = $collectionName;
         this.collectionModel = mongoose.model($collectionName, $schema, $collectionName, $options);
         this.schema          = $schema;
     }
@@ -128,7 +129,16 @@ class Models {
         return new Promise((resolve, reject) => {
             this.collectionModel.findOneAndUpdate({_id: new ObjectId($id)}, $set, {new: true}).then(
                 (response) => {
-                    return resolve(response);
+                    if(response) {
+                        return resolve(response);
+                    } else {
+                        return reject({
+                            code: 404,
+                            data: {
+                                message: `The ${this.collectionName} document does not exist`
+                            }
+                        })
+                    }
                 },
                 (error) => {
                     Logger.systemError('DB-Update', error);
