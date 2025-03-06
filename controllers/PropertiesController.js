@@ -3,7 +3,6 @@ import PropertiesModel    from '../models/PropertiesModel.js';
 import CountersController from './CountersController.js';
 import InputsController   from './InputsController.js';
 import ProductsController from './ProductsController.js';
-import persianDate        from "persian-date";
 
 class PropertiesController extends Controllers {
     static model = new PropertiesModel();
@@ -19,7 +18,7 @@ class PropertiesController extends Controllers {
         this.detectPaginationAndSort($input);
 
         // set the default status for search
-        $query['status'] = PropertiesModel.STATUS.ACTIVE;
+        $query['status'] = PropertiesModel.statuses.ACTIVE;
 
         for (const [$index, $value] of Object.entries($input)) {
             switch ($index) {
@@ -111,7 +110,7 @@ class PropertiesController extends Controllers {
                     title  : $input.title,
                     variant: $input.variant,
                     values : $input.values,
-                    status : PropertiesModel.STATUS.ACTIVE,
+                    status : PropertiesModel.statuses.ACTIVE,
                     _user  : $input.user.data._id,
                 });
 
@@ -242,7 +241,7 @@ class PropertiesController extends Controllers {
                     _id   : {type: 'mongoId', required: true},
                     status: {
                         type         : 'number',
-                        allowedValues: Object.values(PropertiesModel.STATUS),
+                        allowedValues: Object.values(PropertiesModel.statuses),
                         required     : true
                     },
                 });

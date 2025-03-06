@@ -3,7 +3,7 @@ import {Schema} from 'mongoose';
 
 class PropertiesModel extends Models {
 
-    static STATUS = {
+    static statuses = {
         ACTIVE  : 1,
         INACTIVE: 2,
     };
@@ -24,7 +24,7 @@ class PropertiesModel extends Models {
             },
             status : {
                 type    : Number,
-                enum    : Object.values(PropertiesModel.STATUS),
+                enum    : Object.values(PropertiesModel.statuses),
                 required: true
             },
             _user  : {
