@@ -93,7 +93,7 @@ class Controllers {
         return new Promise(async (resolve, reject) => {
             try {
                 // validate $input
-                await InputsController.validateInput($input, {
+                InputsController.validateInput($input, {
                     _id: {type: 'mongoId', required: true}
                 });
 
