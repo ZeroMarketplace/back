@@ -3,6 +3,7 @@ import CategoriesModel    from '../models/CategoriesModel.js';
 import CountersController from '../controllers/CountersController.js';
 import InputsController   from "./InputsController.js";
 import persianDate        from "persian-date";
+import PropertiesModel    from "../models/PropertiesModel.js";
 
 class CategoriesController extends Controllers {
     static model = new CategoriesModel();
@@ -17,6 +18,9 @@ class CategoriesController extends Controllers {
         // pagination
         this.detectPaginationAndSort($input);
 
+        // set the default status for search
+        $query['status'] = CategoriesModel.statuses.ACTIVE;
+
         for (const [$index, $value] of Object.entries($input)) {
             switch ($index) {
                 case 'title':
@@ -24,6 +28,28 @@ class CategoriesController extends Controllers {
                     break;
                 case 'profitPercent':
                     $query[$index] = $value;
+                    break;
+                case 'statuses':
+                    // check if its admin
+                    if ($input.user.data.role === 'admin') {
+                        // convert statuses to array
+                        let $arrayOfValue = $value.split(',');
+                        let $statuses     = [];
+
+                        // add each status
+                        $arrayOfValue.forEach(status => {
+                            // if status is a valid number
+                            if (!isNaN(status)) {
+                                // add to array
+                                $statuses.push(Number(status));
+                            }
+                        })
+
+                        // set the filed for query
+                        if ($statuses.length > 1) {
+                            $query['status'] = {$in: $statuses};
+                        }
+                    }
                     break;
             }
         }
@@ -34,13 +60,17 @@ class CategoriesController extends Controllers {
     static findCategoryChildren($list, $children) {
         let result = [];
         $children.forEach(item => {
+            // find the item self
             item = $list.find(i => i._id.toString() === item.toString());
 
-            if (item && item.children) {
-                item.children = CategoriesController.findCategoryChildren($list, item.children);
-            }
+            if (item) {
+                // add children to the item
+                if (item.children)
+                    item.children = CategoriesController.findCategoryChildren($list, item.children);
 
-            result.push(item);
+                // add item to the children array
+                result.push(item);
+            }
         })
         return result;
     }
@@ -86,7 +116,7 @@ class CategoriesController extends Controllers {
                     profitPercent: $input.profitPercent,
                     _properties  : $input._properties,
                     _parent      : $input._parent,
-                    status       : 'active',
+                    status       : CategoriesModel.statuses.ACTIVE,
                     _user        : $input.user.data._id
                 });
 
@@ -116,6 +146,7 @@ class CategoriesController extends Controllers {
                 await InputsController.validateInput($input, {
                     title        : {type: "string"},
                     profitPercent: {type: "number"},
+                    statuses     : {type: 'string'},
                     perPage      : {type: "number"},
                     page         : {type: "number"},
                     sortColumn   : {type: "string"},
@@ -126,10 +157,10 @@ class CategoriesController extends Controllers {
                 // check filter is valid and remove other parameters (just valid query by user role) ...
                 let $query = this.queryBuilder($input);
                 // get list
-                let list = await this.model.list(
+                let list   = await this.model.list(
                     $query,
                     {
-                        sort : $input.sort
+                        sort: $input.sort
                     }
                 );
 
@@ -155,6 +186,7 @@ class CategoriesController extends Controllers {
                 });
 
             } catch (error) {
+                console.log(error);
                 return reject(error);
             }
         });
@@ -198,6 +230,33 @@ class CategoriesController extends Controllers {
         });
     }
 
+    static setStatus($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                InputsController.validateInput($input, {
+                    _id   : {type: 'mongoId', required: true},
+                    status: {
+                        type         : 'number',
+                        allowedValues: Object.values(CategoriesModel.statuses),
+                        required     : true
+                    },
+                });
+
+                // set the status
+                await this.model.updateOne($input._id, {
+                    status: $input.status
+                });
+
+                // return result
+                return resolve({
+                    code: 200
+                })
+            } catch (error) {
+                return reject(error);
+            }
+        })
+    }
 }
 
 export default CategoriesController;

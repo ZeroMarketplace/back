@@ -5,16 +5,28 @@ import {ObjectId} from 'mongodb';
 
 class CategoriesModel extends Models {
 
-    // const Account = null;
+    static statuses = {
+        ACTIVE  : 1,
+        INACTIVE: 2,
+    };
+
     static schema = new Schema({
-            title        : String,
-            code         : Number,
+            title        : {type: String, required: true},
+            code         : {type: Number, required: true},
             profitPercent: {type: Number, default: undefined},
             _properties  : {type: [{type: Schema.Types.ObjectId, ref: 'properties'}], default: undefined},
             _parent      : {type: Schema.Types.ObjectId, default: undefined},
             children     : {type: [{type: Schema.Types.ObjectId, ref: 'categories'}], default: undefined},
-            status       : {type: String, enum: ['active', 'inactive']},
-            _user        : {type: Schema.Types.ObjectId, ref: 'users'}
+            status       : {
+                type    : Number,
+                enum    : Object.values(CategoriesModel.statuses),
+                required: true
+            },
+            _user        : {
+                type    : Schema.Types.ObjectId,
+                ref     : 'users',
+                required: true
+            }
         },
         {timestamps: true});
 
@@ -66,7 +78,7 @@ class CategoriesModel extends Models {
                 const category = await this.collectionModel.findById($id);
 
                 // handle not found
-                if(!category) {
+                if (!category) {
                     return reject({
                         code: 404
                     })
