@@ -134,7 +134,8 @@ class PropertiesController extends Controllers {
                 InputsController.validateInput($input, {
                     title        : {type: "string"},
                     variant      : {type: "boolean"},
-                    ids          : {type: 'array'},
+                    ids          : {type: 'string'},
+                    statuses     : {type: 'string'},
                     perPage      : {type: "number"},
                     page         : {type: "number"},
                     sortColumn   : {type: "string"},
@@ -247,9 +248,11 @@ class PropertiesController extends Controllers {
                 });
 
                 // set the status
-               await this.model.updateOne($input._id, {
+                let response = await this.model.updateOne($input._id, {
                     status: $input.status
                 });
+
+                console.log(response);
 
                 // return result
                 return resolve({
