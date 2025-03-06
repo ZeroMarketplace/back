@@ -150,7 +150,7 @@ router.post(
  *         schema:
  *           type: array
  *           items:
- *             type: string
+ *             type: number
  *       - in: query
  *         name: page
  *         schema:
