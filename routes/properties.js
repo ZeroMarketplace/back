@@ -4,6 +4,7 @@ import PropertiesController from '../controllers/PropertiesController.js';
 import AuthController       from '../controllers/AuthController.js';
 
 let router = express.Router();
+
 /**
  * @swagger
  * /api/properties:
@@ -98,7 +99,6 @@ let router = express.Router();
  *                       _id:
  *                          type: string
  */
-
 router.post(
     '/',
     AuthController.authorizeJWT,
@@ -122,7 +122,6 @@ router.post(
     }
 );
 
-
 /**
  * @swagger
  * /api/properties:
@@ -142,6 +141,12 @@ router.post(
  *           type: boolean
  *       - in: query
  *         name: ids
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: string
+ *       - in: query
+ *         name: statuses
  *         schema:
  *           type: array
  *           items:
@@ -227,11 +232,16 @@ router.post(
  */
 router.get(
     '/',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
     function (req, res) {
         // create clean input
-        let $query = InputsController.clearInput(req.query);
+        let $input = InputsController.clearInput(req.query);
 
-        PropertiesController.properties($query).then(
+        // add author to created property
+        $input.user = req.user;
+
+        PropertiesController.properties($input).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },
@@ -439,7 +449,6 @@ router.get(
  *                       _id:
  *                         type: string
  */
-
 router.put(
     '/:_id',
     AuthController.authorizeJWT,
@@ -461,6 +470,75 @@ router.put(
         PropertiesController.updateOne($input).then(
             (response) => {
                 return res.status(response.code).json(response.data ?? {});
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+/**
+ * @swagger
+ * /api/properties/{id}/status:
+ *   patch:
+ *     summary: set status of a Property
+ *     tags:
+ *       - Properties
+ *     parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *          description: The ID of the item to which the property belongs
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: number
+ *                 enum: [1,2]
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
+ *       403:
+ *          description: Forbidden
+ *       401:
+ *          description: Unauthorized
+ *       200:
+ *         description: Successful update
+ */
+router.patch(
+    '/:_id/status',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res, next) {
+
+        // get _id from params
+        let $params = InputsController.clearInput(req.params);
+
+        // get and clean the request body
+        let $body = InputsController.clearInput(req.body);
+
+        let $input = Object.assign({}, $params, $body);
+
+        PropertiesController.setStatus($input).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
             },
             (error) => {
                 return res.status(error.code ?? 500).json(error.data ?? {});
@@ -514,9 +592,7 @@ router.delete(
         // get id from params and put into Input
         let $params = InputsController.clearInput(req.params);
 
-        PropertiesController.deleteOne({
-            _id: $params._id,
-        }).then(
+        PropertiesController.deleteOne($params).then(
             (response) => {
                 return res.status(response.code).json(response.data);
             },

@@ -38,7 +38,8 @@ class PermissionsController extends Controllers {
                         "POST"  : true,
                         "GET"   : true,
                         "PUT"   : true,
-                        "DELETE": true
+                        "DELETE": true,
+                        "PATCH" : true
                     },
                     "/api/categories"          : {
                         "POST"  : true,
@@ -118,13 +119,13 @@ class PermissionsController extends Controllers {
                         "PUT"   : true,
                         "DELETE": true
                     },
-                    "/api/conversations"            : {
+                    "/api/conversations"       : {
                         "POST"  : true,
                         "GET"   : true,
                         "PUT"   : true,
                         "DELETE": true
                     },
-                    "/api/commodity-profits"            : {
+                    "/api/commodity-profits"   : {
                         "POST"  : true,
                         "GET"   : true,
                         "PUT"   : true,

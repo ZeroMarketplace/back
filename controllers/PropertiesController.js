@@ -18,6 +18,9 @@ class PropertiesController extends Controllers {
         // pagination
         this.detectPaginationAndSort($input);
 
+        // set the default status for search
+        $query['status'] = PropertiesModel.STATUS.ACTIVE;
+
         for (const [$index, $value] of Object.entries($input)) {
             switch ($index) {
                 case 'title':
@@ -27,10 +30,45 @@ class PropertiesController extends Controllers {
                     $query[$index] = $value;
                     break;
                 case 'ids':
-                    if ($value.length > 1) {
+                    // convert ids to array
+                    let $arrayOfValue = $value.split(',');
+                    let $ids          = [];
+
+                    // add each id
+                    $arrayOfValue.forEach($id => {
+                        // if status is a valid number
+                        if (!isNaN($id)) {
+                            // add to array
+                            $ids.push(Number($id));
+                        }
+                    })
+
+                    if ($ids.length > 1) {
                         $query['_id'] = {
-                            $in: $value
+                            $in: $ids
                         };
+                    }
+                    break;
+                case 'statuses':
+                    // check if its admin
+                    if ($input.user.data.role === 'admin') {
+                        // convert statuses to array
+                        let $arrayOfValue = $value.split(',');
+                        let $statuses     = [];
+
+                        // add each status
+                        $arrayOfValue.forEach(status => {
+                            // if status is a valid number
+                            if (!isNaN(status)) {
+                                // add to array
+                                $statuses.push(Number(status));
+                            }
+                        })
+
+                        // set the filed for query
+                        if ($statuses.length > 1) {
+                            $query['status'] = {$in: $statuses};
+                        }
                     }
                     break;
             }
@@ -49,7 +87,7 @@ class PropertiesController extends Controllers {
                     values : {
                         type : "array",
                         items: {
-                            type      : "object",
+                            type      : 'object',
                             properties: {
                                 title: {
                                     type    : "string",
@@ -58,7 +96,7 @@ class PropertiesController extends Controllers {
                                 value: {
                                     type: "string",
                                 },
-                            },
+                            }
                         },
                     },
                 });
@@ -73,7 +111,7 @@ class PropertiesController extends Controllers {
                     title  : $input.title,
                     variant: $input.variant,
                     values : $input.values,
-                    status : "active",
+                    status : PropertiesModel.STATUS.ACTIVE,
                     _user  : $input.user.data._id,
                 });
 
@@ -94,7 +132,7 @@ class PropertiesController extends Controllers {
         return new Promise(async (resolve, reject) => {
             try {
                 // validate Input
-                await InputsController.validateInput($input, {
+                InputsController.validateInput($input, {
                     title        : {type: "string"},
                     variant      : {type: "boolean"},
                     ids          : {type: 'array'},
@@ -103,7 +141,6 @@ class PropertiesController extends Controllers {
                     sortColumn   : {type: "string"},
                     sortDirection: {type: "number"},
                 });
-
 
                 // check filter is valid and remove other parameters (just valid query by user role) ...
                 let $query = this.queryBuilder($input);
@@ -153,7 +190,7 @@ class PropertiesController extends Controllers {
                     values : {
                         type : "array",
                         items: {
-                            type      : "object",
+                            type      : 'object',
                             properties: {
                                 title: {
                                     type    : "string",
@@ -162,7 +199,7 @@ class PropertiesController extends Controllers {
                                 value: {
                                     type: "string",
                                 },
-                            },
+                            }
                         },
                     },
                 });
@@ -195,6 +232,34 @@ class PropertiesController extends Controllers {
                 return reject(e);
             }
         });
+    }
+
+    static setStatus($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                InputsController.validateInput($input, {
+                    _id   : {type: 'mongoId', required: true},
+                    status: {
+                        type         : 'number',
+                        allowedValues: Object.values(PropertiesModel.STATUS),
+                        required     : true
+                    },
+                });
+
+                // set the status
+               await this.model.updateOne($input._id, {
+                    status: $input.status
+                });
+
+                // return result
+                return resolve({
+                    code: 200
+                })
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
 }
