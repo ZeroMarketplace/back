@@ -114,6 +114,12 @@ router.post(
  *           type: string
  *         description: title of warehouse
  *       - in: query
+ *         name: statuses
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: number
+ *       - in: query
  *         name: page
  *         schema:
  *           type: number
@@ -180,9 +186,14 @@ router.post(
  */
 router.get(
     '/',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
     function (req, res) {
         // create clean input
         let $input = InputsController.clearInput(req.query);
+
+        // add user
+        $input.user = req.user;
 
         WarehousesController.warehouses($input).then(
             (response) => {
@@ -381,20 +392,27 @@ router.put(
 
 /**
  * @swagger
- * /api/warehouses/default/{typeOfSales}/{id}:
- *   put:
+ * /api/warehouses/{id}/status:
+ *   patch:
+ *     summary: set status of a Warehouse
  *     tags:
  *       - Warehouses
- *     summary: Set default warehouse for (type=['retail','onlineSales'])
  *     parameters:
- *       - in: path
- *         name: typeOfSales
- *         schema:
- *           type: string
- *       - in: path
- *         name: id
- *         schema:
- *           type: string
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *          description: The ID of the item to which the warehouse belongs
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: number
+ *                 enum: [1,2]
  *     responses:
  *       400:
  *          description: Bad Request (for validation)
@@ -416,8 +434,75 @@ router.put(
  *       200:
  *         description: Successful update
  */
-router.put(
-    '/default/:typeOfSales/:_id',
+router.patch(
+    '/:_id/status',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res, next) {
+
+        // get _id from params
+        let $params = InputsController.clearInput(req.params);
+
+        // get and clean the request body
+        let $body = InputsController.clearInput(req.body);
+
+        let $input = Object.assign({}, $params, $body);
+
+        WarehousesController.setStatus($input).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+/**
+ * @swagger
+ * /api/warehouses/{id}/defaultFor:
+ *   patch:
+ *     tags:
+ *       - Warehouses
+ *     summary: Set warehouse default for a type of sales
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               typeOfSales:
+ *                 type: number
+ *                 enum: [1,2]
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
+ *       403:
+ *          description: Forbidden
+ *       401:
+ *          description: Unauthorized
+ *       200:
+ *         description: Successful update
+ */
+router.patch(
+    '/:_id/defaultFor',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res, next) {
@@ -425,7 +510,13 @@ router.put(
         // get id from params and put into Input
         let $params = InputsController.clearInput(req.params);
 
-        WarehousesController.setDefaultFor($params).then(
+        // get and clean request body
+        let $body = InputsController.clearInput(req.body);
+
+        // create the $input
+        let $input = Object.assign({}, $params, $body);
+
+        WarehousesController.setDefaultFor($input).then(
             (response) => {
                 return res.status(response.code).json(response.data ?? {});
             },
@@ -438,9 +529,9 @@ router.put(
 
 /**
  * @swagger
- * /api/warehouses/default/{typeOfSales}:
+ * /api/warehouses/defaultFor/{typeOfSales}:
  *   get:
- *     summary: Get Default warehouse for (type=['retail','onlineSales'])
+ *     summary: Get Default warehouse for a type of sales
  *     tags:
  *       - Warehouses
  *     parameters:
@@ -496,7 +587,7 @@ router.put(
  *                   type: string
  */
 router.get(
-    '/default/:typeOfSales',
+    '/defaultFor/:typeOfSales',
     AuthController.authorizeJWT,
     AuthController.checkAccess,
     function (req, res, next) {
