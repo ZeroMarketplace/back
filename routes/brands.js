@@ -178,7 +178,7 @@ router.get(
         // create clean input
         let $input = InputsController.clearInput(req.query);
 
-        // add author to created brand
+        // add user
         $input.user = req.user;
 
         BrandsController.brands($input).then(
