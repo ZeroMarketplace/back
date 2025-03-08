@@ -53,7 +53,10 @@ class Models {
                             return resolve(response);
                         } else {
                             return reject({
-                                code: 404
+                                code: 404,
+                                data: {
+                                    message: `The ${this.collectionName} document does not exist`
+                                }
                             });
                         }
                     },
