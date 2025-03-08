@@ -3,10 +3,18 @@ import {Schema} from 'mongoose';
 
 class ProductsModel extends Models {
 
+    static statuses = {
+        ACTIVE  : 1,
+        INACTIVE: 2,
+    };
+
     static schema = new Schema({
             name       : {type: String, required: true},
             code       : {type: Number, required: true},
-            _categories: {type: [{type: Schema.Types.ObjectId, ref: 'categories'}], required: true},
+            _categories: {
+                type    : [{type: Schema.Types.ObjectId, ref: 'categories'}],
+                required: true
+            },
             _brand     : {type: Schema.Types.ObjectId, ref: 'brands', required: true},
             _unit      : {type: Schema.Types.ObjectId, ref: 'units', required: true},
             barcode    : String,
@@ -39,24 +47,17 @@ class ProductsModel extends Models {
             title      : String,
             content    : String,
             files      : [String],
-            status     : {type: String, enum: ['active', 'inactive'], required: true},
+            status     : {
+                type    : Number,
+                enum    : Object.values(ProductsModel.statuses),
+                required: true
+            },
             _user      : {type: Schema.Types.ObjectId, ref: 'users', required: true},
         },
-        {
-            timestamps: true,
-            // toJSON: { virtuals: true },
-            // toObject: { virtuals: true },
-        });
+        {timestamps: true}
+    );
 
     constructor() {
-        // set virtual methods
-        // price
-        // ProductsModel.schema.virtual('price')
-        //     .get(() => {
-        //         return  this.code;
-        //     });
-
-
         super('products', ProductsModel.schema);
     }
 
