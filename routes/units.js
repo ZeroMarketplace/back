@@ -104,6 +104,12 @@ router.post(
  *           type: string
  *         description: title of unit
  *       - in: query
+ *         name: statuses
+ *         schema:
+ *           type: array
+ *           items:
+ *             type: number
+ *       - in: query
  *         name: page
  *         schema:
  *           type: number
@@ -166,9 +172,14 @@ router.post(
  */
 router.get(
     '/',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
     function (req, res) {
         // create clean input
         let $input = InputsController.clearInput(req.query);
+
+        // add user
+        $input.user = req.user;
 
         UnitsController.units($input).then(
             (response) => {
@@ -343,6 +354,75 @@ router.put(
         UnitsController.updateOne($input).then(
             (response) => {
                 return res.status(response.code).json(response.data ?? {});
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+/**
+ * @swagger
+ * /api/units/{id}/status:
+ *   patch:
+ *     summary: set status of a Unit
+ *     tags:
+ *       - Units
+ *     parameters:
+ *        - in: path
+ *          name: id
+ *          required: true
+ *          schema:
+ *            type: string
+ *          description: The ID of the item to which the unit belongs
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               status:
+ *                 type: number
+ *                 enum: [1,2]
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
+ *       403:
+ *          description: Forbidden
+ *       401:
+ *          description: Unauthorized
+ *       200:
+ *         description: Successful update
+ */
+router.patch(
+    '/:_id/status',
+    AuthController.authorizeJWT,
+    AuthController.checkAccess,
+    function (req, res, next) {
+
+        // get _id from params
+        let $params = InputsController.clearInput(req.params);
+
+        // get and clean the request body
+        let $body = InputsController.clearInput(req.body);
+
+        let $input = Object.assign({}, $params, $body);
+
+        UnitsController.setStatus($input).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
             },
             (error) => {
                 return res.status(error.code ?? 500).json(error.data ?? {});

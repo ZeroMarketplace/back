@@ -26,7 +26,8 @@ class PermissionsController extends Controllers {
                         "POST"  : true,
                         "GET"   : true,
                         "PUT"   : true,
-                        "DELETE": true
+                        "DELETE": true,
+                        "PATCH" : true
                     },
                     "/api/brands"              : {
                         "POST"  : true,
