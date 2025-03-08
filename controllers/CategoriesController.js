@@ -96,7 +96,7 @@ class CategoriesController extends Controllers {
         return new Promise(async (resolve, reject) => {
             try {
                 // validate input
-                await InputsController.validateInput($input, {
+                InputsController.validateInput($input, {
                     title        : {type: "string", required: true},
                     profitPercent: {type: "number"},
                     _properties  : {
@@ -143,7 +143,7 @@ class CategoriesController extends Controllers {
         return new Promise(async (resolve, reject) => {
             try {
                 // validate Input
-                await InputsController.validateInput($input, {
+                InputsController.validateInput($input, {
                     title        : {type: "string"},
                     profitPercent: {type: "number"},
                     statuses     : {type: 'string'},
@@ -186,7 +186,6 @@ class CategoriesController extends Controllers {
                 });
 
             } catch (error) {
-                console.log(error);
                 return reject(error);
             }
         });
@@ -196,7 +195,7 @@ class CategoriesController extends Controllers {
         return new Promise(async (resolve, reject) => {
             try {
                 // validate input
-                await InputsController.validateInput($input, {
+                InputsController.validateInput($input, {
                     _id          : {type: 'mongoId', required: true},
                     title        : {type: "string", required: true},
                     profitPercent: {type: "number"},
