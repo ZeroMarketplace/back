@@ -3,11 +3,23 @@ import {Schema} from 'mongoose';
 
 class BrandsModel extends Models {
 
-    // const Account = null;
+    static statuses = {
+        ACTIVE  : 1,
+        INACTIVE: 2,
+    };
+
     static schema = new Schema({
             title : {type: String, required: true},
-            status: {type: String, enum: ['active', 'inactive'], required: true},
-            _user : {type: Schema.Types.ObjectId, ref: 'users', required: true},
+            status: {
+                type    : Number,
+                enum    : Object.values(BrandsModel.statuses),
+                required: true
+            },
+            _user : {
+                type    : Schema.Types.ObjectId,
+                ref     : 'users',
+                required: true
+            },
         },
         {timestamps: true});
 
