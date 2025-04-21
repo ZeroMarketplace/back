@@ -8,7 +8,7 @@ class WarehousesModel extends Models {
         INACTIVE: 2,
     };
 
-    static defaultTypes = {
+    static defaultForTypes = {
         RETAIL      : 1,
         ONLINE_SALES: 2
     };
@@ -20,7 +20,7 @@ class WarehousesModel extends Models {
             retail     : {type: Boolean, required: true},
             defaultFor : {
                 type: Number,
-                enum: Object.values(WarehousesModel.defaultTypes)
+                enum: Object.values(WarehousesModel.defaultForTypes)
             },
             status     : {
                 type    : Number,

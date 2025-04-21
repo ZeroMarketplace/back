@@ -124,7 +124,7 @@ class AccountingDocumentsController extends Controllers {
                 accountingDocument.code             = await CountersController.increment('accounting-documents');
                 accountingDocument._user            = $input.user.data._id;
                 accountingDocument.dateTime         = new Date();
-                accountingDocument.status           = 'active';
+                accountingDocument.status           = AccountingDocumentsModel.STATUS.RECORDED;
                 accountingDocument.accountsInvolved = [];
 
                 // add accounts involved and total
@@ -137,7 +137,7 @@ class AccountingDocumentsController extends Controllers {
                         );
                         accountingDocument.amount     = purchaseInvoice.data.total;
                         accountingDocument._reference = $input.settlement._id;
-                        accountingDocument.type       = 'purchase-invoice-settlement';
+                        accountingDocument.type       = AccountingDocumentsModel.TYPES.PURCHASE_INVOICE_SETTLEMENT;
 
                         // add purchase account to accounting document as debit
                         let purchaseAccount = await AccountsController.item(
@@ -233,7 +233,7 @@ class AccountingDocumentsController extends Controllers {
                         );
                         accountingDocument.amount     = salesInvoice.data.total;
                         accountingDocument._reference = $input.settlement._id;
-                        accountingDocument.type       = 'sales-invoice-settlement';
+                        accountingDocument.type       = AccountingDocumentsModel.TYPES.SALES_INVOICE_SETTLEMENT;
 
                         // add sales account to accounting document as credit
                         let salesAccount = await AccountsController.item(
@@ -461,7 +461,7 @@ class AccountingDocumentsController extends Controllers {
         });
     }
 
-    static insertOne($input) {
+    static insertOne($input, $actionType = 'api') {
         return new Promise(async (resolve, reject) => {
             try {
                 // validate input
@@ -481,13 +481,36 @@ class AccountingDocumentsController extends Controllers {
                     amount          : {type: 'number', required: true},
                     _reference      : {type: 'mongoId'},
                     type            : {
-                        type         : 'string',
-                        allowedValues: ['purchase-invoice-settlement', 'sales-invoice-settlement']
+                        type         : 'number',
+                        allowedValues: Object.values(AccountingDocumentsModel.TYPES)
                     },
+                    status          : {
+                        type         : 'number',
+                        allowedValues: Object.values(AccountingDocumentsModel.STATUS)
+                    }
                 });
 
                 // init code
                 let code = await CountersController.increment('accounting-documents');
+
+
+                // init the default status
+                let status = AccountingDocumentsModel.STATUS.DRAFT;
+
+                // check and set the input status
+                if ($input.status && $actionType === 'system') {
+                    status = $input.status;
+                }
+
+
+
+                // init the default type
+                let type = AccountingDocumentsModel.TYPES.NORMAL;
+
+                // check and set the input type
+                if ($input.type && $actionType === 'system') {
+                    type = $input.type;
+                }
 
                 // filter
                 let response = await this.model.insertOne({
@@ -497,8 +520,8 @@ class AccountingDocumentsController extends Controllers {
                     accountsInvolved: $input.accountsInvolved,
                     amount          : $input.amount,
                     _reference      : $input._reference,
-                    type            : $input.type,
-                    status          : 'active',
+                    type            : type,
+                    status          : status,
                     _user           : $input.user.data._id
                 });
 
@@ -531,7 +554,7 @@ class AccountingDocumentsController extends Controllers {
                 accountingDocument.user = $input.user;
 
                 // insert to db
-                let response = await this.insertOne(accountingDocument);
+                let response = await this.insertOne(accountingDocument, 'system');
 
                 // return result
                 return resolve({
@@ -568,7 +591,7 @@ class AccountingDocumentsController extends Controllers {
                         skip  : $input.offset,
                         limit : $input.perPage,
                         sort  : $input.sort,
-                        select: '_id code dateTime description amount'
+                        select: '_id code dateTime description amount status'
                     }
                 );
 

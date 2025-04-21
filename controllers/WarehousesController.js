@@ -141,7 +141,7 @@ class WarehousesController extends Controllers {
                 await InputsController.validateInput($input, {
                     typeOfSales: {
                         type         : 'number',
-                        allowedValues: Object.values(WarehousesModel.defaultTypes),
+                        allowedValues: Object.values(WarehousesModel.defaultForTypes),
                         required     : true
                     }
                 });
@@ -229,7 +229,7 @@ class WarehousesController extends Controllers {
                     _id        : {type: 'mongoId', required: true},
                     typeOfSales: {
                         type         : 'number',
-                        allowedValues: Object.values(WarehousesModel.defaultTypes),
+                        allowedValues: Object.values(WarehousesModel.defaultForTypes),
                         required     : true
                     }
                 });

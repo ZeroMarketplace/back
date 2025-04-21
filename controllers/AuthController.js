@@ -12,44 +12,44 @@ class AuthController extends Controllers {
 
     static login($input) {
         return new Promise(async (resolve, reject) => {
-            // check method of login
-            InputsController.validateInput($input, {
-                method: {type: 'string', allowedValues: ['phone', 'email'], required: true},
-                action: {type: 'string', allowedValues: ['authenticate', 'verification', 'access'], required: true}
-            }).then(
-                ($input) => {
-                    switch ($input.method) {
-                        case "phone":
-                            switch ($input.action) {
-                                case 'authenticate':
-                                    // authenticate phone
-                                    LoginByPhone.authenticate($input).then(
-                                        (resolved) => resolve(resolved),
-                                        (rejected) => reject(rejected)
-                                    );
-                                    break;
-                                case 'verification':
-                                    // verify phone
-                                    LoginByPhone.verification($input).then(
-                                        (resolved) => resolve(resolved),
-                                        (rejected) => reject(rejected)
-                                    );
-                                    break;
-                                case 'access':
-                                    // access with password
-                                    LoginByPhone.access($input).then(
-                                        (resolved) => resolve(resolved),
-                                        (rejected) => reject(rejected)
-                                    );
-                                    break;
-                            }
-                            break;
-                    }
-                },
-                (validationError) => {
-                    return reject(validationError);
-                }
-            );
+           try {
+               // check method of login
+               InputsController.validateInput($input, {
+                   method: {type: 'string', allowedValues: ['phone', 'email'], required: true},
+                   action: {type: 'string', allowedValues: ['authenticate', 'verification', 'access'], required: true}
+               });
+
+               switch ($input.method) {
+                   case "phone":
+                       switch ($input.action) {
+                           case 'authenticate':
+                               // authenticate phone
+                               LoginByPhone.authenticate($input).then(
+                                   (resolved) => resolve(resolved),
+                                   (rejected) => reject(rejected)
+                               );
+                               break;
+                           case 'verification':
+                               // verify phone
+                               LoginByPhone.verification($input).then(
+                                   (resolved) => resolve(resolved),
+                                   (rejected) => reject(rejected)
+                               );
+                               break;
+                           case 'access':
+                               // access with password
+                               LoginByPhone.access($input).then(
+                                   (resolved) => resolve(resolved),
+                                   (rejected) => reject(rejected)
+                               );
+                               break;
+                       }
+                       break;
+               }
+           }
+           catch (error) {
+               return reject(error);
+           }
         });
     }
 

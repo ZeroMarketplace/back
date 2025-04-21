@@ -3,6 +3,7 @@ import AccountsModel                 from '../models/AccountsModel.js';
 import InputsController              from "./InputsController.js";
 import persianDate                   from "persian-date";
 import AccountingDocumentsController from "./AccountingDocumentsController.js";
+import UnitsModel                    from "../models/UnitsModel.js";
 
 class AccountsController extends Controllers {
     static model = new AccountsModel();
@@ -17,6 +18,9 @@ class AccountsController extends Controllers {
         // pagination
         this.detectPaginationAndSort($input);
 
+        // set the default status for search
+        $query['status'] = AccountsModel.statuses.ACTIVE;
+
         for (const [$index, $value] of Object.entries($input)) {
             switch ($index) {
                 case 'title':
@@ -25,8 +29,46 @@ class AccountsController extends Controllers {
                 case 'type':
                     $query[$index] = $value;
                     break;
+                case 'statuses':
+                    // check if its admin
+                    if ($input.user.data.role === 'admin') {
+                        // convert statuses to array
+                        let $arrayOfValue = $value.split(',');
+                        let $statuses     = [];
+
+                        // add each status
+                        $arrayOfValue.forEach(status => {
+                            // if status is a valid number
+                            if (!isNaN(status)) {
+                                // add to array
+                                $statuses.push(Number(status));
+                            }
+                        })
+
+                        // set the filed for query
+                        if ($statuses.length > 1) {
+                            $query['status'] = {$in: $statuses};
+                        }
+                    }
+                    break;
                 case 'types':
-                    $query['type'] = {$in: $value};
+                    // convert statuses to array
+                    let $arrayOfValue = $value.split(',');
+                    let $types        = [];
+
+                    // add each status
+                    $arrayOfValue.forEach(type => {
+                        // if status is a valid number
+                        if (!isNaN(type)) {
+                            // add to array
+                            $types.push(Number(type));
+                        }
+                    })
+
+                    // set the filed for query
+                    if ($types.length > 1) {
+                        $query['type'] = {$in: $types};
+                    }
                     break;
             }
         }
@@ -42,70 +84,70 @@ class AccountsController extends Controllers {
                     // cash purchase
                     {
                         title      : 'خرید نقدی',
-                        type       : 'system',
+                        type       : AccountsModel.types.SYSTEM,
                         balance    : 0,
                         description: 'cash purchase'
                     },
                     // credit purchase
                     {
                         title      : 'خرید اعتباری',
-                        type       : 'system',
+                        type       : AccountsModel.types.SYSTEM,
                         balance    : 0,
                         description: 'credit purchase'
                     },
                     // cash sales
                     {
                         title      : 'فروش نقدی',
-                        type       : 'system',
+                        type       : AccountsModel.types.SYSTEM,
                         balance    : 0,
                         description: 'cash sales'
                     },
                     // credit sales
                     {
                         title      : 'فروش اعتباری',
-                        type       : 'system',
+                        type       : AccountsModel.types.SYSTEM,
                         balance    : 0,
                         description: 'credit sales'
                     },
                     // Return from purchase
                     {
                         title      : 'برگشت از خرید',
-                        type       : 'system',
+                        type       : AccountsModel.types.SYSTEM,
                         balance    : 0,
                         description: 'return from purchase'
                     },
                     // return from sale
                     {
                         title      : 'برگشت از فروش',
-                        type       : 'system',
+                        type       : AccountsModel.types.SYSTEM,
                         balance    : 0,
                         description: 'return from sale'
                     },
                     // discounts
                     {
                         title      : 'تخفیفات',
-                        type       : 'system',
+                        type       : AccountsModel.types.SYSTEM,
                         balance    : 0,
                         description: 'discounts'
                     },
                     // tax savings
                     {
                         title      : 'ذخیره مالیات',
-                        type       : 'system',
+                        type       : AccountsModel.types.SYSTEM,
                         balance    : 0,
                         description: 'tax savings'
                     },
                     // debtors
                     {
                         title      : 'بدهکاران',
-                        type       : 'system',
+                        type       : AccountsModel.types.SYSTEM,
                         balance    : 0,
                         description: 'debtors'
                     },
                     // creditors
                     {
                         title      : 'بستانکاران',
-                        type       : 'system',
+                        type       : AccountsModel.types.SYSTEM,
                         balance    : 0,
                         description: 'creditors'
                     },
@@ -113,10 +155,11 @@ class AccountsController extends Controllers {
 
                 for (const account of systemAccounts) {
                     await this.model.item({
-                        type       : 'system',
+                        type       : AccountsModel.types.SYSTEM,
                         description: account.description
                     }).then(
                         (foundedAccount) => {
+                            // do nothing
                         },
                         async (error) => {
                             if (error.code === 404) {
@@ -144,40 +187,43 @@ class AccountsController extends Controllers {
     }
 
     static getUserAccount($userId) {
-        return new Promise((resolve, reject) => {
-            this.model.item({
-                type      : 'user',
-                _reference: $userId
-            }).then(
-                (response) => {
-                    return resolve({
-                        code: 200,
-                        data: response
-                    })
-                },
-                (response) => {
-                    // create user if not exists
-                    if (response.code && response.code === 404) {
-                        this.model.insertOne({
-                            type      : 'user',
-                            balance   : 0,
-                            _reference: $userId
-                        }).then(
-                            (response) => {
-                                return resolve({
-                                    code: 200,
-                                    data: response
-                                });
-                            },
-                            (response) => {
-                                return reject(response);
-                            },
-                        );
-                    } else {
-                        return reject(response);
+        return new Promise(async (resolve, reject) => {
+            try {
+                // find the user account
+                await this.model.item({
+                    type      : AccountsModel.types.USER,
+                    _reference: $userId
+                }).then(
+                    (response) => {
+                        // return result
+                        return resolve({
+                            code: 200,
+                            data: response
+                        })
+                    },
+                    async (error) => {
+                        // check the not found error
+                        if (error.code && error.code === 404) {
+                            // create the user account
+                            let response = await this.model.insertOne({
+                                type      : AccountsModel.types.USER,
+                                balance   : 0,
+                                _reference: $userId
+                            });
+
+                            // return result
+                            return resolve({
+                                code: 200,
+                                data: response
+                            });
+                        } else {
+                            return reject(error);
+                        }
                     }
-                }
-            );
+                );
+            } catch (error) {
+                return reject(error);
+            }
         })
     }
 
@@ -188,8 +234,13 @@ class AccountsController extends Controllers {
                 await InputsController.validateInput($input, {
                     title      : {type: 'string', required: true},
                     type       : {
-                        type         : 'string',
-                        allowedValues: ['cash', 'bank', 'expense', 'income'],
+                        type         : 'number',
+                        allowedValues: [
+                            AccountsModel.types.CASH,
+                            AccountsModel.types.BANK,
+                            AccountsModel.types.INCOME,
+                            AccountsModel.types.EXPENSE
+                        ],
                         required     : true
                     },
                     balance    : {type: 'number', required: true},
@@ -201,7 +252,7 @@ class AccountsController extends Controllers {
                     type       : $input.type,
                     balance    : $input.balance,
                     description: $input.description,
-                    status     : 'active',
+                    status     : AccountsModel.statuses.ACTIVE,
                     _user      : $input.user.data._id
                 });
 
@@ -226,22 +277,16 @@ class AccountsController extends Controllers {
                 await InputsController.validateInput($input, {
                     title        : {type: "string"},
                     type         : {
-                        type         : "string",
-                        allowedValues: ['cash', 'bank', 'expense', 'income', 'system', 'user']
+                        type         : "number",
+                        allowedValues: Object.values(AccountsModel.types)
                     },
-                    types        : {
-                        type : 'array',
-                        items: {
-                            type         : 'string',
-                            allowedValues: ['cash', 'bank', 'expense', 'income', 'system', 'user']
-                        }
-                    },
+                    types        : {type: 'string',},
+                    statuses     : {type: 'string',},
                     perPage      : {type: "number"},
                     page         : {type: "number"},
                     sortColumn   : {type: "string"},
                     sortDirection: {type: "number"},
                 });
-
 
                 // check filter is valid and remove other parameters (just valid query by user role) ...
                 let $query = this.queryBuilder($input);
@@ -287,8 +332,13 @@ class AccountsController extends Controllers {
                     _id        : {type: 'mongoId', required: true},
                     title      : {type: 'string', required: true},
                     type       : {
-                        type         : 'string',
-                        allowedValues: ['cash', 'bank', 'expense', 'income'],
+                        type         : 'number',
+                        allowedValues: [
+                            AccountsModel.types.CASH,
+                            AccountsModel.types.BANK,
+                            AccountsModel.types.INCOME,
+                            AccountsModel.types.EXPENSE
+                        ],
                         required     : true
                     },
                     balance    : {type: 'number', required: true},
@@ -314,6 +364,56 @@ class AccountsController extends Controllers {
                 return reject(error);
             }
         });
+    }
+
+    static setStatus($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                // validate $input
+                InputsController.validateInput($input, {
+                    _id   : {type: 'mongoId', required: true},
+                    status: {
+                        type         : 'number',
+                        allowedValues: Object.values(AccountsModel.statuses),
+                        required     : true
+                    },
+                });
+
+                // get the account
+                let account = await this.model.get($input._id, {
+                    select: '_id type status'
+                });
+
+                // init valid type of accounts for changing status
+                let validTypeOfAccounts = [
+                    AccountsModel.types.CASH,
+                    AccountsModel.types.BANK,
+                    AccountsModel.types.INCOME,
+                    AccountsModel.types.EXPENSE
+                ];
+
+                // check the input account have valid type to change status
+                if (!validTypeOfAccounts.includes(account.type)) {
+                    return reject({
+                        code: 403,
+                        data: {
+                            message: "You can't change status of this account."
+                        }
+                    });
+                }
+
+                // set the status
+                account.status = $input.status;
+                await account.save();
+
+                // return result
+                return resolve({
+                    code: 200
+                })
+            } catch (error) {
+                return reject(error);
+            }
+        })
     }
 
     // update the balance by accounting document
@@ -515,26 +615,21 @@ class AccountsController extends Controllers {
                         // update old default to null
                         responseFind.defaultFor = undefined;
                         await responseFind.save();
-
-                        // update new default
-                        account.defaultFor = account.type;
-                        await account.save();
-
-                        return resolve({
-                            code: 200
-                        });
                     },
-                    async (response) => {
-                        // update default
-                        account.defaultFor = account.type;
-                        await account.save();
-
-                        return resolve({
-                            code: 200
-                        });
+                    async (error) => {
+                        // do nothing
                     }
                 );
 
+
+                // update new default
+                account.defaultFor = account.type;
+                await account.save();
+
+                // return result
+                return resolve({
+                    code: 200
+                });
             } catch (error) {
                 return reject(error);
             }
