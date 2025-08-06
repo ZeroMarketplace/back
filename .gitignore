@@ -1,2 +1,6 @@
 node_modules
 .idea
+
+# dotenv environment variables file
+.env
+.env.example
