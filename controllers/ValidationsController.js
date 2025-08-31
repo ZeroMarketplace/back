@@ -25,7 +25,7 @@ class ValidationsController extends Controllers {
           certificate: $input.certificate,
           type: $input.type,
           code: code,
-          expDate: new Date(new Date().getTime() + 2 * 60000),
+          expDate: new Date(new Date().getTime() + 5 * 60000),
         })
         .then((response) => {
           // check the result ... and return
