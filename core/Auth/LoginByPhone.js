@@ -149,11 +149,9 @@ class LoginByPhone extends LoginStrategies {
           type: "phone",
           code: $input.code,
         }).then(
-          // validation founded
           (validationQueryResponse) => {
             validationQueryResponse = validationQueryResponse.data;
 
-            // check user exists
             UserController.item(
               {
                 phone: $input.phone,
@@ -161,11 +159,9 @@ class LoginByPhone extends LoginStrategies {
               {},
               "model"
             ).then(
-              // user founded
               (userQueryResponse) => {
                 userQueryResponse = userQueryResponse.data;
 
-                // add phone validate to validated options
                 if (userQueryResponse.validated) {
                   if (!userQueryResponse.validated.includes("phone")) {
                     userQueryResponse.validated.push("phone");
@@ -176,13 +172,11 @@ class LoginByPhone extends LoginStrategies {
                   userQueryResponse.save();
                 }
 
-                // check user has password or not
                 let userHasPassword = false;
                 if (userQueryResponse.password) {
                   userHasPassword = true;
                 }
 
-                // Calculate remaining TTL
                 const now = new Date();
                 const expirationTime = new Date(
                   validationQueryResponse.expDate
@@ -201,9 +195,7 @@ class LoginByPhone extends LoginStrategies {
                   },
                 });
               },
-              // user not found
               (userQueryResponse) => {
-                // Calculate remaining TTL
                 const now = new Date();
                 const expirationTime = new Date(
                   validationQueryResponse.expDate
@@ -223,7 +215,6 @@ class LoginByPhone extends LoginStrategies {
               }
             );
           },
-          // validation not founded
           (validationQueryError) => {
             return reject({
               code: 400,
@@ -247,21 +238,16 @@ class LoginByPhone extends LoginStrategies {
           validation: { type: "mongoId", required: true },
           password: { type: "strongPassword", required: true },
         });
-        // check validation is not expired
         ValidationsController.item({
           _id: new ObjectId($input.validation),
         }).then(
-          // validation founded
           (validationQueryResponse) => {
-            // find user is existing
             UserController.item({
               phone: $input.phone,
             }).then(
-              // user founded
               (responseUserQuery) => {
                 responseUserQuery = responseUserQuery.data;
 
-                // user has not password
                 if (!responseUserQuery.password) {
                   UsersController.setPassword(responseUserQuery._id, {
                     password: $input.password,
@@ -277,7 +263,6 @@ class LoginByPhone extends LoginStrategies {
                     }
                   );
                 } else {
-                  // user has password
                   AuthController.comparePassword(
                     $input.password,
                     responseUserQuery.password
@@ -296,43 +281,37 @@ class LoginByPhone extends LoginStrategies {
                   );
                 }
               },
-              // user not found
               (responseUserQuery) => {
-                InputsController.validateInput($input, {
-                  firstName: { type: "string", required: true },
-                  lastName: { type: "string", required: true },
-                }).then(
-                  ($input) => {
-                    // create user and return token
-                    UserController.insertOne({
-                      firstName: $input.firstName,
-                      lastName: $input.lastName,
-                      phone: $input.phone,
-                      password: $input.password,
-                      validated: ["phone"],
-                    }).then(
-                      // user inserted
-                      (responseUserInsertQuery) => {
-                        responseUserInsertQuery = responseUserInsertQuery.data;
-                        return resolve({
-                          code: 200,
-                          data: this.createAccessToken(responseUserInsertQuery),
-                        });
-                      },
-                      // user not created
-                      (err) => {
-                        return reject(err);
-                      }
-                    );
-                  },
-                  (validationError) => {
-                    return reject(validationError);
-                  }
-                );
+                try {
+                  InputsController.validateInput($input, {
+                    firstName: { type: "string", required: true },
+                    lastName: { type: "string", required: true },
+                  });
+
+                  UserController.insertOne({
+                    firstName: $input.firstName,
+                    lastName: $input.lastName,
+                    phone: $input.phone,
+                    password: $input.password,
+                    validated: ["phone"],
+                  }).then(
+                    (responseUserInsertQuery) => {
+                      responseUserInsertQuery = responseUserInsertQuery.data;
+                      return resolve({
+                        code: 200,
+                        data: this.createAccessToken(responseUserInsertQuery),
+                      });
+                    },
+                    (err) => {
+                      return reject(err);
+                    }
+                  );
+                } catch (validationError) {
+                  return reject(validationError);
+                }
               }
             );
           },
-          // validation not found
           (validationQueryResponse) => {
             return reject({
               code: 400,
