@@ -1,274 +1,372 @@
-import ValidationsController from '../../controllers/ValidationsController.js';
-import LoginStrategies       from './LoginStrategies.js';
-import Sender                from '../Sender.js';
-import UserController        from '../../controllers/UsersController.js';
-import {ObjectId}            from 'mongodb';
-import InputsController      from '../../controllers/InputsController.js';
-import AuthController        from '../../controllers/AuthController.js';
-import UsersController       from "../../controllers/UsersController.js";
-
+import ValidationsController from "../../controllers/ValidationsController.js";
+import LoginStrategies from "./LoginStrategies.js";
+import Sender from "../Sender.js";
+import UserController from "../../controllers/UsersController.js";
+import { ObjectId } from "mongodb";
+import InputsController from "../../controllers/InputsController.js";
+import AuthController from "../../controllers/AuthController.js";
+import UsersController from "../../controllers/UsersController.js";
 
 class LoginByPhone extends LoginStrategies {
-
-    static authenticate($input) {
-        return new Promise((resolve, reject) => {
-            try {
-                InputsController.validateInput($input, {
-                    phone: {type: 'phone', required: true},
-                });
-
-                ValidationsController.item({certificate: $input.phone, type: 'phone'}).then(
-                    (validationResolved) => {
-                        return reject({
-                            code: 403,
-                            data: {
-                                message: 'Forbidden, The otp code has already been sent to you'
-                            }
-                        });
-                    },
-                    (rejectedValidation) => {
-
-                        // insert the new validation
-                        ValidationsController.insertOne({
-                            certificate: $input.phone,
-                            type       : 'phone'
-                        }).then(
-                            (insertResponse) => {
-                                // message text
-                                Sender.sendAuthSMS(insertResponse.code, $input.phone).then(
-                                    (response) => {
-                                        return resolve({code: 200});
-                                    },
-                                    (reason) => {
-                                        return reject({
-                                            code: 500,
-                                            data: {
-                                                message: 'There is a problem with the SMS sending service, contact support'
-                                            }
-                                        });
-                                    }
-                                );
-                            },
-                            (insertRejected) => {
-                                return reject(insertRejected);
-                            }
-                        );
-
-                    }
-                );
-            }
-            catch (error) {
-                return reject(error);
-            }
+  static authenticate($input) {
+    return new Promise((resolve, reject) => {
+      try {
+        InputsController.validateInput($input, {
+          phone: { type: "phone", required: true },
         });
-    }
 
-    static verification($input) {
-        return new Promise((resolve, reject) => {
-            try {
-                InputsController.validateInput($input, {
-                    phone: {type: 'phone', required: true},
-                    code : {type: 'number', required: true},
-                });
-                ValidationsController.item(
-                    {
-                        certificate: $input.phone,
-                        type       : 'phone',
-                        code       : $input.code
-                    }).then(
-                    // validation founded
-                    (validationQueryResponse) => {
-                        validationQueryResponse = validationQueryResponse.data;
+        ValidationsController.item({
+          certificate: $input.phone,
+          type: "phone",
+        }).then(
+          (validationResolved) => {
+            const now = new Date();
+            const expirationTime = new Date(validationResolved.data.expDate);
+            const ttlMs = expirationTime.getTime() - now.getTime();
+            const ttlSeconds = Math.max(0, Math.floor(ttlMs / 1000));
 
-                        // check user exists
-                        UserController.item({
-                            phone: $input.phone
-                        },{},'model').then(
-                            // user founded
-                            (userQueryResponse) => {
-                                userQueryResponse = userQueryResponse.data;
+            if (ttlSeconds > 0) {
+              return resolve({
+                code: 200,
+                data: {
+                  message: "OTP code already sent",
+                  ttl: ttlSeconds,
+                  expiresAt: validationResolved.data.expDate,
+                },
+              });
+            } else {
+              ValidationsController.deleteOne({
+                _id: validationResolved.data._id,
+              }).then(
+                () => {
+                  ValidationsController.insertOne({
+                    certificate: $input.phone,
+                    type: "phone",
+                  }).then(
+                    (insertResponse) => {
+                      Sender.sendAuthSMS(
+                        insertResponse.code,
+                        $input.phone
+                      ).then(
+                        (response) => {
+                          const newNow = new Date();
+                          const newExpirationTime = new Date(
+                            insertResponse.expDate
+                          );
+                          const newTtlMs =
+                            newExpirationTime.getTime() - newNow.getTime();
+                          const newTtlSeconds = Math.max(
+                            0,
+                            Math.floor(newTtlMs / 1000)
+                          );
 
-                                // add phone validate to validated options
-                                if (userQueryResponse.validated) {
-                                    if (!userQueryResponse.validated.includes('phone')) {
-                                        userQueryResponse.validated.push('phone');
-                                        userQueryResponse.save();
-                                    }
-                                } else {
-                                    userQueryResponse.validated = ['phone'];
-                                    userQueryResponse.save();
-                                }
-
-
-                                // check user has password or not
-                                let userHasPassword = false;
-                                if (userQueryResponse.password) {
-                                    userHasPassword = true
-                                }
-
-                                return resolve({
-                                    code: 200,
-                                    data: {
-                                        validation     : validationQueryResponse._id,
-                                        userIsExists   : true,
-                                        userHasPassword: userHasPassword
-                                    }
-                                });
-                            },
-                            // user not found
-                            (userQueryResponse) => {
-                                return resolve({
-                                    code: 200,
-                                    data: {
-                                        validation  : validationQueryResponse._id,
-                                        userIsExists: false
-                                    }
-                                });
-                            });
-                    },
-                    // validation not founded
-                    (validationQueryError) => {
-                        return reject({
-                            code: 400,
+                          return resolve({
+                            code: 200,
                             data: {
-                                message: 'The OTP code is wrong'
-                            }
-                        });
+                              message:
+                                "New OTP sent successfully (previous expired)",
+                              ttl: newTtlSeconds,
+                              expiresAt: insertResponse.expDate,
+                            },
+                          });
+                        },
+                        (reason) => {
+                          return reject({
+                            code: 500,
+                            data: {
+                              message:
+                                "There is a problem with the SMS sending service, contact support",
+                            },
+                          });
+                        }
+                      );
+                    },
+                    (insertRejected) => {
+                      return reject(insertRejected);
                     }
-                );
+                  );
+                },
+                (deleteError) => {
+                  return reject(deleteError);
+                }
+              );
             }
-            catch (error) {
-                return reject(error);
-            }
-        });
-    }
+          },
+          (rejectedValidation) => {
+            ValidationsController.insertOne({
+              certificate: $input.phone,
+              type: "phone",
+            }).then(
+              (insertResponse) => {
+                Sender.sendAuthSMS(insertResponse.code, $input.phone).then(
+                  (response) => {
+                    const now = new Date();
+                    const expirationTime = new Date(insertResponse.expDate);
+                    const ttlMs = expirationTime.getTime() - now.getTime();
+                    const ttlSeconds = Math.max(0, Math.floor(ttlMs / 1000));
 
-    static access($input) {
-        return new Promise((resolve, reject) => {
-            try {
-                InputsController.validateInput($input, {
-                    phone     : {type: 'phone', required: true},
-                    validation: {type: 'mongoId', required: true},
-                    password  : {type: 'strongPassword', required: true},
+                    return resolve({
+                      code: 200,
+                      data: {
+                        message: "OTP sent successfully",
+                        ttl: ttlSeconds,
+                        expiresAt: insertResponse.expDate,
+                      },
+                    });
+                  },
+                  (reason) => {
+                    return reject({
+                      code: 500,
+                      data: {
+                        message:
+                          "There is a problem with the SMS sending service, contact support",
+                      },
+                    });
+                  }
+                );
+              },
+              (insertRejected) => {
+                return reject(insertRejected);
+              }
+            );
+          }
+        );
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
+
+  static verification($input) {
+    return new Promise((resolve, reject) => {
+      try {
+        InputsController.validateInput($input, {
+          phone: { type: "phone", required: true },
+          code: { type: "number", required: true },
+        });
+        ValidationsController.item({
+          certificate: $input.phone,
+          type: "phone",
+          code: $input.code,
+        }).then(
+          // validation founded
+          (validationQueryResponse) => {
+            validationQueryResponse = validationQueryResponse.data;
+
+            // check user exists
+            UserController.item(
+              {
+                phone: $input.phone,
+              },
+              {},
+              "model"
+            ).then(
+              // user founded
+              (userQueryResponse) => {
+                userQueryResponse = userQueryResponse.data;
+
+                // add phone validate to validated options
+                if (userQueryResponse.validated) {
+                  if (!userQueryResponse.validated.includes("phone")) {
+                    userQueryResponse.validated.push("phone");
+                    userQueryResponse.save();
+                  }
+                } else {
+                  userQueryResponse.validated = ["phone"];
+                  userQueryResponse.save();
+                }
+
+                // check user has password or not
+                let userHasPassword = false;
+                if (userQueryResponse.password) {
+                  userHasPassword = true;
+                }
+
+                // Calculate remaining TTL
+                const now = new Date();
+                const expirationTime = new Date(
+                  validationQueryResponse.expDate
+                );
+                const ttlMs = expirationTime.getTime() - now.getTime();
+                const ttlSeconds = Math.max(0, Math.floor(ttlMs / 1000));
+
+                return resolve({
+                  code: 200,
+                  data: {
+                    validation: validationQueryResponse._id,
+                    userIsExists: true,
+                    userHasPassword: userHasPassword,
+                    ttl: ttlSeconds,
+                    expiresAt: validationQueryResponse.expDate,
+                  },
                 });
-                // check validation is not expired
-                ValidationsController.item({
-                    _id: new ObjectId($input.validation)
+              },
+              // user not found
+              (userQueryResponse) => {
+                // Calculate remaining TTL
+                const now = new Date();
+                const expirationTime = new Date(
+                  validationQueryResponse.expDate
+                );
+                const ttlMs = expirationTime.getTime() - now.getTime();
+                const ttlSeconds = Math.max(0, Math.floor(ttlMs / 1000));
+
+                return resolve({
+                  code: 200,
+                  data: {
+                    validation: validationQueryResponse._id,
+                    userIsExists: false,
+                    ttl: ttlSeconds,
+                    expiresAt: validationQueryResponse.expDate,
+                  },
+                });
+              }
+            );
+          },
+          // validation not founded
+          (validationQueryError) => {
+            return reject({
+              code: 400,
+              data: {
+                message: "The OTP code is wrong",
+              },
+            });
+          }
+        );
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
+
+  static access($input) {
+    return new Promise((resolve, reject) => {
+      try {
+        InputsController.validateInput($input, {
+          phone: { type: "phone", required: true },
+          validation: { type: "mongoId", required: true },
+          password: { type: "strongPassword", required: true },
+        });
+        // check validation is not expired
+        ValidationsController.item({
+          _id: new ObjectId($input.validation),
+        }).then(
+          // validation founded
+          (validationQueryResponse) => {
+            // find user is existing
+            UserController.item({
+              phone: $input.phone,
+            }).then(
+              // user founded
+              (responseUserQuery) => {
+                responseUserQuery = responseUserQuery.data;
+
+                // user has not password
+                if (!responseUserQuery.password) {
+                  UsersController.setPassword(responseUserQuery._id, {
+                    password: $input.password,
+                  }).then(
+                    (responseSetPassword) => {
+                      return resolve({
+                        code: 200,
+                        data: this.createAccessToken(responseUserQuery),
+                      });
+                    },
+                    (reason) => {
+                      return reject(reason);
+                    }
+                  );
+                } else {
+                  // user has password
+                  AuthController.comparePassword(
+                    $input.password,
+                    responseUserQuery.password
+                  ).then(
+                    (responseComparePassword) => {
+                      return resolve({
+                        code: 200,
+                        data: this.createAccessToken(responseUserQuery),
+                      });
+                    },
+                    (errorComparePassword) => {
+                      return reject({
+                        code: 401,
+                      });
+                    }
+                  );
+                }
+              },
+              // user not found
+              (responseUserQuery) => {
+                InputsController.validateInput($input, {
+                  firstName: { type: "string", required: true },
+                  lastName: { type: "string", required: true },
                 }).then(
-                    // validation founded
-                    (validationQueryResponse) => {
-
-                        // find user is existing
-                        UserController.item({
-                            phone: $input.phone
-                        }).then(
-                            // user founded
-                            (responseUserQuery) => {
-                                responseUserQuery = responseUserQuery.data;
-
-                                // user has not password
-                                if (!responseUserQuery.password) {
-                                    UsersController.setPassword(responseUserQuery._id, {
-                                        password: $input.password
-                                    }).then(
-                                        (responseSetPassword) => {
-                                            return resolve({
-                                                code: 200,
-                                                data: this.createAccessToken(responseUserQuery)
-                                            });
-                                        },
-                                        (reason) => {
-                                            return reject(reason);
-                                        }
-                                    );
-                                } else {
-                                    // user has password
-                                    AuthController.comparePassword($input.password, responseUserQuery.password).then(
-                                        (responseComparePassword) => {
-                                            return resolve({
-                                                code: 200,
-                                                data: this.createAccessToken(responseUserQuery)
-                                            });
-                                        },
-                                        (errorComparePassword) => {
-                                            return reject({
-                                                code: 401
-                                            });
-                                        },
-                                    );
-                                }
-                            },
-                            // user not found
-                            (responseUserQuery) => {
-                                InputsController.validateInput($input, {
-                                    firstName: {type: 'string', required: true},
-                                    lastName : {type: 'string', required: true}
-                                }).then(
-                                    ($input) => {
-                                        // create user and return token
-                                        UserController.insertOne({
-                                            firstName: $input.firstName,
-                                            lastName : $input.lastName,
-                                            phone    : $input.phone,
-                                            password : $input.password,
-                                            validated: ['phone']
-                                        }).then(
-                                            // user inserted
-                                            (responseUserInsertQuery) => {
-                                                responseUserInsertQuery = responseUserInsertQuery.data;
-                                                return resolve({
-                                                    code: 200,
-                                                    data: this.createAccessToken(responseUserInsertQuery)
-                                                });
-                                            },
-                                            // user not created
-                                            (err) => {
-                                                return reject(err);
-                                            }
-                                        );
-                                    },
-                                    (validationError) => {
-                                        return reject(validationError);
-                                    }
-                                );
-                            });
-                    },
-                    // validation not found
-                    (validationQueryResponse) => {
-                        return reject({
-                            code   : 400,
-                            message: "Validation has expired"
+                  ($input) => {
+                    // create user and return token
+                    UserController.insertOne({
+                      firstName: $input.firstName,
+                      lastName: $input.lastName,
+                      phone: $input.phone,
+                      password: $input.password,
+                      validated: ["phone"],
+                    }).then(
+                      // user inserted
+                      (responseUserInsertQuery) => {
+                        responseUserInsertQuery = responseUserInsertQuery.data;
+                        return resolve({
+                          code: 200,
+                          data: this.createAccessToken(responseUserInsertQuery),
                         });
-                    }
+                      },
+                      // user not created
+                      (err) => {
+                        return reject(err);
+                      }
+                    );
+                  },
+                  (validationError) => {
+                    return reject(validationError);
+                  }
                 );
-            }
-            catch (error) {
-                return reject(error);
-            }
-        });
-    }
+              }
+            );
+          },
+          // validation not found
+          (validationQueryResponse) => {
+            return reject({
+              code: 400,
+              message: "Validation has expired",
+            });
+          }
+        );
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
 
-    static createAccessToken($user) {
-        // create token and return
-        let token = AuthController.createJWT({
-            _id        : $user._id,
-            role       : $user.role,
-            permissions: $user._permissions
-        });
+  static createAccessToken($user) {
+    // create token and return
+    let token = AuthController.createJWT({
+      _id: $user._id,
+      role: $user.role,
+      permissions: $user._permissions,
+    });
 
-        return {
-            token: token,
-            user : {
-                _id      : $user._id,
-                firstName: $user.firstName,
-                lastName : $user.lastName,
-                phone    : $user.phone,
-                avatars  : $user.avatars,
-                color    : $user.color,
-                role     : $user.role
-            },
-        };
-    }
+    return {
+      token: token,
+      user: {
+        _id: $user._id,
+        firstName: $user.firstName,
+        lastName: $user.lastName,
+        phone: $user.phone,
+        avatars: $user.avatars,
+        color: $user.color,
+        role: $user.role,
+      },
+    };
+  }
 }
 
 export default LoginByPhone;
