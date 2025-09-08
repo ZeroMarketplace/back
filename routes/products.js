@@ -1,10 +1,43 @@
-import express               from "express";
-import InputsController      from '../controllers/InputsController.js';
-import ProductsController    from '../controllers/ProductsController.js';
-import AuthController        from '../controllers/AuthController.js';
+import express from "express";
+import InputsController from "../controllers/InputsController.js";
+import ProductsController from "../controllers/ProductsController.js";
+import AuthController from "../controllers/AuthController.js";
 import InventoriesController from "../controllers/InventoriesController.js";
 
 let router = express.Router();
+
+/**
+ * @swagger
+ * /api/products/latest:
+ *   get:
+ *     summary: Get latest active products
+ *     tags:
+ *       - Products
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Number of products to return (default 10, max 50)
+ *     responses:
+ *       200:
+ *         description: Successful get
+ *       401:
+ *         description: Unauthorized
+ */
+router.get("/home/latest", function (req, res) {
+  // create clean input
+  let $input = InputsController.clearInput(req.query);
+
+  ProductsController.latest($input).then(
+    (response) => {
+      return res.status(response.code).json(response.data);
+    },
+    (error) => {
+      return res.status(error.code ?? 500).json(error.data ?? {});
+    }
+  );
+});
 
 /**
  * @swagger
@@ -173,26 +206,25 @@ let router = express.Router();
  *                     type: string
  */
 router.post(
-    '/',
-    AuthController.authorizeJWT,
-    AuthController.checkAccess,
-    function (req, res, next) {
+  "/",
+  AuthController.authorizeJWT,
+  AuthController.checkAccess,
+  function (req, res, next) {
+    // create clean input
+    let $input = InputsController.clearInput(req.body);
 
-        // create clean input
-        let $input = InputsController.clearInput(req.body);
+    // add author to created product
+    $input.user = req.user;
 
-        // add author to created product
-        $input.user = req.user;
-
-        ProductsController.insertOne($input).then(
-            (response) => {
-                return res.status(response.code).json(response.data ?? {});
-            },
-            (error) => {
-                return res.status(error.code ?? 500).json(error.data ?? {});
-            }
-        );
-    }
+    ProductsController.insertOne($input).then(
+      (response) => {
+        return res.status(response.code).json(response.data ?? {});
+      },
+      (error) => {
+        return res.status(error.code ?? 500).json(error.data ?? {});
+      }
+    );
+  }
 );
 
 /**
@@ -329,25 +361,25 @@ router.post(
  *                         type: string
  */
 router.get(
-    '/',
-    AuthController.authorizeJWT,
-    AuthController.checkAccess,
-    function (req, res) {
-        // create clean input
-        let $input = InputsController.clearInput(req.query);
+  "/",
+  AuthController.authorizeJWT,
+  AuthController.checkAccess,
+  function (req, res) {
+    // create clean input
+    let $input = InputsController.clearInput(req.query);
 
-        // add user
-        $input.user = req.user;
+    // add user
+    $input.user = req.user;
 
-        ProductsController.products($input).then(
-            (response) => {
-                return res.status(response.code).json(response.data);
-            },
-            (error) => {
-                return res.status(error.code ?? 500).json(error.data ?? {});
-            }
-        );
-    }
+    ProductsController.products($input).then(
+      (response) => {
+        return res.status(response.code).json(response.data);
+      },
+      (error) => {
+        return res.status(error.code ?? 500).json(error.data ?? {});
+      }
+    );
+  }
 );
 
 /**
@@ -454,22 +486,22 @@ router.get(
  *                   type: string
  */
 router.get(
-    '/:_id',
-    AuthController.authorizeJWT,
-    AuthController.checkAccess,
-    function (req, res) {
-        // create clean input
-        let $input = InputsController.clearInput(req.params);
+  "/:_id",
+  AuthController.authorizeJWT,
+  AuthController.checkAccess,
+  function (req, res) {
+    // create clean input
+    let $input = InputsController.clearInput(req.params);
 
-        ProductsController.get($input).then(
-            (response) => {
-                return res.status(response.code).json(response.data);
-            },
-            (error) => {
-                return res.status(error.code ?? 500).json(error.data ?? {});
-            }
-        );
-    }
+    ProductsController.get($input).then(
+      (response) => {
+        return res.status(response.code).json(response.data);
+      },
+      (error) => {
+        return res.status(error.code ?? 500).json(error.data ?? {});
+      }
+    );
+  }
 );
 
 /**
@@ -644,32 +676,31 @@ router.get(
  *                     type: string
  */
 router.put(
-    '/:_id',
-    AuthController.authorizeJWT,
-    AuthController.checkAccess,
-    function (req, res, next) {
+  "/:_id",
+  AuthController.authorizeJWT,
+  AuthController.checkAccess,
+  function (req, res, next) {
+    // create clean input
+    let $input = InputsController.clearInput(req.body);
 
-        // create clean input
-        let $input = InputsController.clearInput(req.body);
+    // get id from params and put into Input
+    let $params = InputsController.clearInput(req.params);
 
-        // get id from params and put into Input
-        let $params = InputsController.clearInput(req.params);
+    // add author to created product
+    $input.user = req.user;
 
-        // add author to created product
-        $input.user = req.user;
+    // set _id to $input
+    $input._id = $params._id;
 
-        // set _id to $input
-        $input._id = $params._id;
-
-        ProductsController.updateOne($input).then(
-            (response) => {
-                return res.status(response.code).json(response.data ?? {});
-            },
-            (error) => {
-                return res.status(error.code ?? 500).json(error.data ?? {});
-            }
-        );
-    }
+    ProductsController.updateOne($input).then(
+      (response) => {
+        return res.status(response.code).json(response.data ?? {});
+      },
+      (error) => {
+        return res.status(error.code ?? 500).json(error.data ?? {});
+      }
+    );
+  }
 );
 
 /**
@@ -717,28 +748,27 @@ router.put(
  *         description: Successful update
  */
 router.patch(
-    '/:_id/status',
-    AuthController.authorizeJWT,
-    AuthController.checkAccess,
-    function (req, res, next) {
+  "/:_id/status",
+  AuthController.authorizeJWT,
+  AuthController.checkAccess,
+  function (req, res, next) {
+    // get _id from params
+    let $params = InputsController.clearInput(req.params);
 
-        // get _id from params
-        let $params = InputsController.clearInput(req.params);
+    // get and clean the request body
+    let $body = InputsController.clearInput(req.body);
 
-        // get and clean the request body
-        let $body = InputsController.clearInput(req.body);
+    let $input = Object.assign({}, $params, $body);
 
-        let $input = Object.assign({}, $params, $body);
-
-        ProductsController.setStatus($input).then(
-            (response) => {
-                return res.status(response.code).json(response.data);
-            },
-            (error) => {
-                return res.status(error.code ?? 500).json(error.data ?? {});
-            }
-        );
-    }
+    ProductsController.setStatus($input).then(
+      (response) => {
+        return res.status(response.code).json(response.data);
+      },
+      (error) => {
+        return res.status(error.code ?? 500).json(error.data ?? {});
+      }
+    );
+  }
 );
 
 /**
@@ -777,25 +807,23 @@ router.patch(
  *         description: Successful delete
  */
 router.delete(
-    '/:_id',
-    AuthController.authorizeJWT,
-    AuthController.checkAccess,
-    function (req, res, next) {
+  "/:_id",
+  AuthController.authorizeJWT,
+  AuthController.checkAccess,
+  function (req, res, next) {
+    // get id from params and put into Input
+    let $params = InputsController.clearInput(req.params);
 
-        // get id from params and put into Input
-        let $params = InputsController.clearInput(req.params);
-
-        ProductsController.deleteOne($params).then(
-            (response) => {
-                return res.status(response.code).json(response.data);
-            },
-            (error) => {
-                return res.status(error.code ?? 500).json(error.data ?? {});
-            }
-        );
-    }
+    ProductsController.deleteOne($params).then(
+      (response) => {
+        return res.status(response.code).json(response.data);
+      },
+      (error) => {
+        return res.status(error.code ?? 500).json(error.data ?? {});
+      }
+    );
+  }
 );
-
 
 /**
  * @swagger
@@ -845,32 +873,32 @@ router.delete(
  *         description: Successful upload
  */
 router.post(
-    '/:_id/files',
-    AuthController.authorizeJWT,
-    AuthController.checkAccess,
-    function (req, res) {
-        // create clean input
-        let $input = InputsController.clearInput(req.body);
+  "/:_id/files",
+  AuthController.authorizeJWT,
+  AuthController.checkAccess,
+  function (req, res) {
+    // create clean input
+    let $input = InputsController.clearInput(req.body);
 
-        // add request parameters to $input
-        $input.req = req;
-        $input.res = res;
+    // add request parameters to $input
+    $input.req = req;
+    $input.res = res;
 
-        // get id from params and put into Input
-        let $params = InputsController.clearInput(req.params);
+    // get id from params and put into Input
+    let $params = InputsController.clearInput(req.params);
 
-        // set _id to $input
-        $input._id = $params._id;
+    // set _id to $input
+    $input._id = $params._id;
 
-        ProductsController.uploadFile($input).then(
-            (response) => {
-                return res.status(response.code).json(response.data);
-            },
-            (error) => {
-                return res.status(error.code ?? 500).json(error.data ?? {});
-            }
-        );
-    }
+    ProductsController.uploadFile($input).then(
+      (response) => {
+        return res.status(response.code).json(response.data);
+      },
+      (error) => {
+        return res.status(error.code ?? 500).json(error.data ?? {});
+      }
+    );
+  }
 );
 
 /**
@@ -914,22 +942,22 @@ router.post(
  *         description: Successful delete
  */
 router.delete(
-    '/:_id/files/:fileName',
-    AuthController.authorizeJWT,
-    AuthController.checkAccess,
-    function (req, res) {
-        // get id from params and put into Input
-        let $params = InputsController.clearInput(req.params);
+  "/:_id/files/:fileName",
+  AuthController.authorizeJWT,
+  AuthController.checkAccess,
+  function (req, res) {
+    // get id from params and put into Input
+    let $params = InputsController.clearInput(req.params);
 
-        ProductsController.deleteFile($params).then(
-            (response) => {
-                return res.status(response.code).json(response.data);
-            },
-            (error) => {
-                return res.status(error.code ?? 500).json(error.data ?? {});
-            }
-        );
-    }
+    ProductsController.deleteFile($params).then(
+      (response) => {
+        return res.status(response.code).json(response.data);
+      },
+      (error) => {
+        return res.status(error.code ?? 500).json(error.data ?? {});
+      }
+    );
+  }
 );
 
 /**
@@ -974,22 +1002,22 @@ router.delete(
  *         description: Successful delete
  */
 router.delete(
-    '/:_id/variants/:_variant',
-    AuthController.authorizeJWT,
-    AuthController.checkAccess,
-    function (req, res) {
-        // get id from params and put into Input
-        let $params = InputsController.clearInput(req.params);
+  "/:_id/variants/:_variant",
+  AuthController.authorizeJWT,
+  AuthController.checkAccess,
+  function (req, res) {
+    // get id from params and put into Input
+    let $params = InputsController.clearInput(req.params);
 
-        ProductsController.deleteVariant($params).then(
-            (response) => {
-                return res.status(response.code).json(response.data);
-            },
-            (error) => {
-                return res.status(error.code ?? 500).json(error.data ?? {});
-            }
-        );
-    }
+    ProductsController.deleteVariant($params).then(
+      (response) => {
+        return res.status(response.code).json(response.data);
+      },
+      (error) => {
+        return res.status(error.code ?? 500).json(error.data ?? {});
+      }
+    );
+  }
 );
 
 /**
@@ -1046,27 +1074,26 @@ router.delete(
  *                       type: string
  */
 router.get(
-    '/:_id/inventory',
-    AuthController.authorizeJWT,
-    AuthController.checkAccess,
-    function (req, res) {
+  "/:_id/inventory",
+  AuthController.authorizeJWT,
+  AuthController.checkAccess,
+  function (req, res) {
+    // create clean input
+    let $params = InputsController.clearInput(req.params);
+    let $query = InputsController.clearInput(req.query);
 
-        // create clean input
-        let $params = InputsController.clearInput(req.params);
-        let $query  = InputsController.clearInput(req.query);
+    // create the $input object
+    let $input = Object.assign({}, $params, $query);
 
-        // create the $input object
-        let $input = Object.assign({}, $params, $query);
-
-        InventoriesController.getInventoryOfProduct($input).then(
-            (response) => {
-                return res.status(response.code).json(response.data);
-            },
-            (error) => {
-                return res.status(error.code ?? 500).json(error.data ?? {});
-            }
-        );
-    }
+    InventoriesController.getInventoryOfProduct($input).then(
+      (response) => {
+        return res.status(response.code).json(response.data);
+      },
+      (error) => {
+        return res.status(error.code ?? 500).json(error.data ?? {});
+      }
+    );
+  }
 );
 
 export default router;
