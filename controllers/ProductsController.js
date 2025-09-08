@@ -505,6 +505,8 @@ class ProductsController extends Controllers {
           data: {
             list: list,
             total: count,
+            page: $input.page,
+            perPage: $input.perPage,
           },
         });
       } catch (error) {

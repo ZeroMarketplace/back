@@ -41,6 +41,57 @@ router.get("/home/latest", function (req, res) {
 
 /**
  * @swagger
+ * /api/products/search:
+ *   get:
+ *     summary: Get paginated active products (public)
+ *     tags:
+ *       - Products
+ *     parameters:
+ *       - in: query
+ *         name: title
+ *         schema:
+ *           type: string
+ *         description: title of product or variant (search)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *         description: page number (default 1)
+ *       - in: query
+ *         name: perPage
+ *         schema:
+ *           type: number
+ *         description: items per page (default 10)
+ *       - in: query
+ *         name: sortColumn
+ *         schema:
+ *           type: string
+ *         description: field to sort by (default createdAt)
+ *       - in: query
+ *         name: sortDirection
+ *         schema:
+ *           type: number
+ *         description: -1 desc, 1 asc (default -1)
+ *     responses:
+ *       200:
+ *         description: Successful get
+ */
+router.get("/search", function (req, res) {
+  // create clean input
+  let $input = InputsController.clearInput(req.query);
+
+  ProductsController.products($input).then(
+    (response) => {
+      return res.status(response.code).json(response.data);
+    },
+    (error) => {
+      return res.status(error.code ?? 500).json(error.data ?? {});
+    }
+  );
+});
+
+/**
+ * @swagger
  * /api/products:
  *   post:
  *     tags:
