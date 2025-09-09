@@ -43,13 +43,14 @@ jobs:
           DEPLOY_SERVER: ${{ secrets.DEPLOY_SERVER }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          SSH_PORT: ${secrets.SSH_PORT}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           SSH_PASS: ${{ secrets.SSH_PASSWORD }}
         run: |
           echo "$SSH_PRIVATE_KEY" > private_key
           chmod 600 private_key
 
-          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no -i private_key -p 22 $DEPLOY_USER@$DEPLOY_SERVER "
+          sshpass -p "$SSH_PASS" ssh -o StrictHostKeyChecking=no -i private_key -p $SSH_PORT $DEPLOY_USER@$DEPLOY_SERVER "
             cd $DEPLOY_PATH
             
             pwd
