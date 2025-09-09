@@ -23,7 +23,10 @@ app.use(express.json({limit: '5mb'}));
 app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use(process.env.STATICS_URL, express.static(path.join(__dirname, 'public')));
-app.use(cors());
+app.use(cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true
+  }));
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerConfig));
 
 process.env.TZ = "Asia/Tehran";
