@@ -1,9 +1,9 @@
-import Controllers        from '../core/Controllers.js';
-import CategoriesModel    from '../models/CategoriesModel.js';
+import Controllers from '../core/Controllers.js';
+import CategoriesModel from '../models/CategoriesModel.js';
 import CountersController from '../controllers/CountersController.js';
-import InputsController   from "./InputsController.js";
-import persianDate        from "persian-date";
-import PropertiesModel    from "../models/PropertiesModel.js";
+import InputsController from "./InputsController.js";
+import persianDate from "persian-date";
+import PropertiesModel from "../models/PropertiesModel.js";
 
 class CategoriesController extends Controllers {
     static model = new CategoriesModel();
@@ -15,10 +15,8 @@ class CategoriesController extends Controllers {
     static queryBuilder($input) {
         let $query = {};
 
-        // pagination
         this.detectPaginationAndSort($input);
 
-        // set the default status for search
         $query['status'] = CategoriesModel.statuses.ACTIVE;
 
         for (const [$index, $value] of Object.entries($input)) {
@@ -30,22 +28,16 @@ class CategoriesController extends Controllers {
                     $query[$index] = $value;
                     break;
                 case 'statuses':
-                    // check if its admin
                     if ($input.user.data.role === 'admin') {
-                        // convert statuses to array
                         let $arrayOfValue = $value.split(',');
-                        let $statuses     = [];
+                        let $statuses = [];
 
-                        // add each status
                         $arrayOfValue.forEach(status => {
-                            // if status is a valid number
                             if (!isNaN(status)) {
-                                // add to array
                                 $statuses.push(Number(status));
                             }
                         })
 
-                        // set the filed for query
                         if ($statuses.length > 1) {
                             $query['status'] = {$in: $statuses};
                         }
@@ -60,15 +52,12 @@ class CategoriesController extends Controllers {
     static findCategoryChildren($list, $children) {
         let result = [];
         $children.forEach(item => {
-            // find the item self
             item = $list.find(i => i._id.toString() === item.toString());
 
             if (item) {
-                // add children to the item
                 if (item.children)
                     item.children = CategoriesController.findCategoryChildren($list, item.children);
 
-                // add item to the children array
                 result.push(item);
             }
         })
@@ -78,7 +67,6 @@ class CategoriesController extends Controllers {
     static sortCategories($list) {
         let result = [];
 
-        // find children
         $list.forEach((item) => {
             if (!item._parent) {
                 if (item.children) {
@@ -95,37 +83,33 @@ class CategoriesController extends Controllers {
     static insertOne($input) {
         return new Promise(async (resolve, reject) => {
             try {
-                // validate input
                 InputsController.validateInput($input, {
-                    title        : {type: "string", required: true},
+                    title: {type: "string", required: true},
                     profitPercent: {type: "number"},
-                    _properties  : {
-                        type        : 'array',
+                    _properties: {
+                        type: 'array',
                         minItemCount: 1,
-                        items       : {
+                        items: {
                             type: 'mongoId'
                         }
                     },
-                    _parent      : {type: 'mongoId'},
+                    _parent: {type: 'mongoId'},
                 });
 
-                // insert to db
                 let response = await this.model.insertOne({
-                    title        : $input.title,
-                    code         : await CountersController.increment('categories'),
+                    title: $input.title,
+                    code: await CountersController.increment('categories'),
                     profitPercent: $input.profitPercent,
-                    _properties  : $input._properties,
-                    _parent      : $input._parent,
-                    status       : CategoriesModel.statuses.ACTIVE,
-                    _user        : $input.user.data._id
+                    _properties: $input._properties,
+                    _parent: $input._parent,
+                    status: CategoriesModel.statuses.ACTIVE,
+                    _user: $input.user.data._id
                 });
 
-                // add child to parent children
                 if ($input._parent) {
                     await this.model.addChild($input._parent, response._id);
                 }
 
-                // create output
                 response = await this.outputBuilder(response.toObject());
 
                 return resolve({
@@ -142,45 +126,37 @@ class CategoriesController extends Controllers {
     static categories($input) {
         return new Promise(async (resolve, reject) => {
             try {
-                // validate Input
                 InputsController.validateInput($input, {
-                    title        : {type: "string"},
+                    title: {type: "string"},
                     profitPercent: {type: "number"},
-                    statuses     : {type: 'string'},
-                    perPage      : {type: "number"},
-                    page         : {type: "number"},
-                    sortColumn   : {type: "string"},
+                    statuses: {type: 'string'},
+                    perPage: {type: "number"},
+                    page: {type: "number"},
+                    sortColumn: {type: "string"},
                     sortDirection: {type: "number"},
                 });
 
-
-                // check filter is valid and remove other parameters (just valid query by user role) ...
                 let $query = this.queryBuilder($input);
-                // get list
-                let list   = await this.model.list(
+                let list = await this.model.list(
                     $query,
                     {
                         sort: $input.sort
                     }
                 );
 
-                // get the count of properties
                 const count = await this.model.count($query);
 
-                // create output
                 for (const row of list) {
                     const index = list.indexOf(row);
                     list[index] = await this.outputBuilder(row.toObject());
                 }
 
-                // sort and create structural categories
                 list = this.sortCategories(list);
 
-                // return result
                 return resolve({
                     code: 200,
                     data: {
-                        list : list,
+                        list: list,
                         total: count
                     }
                 });
@@ -194,28 +170,26 @@ class CategoriesController extends Controllers {
     static updateOne($input) {
         return new Promise(async (resolve, reject) => {
             try {
-                // validate input
                 InputsController.validateInput($input, {
-                    _id          : {type: 'mongoId', required: true},
-                    title        : {type: "string", required: true},
+                    _id: {type: 'mongoId', required: true},
+                    title: {type: "string", required: true},
                     profitPercent: {type: "number"},
-                    _properties  : {
-                        type        : 'array',
+                    _properties: {
+                        type: 'array',
                         minItemCount: 1,
-                        items       : {
+                        items: {
                             type: 'mongoId'
                         }
                     },
-                    _parent      : {type: 'mongoId'},
+                    _parent: {type: 'mongoId'},
                 });
 
                 let response = await this.model.updateOne($input._id, {
-                    title        : $input.title,
+                    title: $input.title,
                     profitPercent: $input.profitPercent,
-                    _properties  : $input._properties
+                    _properties: $input._properties
                 });
 
-                // create output
                 response = await this.outputBuilder(response.toObject());
 
                 return resolve({
@@ -232,22 +206,19 @@ class CategoriesController extends Controllers {
     static setStatus($input) {
         return new Promise(async (resolve, reject) => {
             try {
-                // validate $input
                 InputsController.validateInput($input, {
-                    _id   : {type: 'mongoId', required: true},
+                    _id: {type: 'mongoId', required: true},
                     status: {
-                        type         : 'number',
+                        type: 'number',
                         allowedValues: Object.values(CategoriesModel.statuses),
-                        required     : true
+                        required: true
                     },
                 });
 
-                // set the status
                 await this.model.updateOne($input._id, {
                     status: $input.status
                 });
 
-                // return result
                 return resolve({
                     code: 200
                 })
@@ -255,6 +226,84 @@ class CategoriesController extends Controllers {
                 return reject(error);
             }
         })
+    }
+
+    static homeSliderCategories($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                InputsController.validateInput($input, {
+                    limit: {type: "number"}
+                });
+
+                const limit = Math.min($input.limit || 6, 6);
+
+                let $query = {
+                    'status': CategoriesModel.statuses.ACTIVE
+                };
+
+                let list = await this.model.list(
+                    $query,
+                    {
+                        sort: {createdAt: -1},
+                        limit: limit
+                    }
+                )
+
+                const count = await this.model.count($query);
+
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row.toObject());
+                }
+
+                return resolve({
+                    code: 200,
+                    data: {
+                        list: list,
+                        total: count
+                    }
+                });
+
+            } catch (error) {
+                return reject(error);
+            }
+        });
+    }
+
+    static getMenuCategories($input) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                InputsController.validateInput($input, {
+                    limit: {type: "number"}
+                });
+
+                let $limit = Number($input.limit ?? 20);
+                if (isNaN($limit) || $limit <= 0) $limit = 20;
+                if ($limit > 50) $limit = 50;
+
+                const $query = {status: CategoriesModel.statuses.ACTIVE};
+                
+                const list = await this.model.list($query, {
+                    sort: {createdAt: -1},
+                    limit: $limit
+                });
+
+                for (const row of list) {
+                    const index = list.indexOf(row);
+                    list[index] = await this.outputBuilder(row.toObject());
+                }
+
+                const hierarchicalList = this.sortCategories(list);
+
+                return resolve({
+                    code: 200,
+                    data: hierarchicalList,
+                });
+            } catch (error) {
+                console.error("❌ getMenuCategories error:", error);
+                return reject(error);
+            }
+        });
     }
 }
 

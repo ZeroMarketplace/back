@@ -214,6 +214,187 @@ router.get(
 
 /**
  * @swagger
+ * /api/categories/home-slider:
+ *   get:
+ *     summary: Get last 6 categories for home slider
+ *     tags:
+ *       - Categories
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *           default: 6
+ *         description: Number of categories to return (max 6)
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
+ *       200:
+ *         description: Successful get home slider categories
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 total:
+ *                   type: number
+ *                   example: 6
+ *                 list:
+ *                   type: array
+ *                   maxItems: 6
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       _user:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       profitPercent:
+ *                         type: number
+ *                       code:
+ *                         type: number
+ *                       status:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                       updatedAt:
+ *                         type: string
+ *                       createdAtJalali:
+ *                         type: string
+ *                       updatedAtJalali:
+ *                         type: string
+ *                       _properties:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ */
+router.get(
+    '/home-slider',
+    function (req, res) {
+        // create clean input
+        let $input = InputsController.clearInput(req.query);
+
+        CategoriesController.homeSliderCategories($input).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+/**
+ * @swagger
+ * /api/categories/menu:
+ *   get:
+ *     summary: Get menu categories with hierarchical structure
+ *     tags:
+ *       - Categories
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *           default: 20
+ *         description: Number of categories to return (max 50)
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          message:
+ *                              type: string
+ *                          errors:
+ *                              type: array
+ *                              items:
+ *                                  type: string
+ *       200:
+ *          description: Successful get menu categories
+ *          content:
+ *             application/json:
+ *               schema:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                     _user:
+ *                       type: string
+ *                     title:
+ *                       type: string
+ *                     profitPercent:
+ *                       type: number
+ *                     code:
+ *                       type: number
+ *                     children:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           title:
+ *                             type: string
+ *                           code:
+ *                             type: number
+ *                           children:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               description: Nested category children
+ *                     status:
+ *                         type: string
+ *                     createdAt:
+ *                         type: string
+ *                     updatedAt:
+ *                         type: string
+ *                     createdAtJalali:
+ *                         type: string
+ *                     updatedAtJalali:
+ *                         type: string
+ *                     _properties:
+ *                         type: array
+ *                         items:
+ *                           type: string
+ */
+router.get(
+    '/menu',
+    function (req, res) {
+        // create clean input
+        let $input = InputsController.clearInput(req.query);
+
+        CategoriesController.getMenuCategories($input).then(
+            (response) => {
+                return res.status(response.code).json(response.data);
+            },
+            (error) => {
+                return res.status(error.code ?? 500).json(error.data ?? {});
+            }
+        );
+    }
+);
+
+/**
+ * @swagger
  * /api/categories/{id}:
  *   get:
  *     summary: Get Category by id
@@ -527,5 +708,6 @@ router.delete(
         );
     }
 );
+
 
 export default router;

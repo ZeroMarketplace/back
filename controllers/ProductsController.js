@@ -12,7 +12,6 @@ import { ObjectId } from "mongodb";
 import InputsController from "./InputsController.js";
 import BrandsModel from "../models/BrandsModel.js";
 
-// config upload service
 const filesPath = "public/products/";
 const fileStorage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -25,14 +24,13 @@ const fileStorage = multer.diskStorage({
   },
 });
 const fileFilter = (req, file, cb) => {
-  // check allowed type
   let allowedTypes = ["image/jpg", "image/jpeg", "image/png", "image/gif"];
   cb(null, allowedTypes.includes(file.mimetype));
 };
 const uploadProductFiles = multer({
   storage: fileStorage,
   fileFilter: fileFilter,
-  limits: { fileSize: 5000000 },
+  limits: {fileSize: 5000000},
 }).array("files");
 
 class ProductsController extends Controllers {
@@ -46,8 +44,7 @@ class ProductsController extends Controllers {
     return new Promise((resolve, reject) => {
       try {
         if (!fs.existsSync(filesPath)) {
-          // create the path
-          fs.mkdirSync(filesPath, { recursive: true });
+          fs.mkdirSync(filesPath, {recursive: true});
           console.log(`Products Storage Path was created successfully.`);
         }
 
@@ -62,7 +59,6 @@ class ProductsController extends Controllers {
 
   static setVariantsTitleBasedOnProperty($propertyId) {
     return new Promise((resolve, reject) => {
-      // update every product has variant with this property
       this.model
         .list(
           {
@@ -74,15 +70,11 @@ class ProductsController extends Controllers {
         )
         .then(
           async (listOfProducts) => {
-            // update every
             for (const product of listOfProducts) {
-              // create variant title
               for (const variant of product.variants) {
-                // create variant title
                 variant.title = this.createVariantTitle(product.title, variant);
               }
 
-              // update product
               await this.model.updateOne(product._id, {
                 variants: product.variants,
               });
@@ -125,7 +117,7 @@ class ProductsController extends Controllers {
           let createdAtJalali = new persianDate($value);
           $row[$index + "Jalali"] = createdAtJalali.toLocale("fa").format();
           break;
-        case "files":
+      case "files":
           if (Array.isArray($value) && $value.length) {
             const base = (process.env.STATICS_URL || "/").replace(/\/+$/, "");
             const prefix = `${base}/products/`;
@@ -133,7 +125,6 @@ class ProductsController extends Controllers {
           }
           break;
         case "_id":
-          // set price of product
           let priceOfProduct = await InventoriesController.getProductPrice({
             _id: $value,
           });
@@ -141,7 +132,6 @@ class ProductsController extends Controllers {
           break;
         case "variants":
           for (const variant of $value) {
-            // set price of variant
             let priceOfVariant = await InventoriesController.getProductPrice({
               _id: variant._id,
             });
@@ -159,40 +149,32 @@ class ProductsController extends Controllers {
   static queryBuilder($input) {
     let $query = {};
 
-    // pagination
     this.detectPaginationAndSort($input);
 
-    // set the default status for search
     $query["status"] = BrandsModel.statuses.ACTIVE;
 
     for (const [$index, $value] of Object.entries($input)) {
       switch ($index) {
         case "title":
           $input["$or"] = [
-            { title: { $regex: ".*" + $value + ".*" } },
-            { "variants.title": { $regex: ".*" + $value + ".*" } },
+            {title: {$regex: ".*" + $value + ".*"}},
+            {"variants.title": {$regex: ".*" + $value + ".*"}},
           ];
           delete $input["title"];
           break;
         case "statuses":
-          // check if its admin
           if ($input.user.data.role === "admin") {
-            // convert statuses to array
             let $arrayOfValue = $value.split(",");
             let $statuses = [];
 
-            // add each status
             $arrayOfValue.forEach((status) => {
-              // if status is a valid number
               if (!isNaN(status)) {
-                // add to array
                 $statuses.push(Number(status));
               }
             });
 
-            // set the filed for query
             if ($statuses.length > 1) {
-              $query["status"] = { $in: $statuses };
+              $query["status"] = {$in: $statuses};
             }
           }
           break;
@@ -206,13 +188,11 @@ class ProductsController extends Controllers {
     return new Promise(async (resolve, reject) => {
       try {
         await InputsController.validateInput($input, {
-          _id: { type: "mongoId", required: true },
+          _id: {type: "mongoId", required: true},
         });
 
-        // get product
         const product = await this.model.get($input._id);
 
-        // upload product files
         uploadProductFiles($input.req, $input.res, async (err) => {
           if (err) {
             return reject({
@@ -221,17 +201,14 @@ class ProductsController extends Controllers {
             });
           }
 
-          // create array of files
           if (!product.files) {
             product.files = [];
           }
 
-          // add file Names to the list
           $input.req.files.forEach((file) => {
             product.files.push(file.filename);
           });
 
-          // save product
           await product.save();
 
           return resolve({
@@ -247,25 +224,19 @@ class ProductsController extends Controllers {
   static deleteFile($input) {
     return new Promise(async (resolve, reject) => {
       try {
-        // validate input
         await InputsController.validateInput($input, {
-          _id: { type: "mongoId", required: true },
+          _id: {type: "mongoId", required: true},
         });
 
-        // get the product files detail
         const product = await this.model.get($input._id, {
           select: "_id files",
         });
 
-        // check file is exiting
         if (product.files.length && product.files.includes($input.fileName)) {
-          // delete File
           await fs.unlinkSync(filesPath + $input.fileName);
 
-          // remove file from files list
           product.files.splice(product.files.indexOf($input.fileName), 1);
 
-          // save the product
           await product.save();
 
           return resolve({
@@ -285,18 +256,16 @@ class ProductsController extends Controllers {
   static deleteVariant($input) {
     return new Promise(async (resolve, reject) => {
       try {
-        // validate input
         await InputsController.validateInput($input, {
-          _id: { type: "mongoId", required: true },
-          _variant: { type: "mongoId", required: true },
+          _id: {type: "mongoId", required: true},
+          _variant: {type: "mongoId", required: true},
         });
 
         const product = await this.model.get($input._id);
 
-        // find purchase-invoices with this product
         await PurchaseInvoicesController.item(
-          { "products._id": $input._variant },
-          { select: "_id" }
+          {"products._id": $input._variant},
+          {select: "_id"}
         ).then(
           (purchaseInvoices) => {
             return reject({
@@ -310,7 +279,6 @@ class ProductsController extends Controllers {
           },
           async (response) => {
             if (response.code === 404) {
-              // delete variant from product
               product.variants.splice(
                 product.variants.indexOf(
                   product.variants.find(
@@ -320,7 +288,6 @@ class ProductsController extends Controllers {
                 1
               );
 
-              // save product
               await product.save();
 
               return resolve({
@@ -343,7 +310,7 @@ class ProductsController extends Controllers {
     return new Promise(async (resolve, reject) => {
       try {
         await InputsController.validateInput($input, {
-          name: { type: "string", required: true },
+          name: {type: "string", required: true},
           _categories: {
             type: "array",
             minItemCount: 1,
@@ -351,19 +318,19 @@ class ProductsController extends Controllers {
               type: "mongoId",
             },
           },
-          _brand: { type: "mongoId", required: true },
-          _unit: { type: "mongoId", required: true },
-          barcode: { type: "string" },
-          iranCode: { type: "string" },
-          weight: { type: "number" },
-          tags: { type: "string" },
+          _brand: {type: "mongoId", required: true},
+          _unit: {type: "mongoId", required: true},
+          barcode: {type: "string"},
+          iranCode: {type: "string"},
+          weight: {type: "number"},
+          tags: {type: "string"},
           properties: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                title: { type: "string" },
-                _id: { type: "mongoId" },
+                title: {type: "string"},
+                _id: {type: "mongoId"},
               },
             },
           },
@@ -377,8 +344,8 @@ class ProductsController extends Controllers {
                   items: {
                     type: "object",
                     properties: {
-                      _property: { type: "mongoId" },
-                      value: { type: "number" },
+                      _property: {type: "mongoId"},
+                      value: {type: "number"},
                     },
                   },
                 },
@@ -388,15 +355,14 @@ class ProductsController extends Controllers {
           dimensions: {
             type: "object",
             properties: {
-              length: { type: "number" },
-              width: { type: "number" },
+              length: {type: "number"},
+              width: {type: "number"},
             },
           },
-          title: { type: "string" },
-          content: { type: "string" },
+          title: {type: "string"},
+          content: {type: "string"},
         });
 
-        // product code
         let category = await CategoriesController.get({
           _id: $input._categories[0],
         });
@@ -408,7 +374,6 @@ class ProductsController extends Controllers {
             ))
         );
 
-        // variants
         if ($input.variants) {
           for (let variant of $input.variants) {
             variant.code = Number(
@@ -419,7 +384,6 @@ class ProductsController extends Controllers {
                 ))
             );
 
-            // create variant title
             variant.title = await this.createVariantTitle(
               $input.title,
               variant
@@ -427,7 +391,6 @@ class ProductsController extends Controllers {
           }
         }
 
-        // dimensions
         if (!$input.dimensions) {
           $input.dimensions = {
             width: 0,
@@ -435,7 +398,6 @@ class ProductsController extends Controllers {
           };
         }
 
-        // filter
         let response = await this.model.insertOne({
           name: $input.name,
           code: $input.code,
@@ -455,7 +417,6 @@ class ProductsController extends Controllers {
           _user: $input.user.data._id,
         });
 
-        // create output
         response = await this.outputBuilder(response.toObject());
 
         return resolve({
@@ -472,14 +433,13 @@ class ProductsController extends Controllers {
     return new Promise(async (resolve, reject) => {
       try {
         await InputsController.validateInput($input, {
-          title: { type: "string" },
-          statuses: { type: "string" },
-          perPage: { type: "number" },
-          page: { type: "number" },
-          sortColumn: { type: "string" },
-          sortDirection: { type: "number" },
+          title: {type: "string"},
+          statuses: {type: "string"},
+          perPage: {type: "number"},
+          page: {type: "number"},
+          sortColumn: {type: "string"},
+          sortDirection: {type: "number"},
         });
-  
 
         if ($input.statuses) {
           $input.statuses = $input.statuses
@@ -487,31 +447,30 @@ class ProductsController extends Controllers {
             .map(s => Number(s.trim()))
             .filter(Boolean);
         }
-  
-      
+
         if (!$input.sortColumn || $input.sortColumn === "") {
           delete $input.sortColumn;
         }
-  
-        let $query = this.queryBuilder({ data: $input });
-  
+
+        let $query = this.queryBuilder({data: $input});
+
         if ($input.statuses?.length) {
-          $query.status = { $in: $input.statuses };
+          $query.status = {$in: $input.statuses};
         }
-  
+
         const list = await this.model.list($query, {
           skip: $input.offset,
           limit: $input.perPage,
           sort: $input.sort,
         });
-  
+
         const count = await this.model.count($query);
-  
+
         for (const row of list) {
           const index = list.indexOf(row);
           list[index] = await this.outputBuilder(row.toObject());
         }
-  
+
         return resolve({
           code: 200,
           data: {
@@ -527,17 +486,13 @@ class ProductsController extends Controllers {
       }
     });
   }
-  
-  
-  
 
   static updateOne($input) {
     return new Promise(async (resolve, reject) => {
       try {
-        // validate input
         await InputsController.validateInput($input, {
-          _id: { type: "mongoId", required: true },
-          name: { type: "string", required: true },
+          _id: {type: "mongoId", required: true},
+          name: {type: "string", required: true},
           _categories: {
             type: "array",
             minItemCount: 1,
@@ -545,19 +500,19 @@ class ProductsController extends Controllers {
               type: "mongoId",
             },
           },
-          _brand: { type: "mongoId", required: true },
-          _unit: { type: "mongoId", required: true },
-          barcode: { type: "string" },
-          iranCode: { type: "string" },
-          weight: { type: "number" },
-          tags: { type: "string" },
+          _brand: {type: "mongoId", required: true},
+          _unit: {type: "mongoId", required: true},
+          barcode: {type: "string"},
+          iranCode: {type: "string"},
+          weight: {type: "number"},
+          tags: {type: "string"},
           properties: {
             type: "array",
             items: {
               type: "object",
               properties: {
-                title: { type: "string" },
-                _id: { type: "mongoId" },
+                title: {type: "string"},
+                _id: {type: "mongoId"},
               },
             },
           },
@@ -571,8 +526,8 @@ class ProductsController extends Controllers {
                   items: {
                     type: "object",
                     properties: {
-                      _property: { type: "mongoId" },
-                      value: { type: "number" },
+                      _property: {type: "mongoId"},
+                      value: {type: "number"},
                     },
                   },
                 },
@@ -582,15 +537,14 @@ class ProductsController extends Controllers {
           dimensions: {
             type: "object",
             properties: {
-              length: { type: "number" },
-              width: { type: "number" },
+              length: {type: "number"},
+              width: {type: "number"},
             },
           },
-          title: { type: "string" },
-          content: { type: "string" },
+          title: {type: "string"},
+          content: {type: "string"},
         });
 
-        // variants
         if ($input.variants) {
           let category = await CategoriesController.get({
             _id: $input._categories[0],
@@ -605,7 +559,6 @@ class ProductsController extends Controllers {
                   ))
               );
 
-            // create variant title
             variant.title = await this.createVariantTitle(
               $input.title,
               variant
@@ -613,7 +566,6 @@ class ProductsController extends Controllers {
           }
         }
 
-        // dimensions
         if (!$input.dimensions) {
           $input.dimensions = {
             width: 0,
@@ -621,7 +573,6 @@ class ProductsController extends Controllers {
           };
         }
 
-        // filter
         let response = await this.model.updateOne($input._id, {
           name: $input.name,
           _categories: $input._categories,
@@ -638,7 +589,6 @@ class ProductsController extends Controllers {
           content: $input.content,
         });
 
-        // create output
         response = await this.outputBuilder(response.toObject());
 
         return resolve({
@@ -654,9 +604,8 @@ class ProductsController extends Controllers {
   static setStatus($input) {
     return new Promise(async (resolve, reject) => {
       try {
-        // validate $input
         InputsController.validateInput($input, {
-          _id: { type: "mongoId", required: true },
+          _id: {type: "mongoId", required: true},
           status: {
             type: "number",
             allowedValues: Object.values(ProductsModel.statuses),
@@ -664,12 +613,10 @@ class ProductsController extends Controllers {
           },
         });
 
-        // set the status
         await this.model.updateOne($input._id, {
           status: $input.status,
         });
 
-        // return result
         return resolve({
           code: 200,
         });
@@ -682,22 +629,18 @@ class ProductsController extends Controllers {
   static deleteOne($input) {
     return new Promise(async (resolve, reject) => {
       try {
-        // validate input
         await InputsController.validateInput($input, {
-          _id: { type: "mongoId", required: true },
+          _id: {type: "mongoId", required: true},
         });
 
-        // get the product
-        let product = await this.model.get($input._id, { select: "_id files" });
+        let product = await this.model.get($input._id, {select: "_id files"});
 
-        // delete files
         if (product.files) {
           for (const file of product.files) {
             await fs.unlinkSync(filesPath + file);
           }
         }
 
-        // delete the product
         await product.deleteOne();
 
         return resolve({
@@ -712,24 +655,56 @@ class ProductsController extends Controllers {
   static latest($input) {
     return new Promise(async (resolve, reject) => {
       try {
-        // validate input
         await InputsController.validateInput($input, {
-          limit: { type: "number" },
+          limit: {type: "number"},
         });
 
-        // determine limit (default 10, max 50)
         let $limit = Number($input.limit ?? 10);
         if (isNaN($limit) || $limit <= 0) $limit = 10;
         if ($limit > 50) $limit = 50;
 
-        // only active products, sort by createdAt desc
-        const $query = { status: ProductsModel.statuses.ACTIVE };
+        const $query = {status: ProductsModel.statuses.ACTIVE};
         const list = await this.model.list($query, {
           limit: $limit,
-          sort: { createdAt: -1 },
+          sort: {createdAt: -1},
         });
 
-        // enrich output
+        for ( const row of list) {
+          const index = list.indexOf(row);
+          list[index] = await this.outputBuilder(row.toObject());
+        }
+
+        return resolve({
+          code: 200,
+          data: list,
+        });
+      } catch (error) {
+        return reject(error);
+      }
+    });
+  }
+
+  static getByCategory($input) {
+    return new Promise(async (resolve, reject) => {
+      try {
+        await InputsController.validateInput($input, {
+          categoryId: {type: "mongoId", required: true},
+          limit: {type: "number"},
+        });
+
+        let $limit = Number($input.limit ?? 10);
+        if (isNaN($limit) || $limit <= 0) $limit = 10;
+
+        const $query = {
+          status: ProductsModel.statuses.ACTIVE,
+          _categories: new ObjectId($input.categoryId)
+        };
+
+        const list = await this.model.list($query, {
+          limit: $limit,
+          sort: {createdAt: -1},
+        });
+
         for (const row of list) {
           const index = list.indexOf(row);
           list[index] = await this.outputBuilder(row.toObject());
@@ -740,6 +715,7 @@ class ProductsController extends Controllers {
           data: list,
         });
       } catch (error) {
+        console.error("❌ getByCategory error:", error);
         return reject(error);
       }
     });

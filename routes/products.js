@@ -92,6 +92,132 @@ router.get("/search", function (req, res) {
 
 /**
  * @swagger
+ * /api/products/category:
+ *   get:
+ *     summary: Get active products filtered by category ID
+ *     tags:
+ *       - Products
+ *     parameters:
+ *       - in: query
+ *         name: categoryId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Category ID to filter products
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *         description: Number of products to return (default 10)
+ *     responses:
+ *       400:
+ *          description: Bad Request (for validation)
+ *          content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   message:
+ *                     type: string
+ *                   errors:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *       200:
+ *          description: Successful get
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: array
+ *                items:
+ *                  type: object
+ *                  properties:
+ *                    _id:
+ *                      type: string
+ *                    _user:
+ *                      type: string
+ *                    name:
+ *                      type: string
+ *                      example: product1
+ *                    _categories:
+ *                      type: array
+ *                      items:
+ *                        type: string
+ *                    _brand:
+ *                      type: string
+ *                    _unit:
+ *                      type: string
+ *                    barcode:
+ *                      type: string
+ *                    iranCode:
+ *                      type: string
+ *                    weight:
+ *                      type: number
+ *                    tags:
+ *                      type: string
+ *                    properties:
+ *                      type: array
+ *                      items:
+ *                        type: object
+ *                        properties:
+ *                          title:
+ *                            type: string
+ *                          _id:
+ *                            type: string
+ *                          value:
+ *                            type: mixed
+ *                    variants:
+ *                      type: array
+ *                      items:
+ *                        type: object
+ *                        properties:
+ *                          properties:
+ *                            type: array
+ *                            items:
+ *                              type: object
+ *                              properties:
+ *                                _property:
+ *                                  type: string
+ *                                value:
+ *                                  type: string
+ *                    dimensions:
+ *                      type: object
+ *                      properties:
+ *                        length:
+ *                          type: number
+ *                        width:
+ *                          type: number
+ *                    title:
+ *                      type: string
+ *                    content:
+ *                      type: string
+ *                    status:
+ *                      type: string
+ *                    createdAt:
+ *                      type: string
+ *                    updatedAt:
+ *                      type: string
+ *                    createdAtJalali:
+ *                      type: string
+ *                    updatedAtJalali:
+ *                      type: string
+ */
+router.get("/category", function (req, res) {
+  // create clean input
+  let $input = InputsController.clearInput(req.query);
+
+  ProductsController.getByCategory($input).then(
+    (response) => {
+      return res.status(response.code).json(response.data);
+    },
+    (error) => {
+      return res.status(error.code ?? 500).json(error.data ?? {});
+    }
+  );
+});
+
+/**
+ * @swagger
  * /api/products:
  *   post:
  *     tags:
